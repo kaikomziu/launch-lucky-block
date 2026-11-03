@@ -82,6 +82,10 @@ export const dumbbellCost = lv => Math.ceil(15 * Math.pow(1.75, lv - 1));
 export const playerSpeed = lv => 14 + (lv - 1) * 1.3;
 export const speedCost = lv => Math.ceil(25 * Math.pow(1.9, lv - 1));
 
+// リボーン: お金・力・強化をリセットする代わりに、稼ぎと力の伸びが永久に +50% ずつ増える
+export const rebirthMult = n => 1 + 0.5 * n;
+export const rebirthCost = n => Math.ceil(100000 * Math.pow(5, n));
+
 // 力と打撃タイミングから飛距離を決める
 export function launchDistance(strength, timingMult) {
   const d = 18 + 5.5 * Math.sqrt(strength) * timingMult * (0.9 + Math.random() * 0.2);

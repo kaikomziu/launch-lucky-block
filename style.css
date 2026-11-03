@@ -31,6 +31,10 @@ b { font-weight: 800; }
 .stat b { font-size: 20px; }
 .stat small { color: var(--muted); font-size: 12px; margin-left: auto; padding-left: 8px; }
 .stat.money b { color: #7dff8a; }
+.stat.reb b { color: #c9a7ff; }
+.card.rebirth { border-color: #b388ff; }
+.card .warn { color: #ff9e80; font-size: 12px; }
+.btn.reb { background: #b388ff; color: #22104a; }
 
 #menu { top: max(10px, env(safe-area-inset-top)); right: 10px; display: flex; gap: 8px; pointer-events: auto; }
 #menu button {

@@ -2,14 +2,19 @@
 import * as THREE from 'three';
 import {
   RARITIES, ZONES, CHARACTERS, CHAR_BY_ID, BASE_LINE, LAUNCH_POS, ZONE_START, ZONE_LEN, WORLD_END, WORLD_HALF_W,
-  MAX_STAR, SLOT_COUNT, charIncome, evolveCost, sellPrice, strengthRate, dumbbellCost, playerSpeed, speedCost,
-  launchDistance, zoneAt, rollCharacter, fmt,
+  MAX_STAR, SLOT_COUNT, charIncome as baseIncome, evolveCost, sellPrice as baseSellPrice, strengthRate as baseStrengthRate,
+  dumbbellCost, playerSpeed, speedCost, rebirthMult, rebirthCost, launchDistance, zoneAt, rollCharacter, fmt,
 } from './data.js';
 import { buildPlayer, buildBoss, buildLuckyBlock, buildCharacter, textTexture, mat } from './models.js';
 import { initAudio, play, startLoop, stopLoop, setVolume } from './audio.js';
 import { input, initInput, pollInput, lockPointer, unlockPointer } from './input.js';
 
 const $ = id => document.getElementById(id);
+
+// リボーン倍率を掛けた稼ぎ・売値・力の伸び
+const charIncome = (c, star = 1) => baseIncome(c, star) * rebirthMult(save.rebirths);
+const sellPrice = (c, star) => Math.ceil(baseSellPrice(c, star) * rebirthMult(save.rebirths));
+const strengthRate = lv => baseStrengthRate(lv) * rebirthMult(save.rebirths);
 
 // =====================================================================
 // セーブデータ
@@ -22,7 +27,7 @@ const randomId = () => (crypto.randomUUID ? crypto.randomUUID()
 
 function defaultSave() {
   return {
-    money: 0, strength: 20, dumbbellLv: 1, speedLv: 1,
+    money: 0, strength: 20, dumbbellLv: 1, speedLv: 1, rebirths: 0,
     slots: Array(SLOT_COUNT).fill(null),         // { id, star, stored }
     stats: { bestDistance: 0, totalEarned: 0, collected: 0, bestRarity: 0 },
     dex: {},
@@ -962,6 +967,9 @@ function updateHud() {
   $('sStrength').textContent = fmt(save.strength);
   $('sRate').textContent = `+${fmt(strengthRate(save.dumbbellLv) * (trainBoost ? 3 : 1))}/秒${trainBoost ? ' ×3' : ''}`;
   $('sSpeed').textContent = playerSpeed(save.speedLv).toFixed(1);
+  $('rebirthStat').classList.toggle('hidden', !save.rebirths);
+  $('sRebirth').textContent = save.rebirths;
+  $('sRebirthMult').textContent = `×${rebirthMult(save.rebirths)}`;
   const unseen = Object.values(save.dex).filter(e => !e.seen).length;
   $('indexBadge').textContent = unseen;
   $('indexBadge').classList.toggle('hidden', unseen === 0 || openPanel === 'indexPanel');
@@ -1006,7 +1014,8 @@ let shopSig = '';
 function renderShop() {
   const dl = save.dumbbellLv, sl = save.speedLv;
   const dc = dumbbellCost(dl + 1), sc = speedCost(sl + 1);
-  const sig = [dl, sl, save.money >= dc, save.money >= sc].join();
+  const rn = save.rebirths, rc = rebirthCost(rn);
+  const sig = [dl, sl, rn, save.money >= dc, save.money >= sc, save.money >= rc].join();
   if (sig === shopSig && $('shopBody').children.length) return;
   shopSig = sig;
   $('shopBody').innerHTML = `
@@ -1016,12 +1025,17 @@ function renderShop() {
     <div class="card"><div class="icon">👟</div><div class="info">
       <h3>スピード Lv.${sl}</h3><p>速さ ${playerSpeed(sl).toFixed(1)} → <b>${playerSpeed(sl + 1).toFixed(1)}</b></p></div>
       <div class="btns"><button class="btn" data-buy="speed" ${save.money < sc ? 'disabled' : ''}>強化<small>$${fmt(sc)}</small></button></div></div>
+    <div class="card rebirth"><div class="icon">🔄</div><div class="info">
+      <h3>リボーン ${rn}回</h3><p>稼ぎ・力の伸び ×${rebirthMult(rn)} → <b>×${rebirthMult(rn + 1)}</b></p>
+      <p class="warn">お金・力・ダンベル・スピードが最初に戻る（キャラとインデックスは残る）</p></div>
+      <div class="btns"><button class="btn reb" data-buy="rebirth" ${save.money < rc ? 'disabled' : ''}>リボーン<small>$${fmt(rc)}</small></button></div></div>
     <p class="dex-sum">💡 ボスの速さ: ${ZONES.map((z, i) => `${RARITIES[i].name} ${z.boss.speed}`).join(' / ')}</p>
     <p class="dex-sum">現在の力での飛距離の目安: 約${Math.round(18 + 5.5 * Math.sqrt(save.strength))}m（PERFECTで約${Math.round(18 + 5.5 * Math.sqrt(save.strength) * 1.3)}m）</p>`;
 }
 $('shopBody').addEventListener('click', e => {
   const b = e.target.closest('[data-buy]');
   if (!b || b.disabled) return;
+  if (b.dataset.buy === 'rebirth') { doRebirth(); return; }
   if (b.dataset.buy === 'dumbbell') {
     const c = dumbbellCost(save.dumbbellLv + 1);
     if (save.money < c) return;
@@ -1037,6 +1051,26 @@ $('shopBody').addEventListener('click', e => {
   shopSig = '';
   renderShop(); updateHud(); writeSave();
 });
+
+function doRebirth() {
+  const c = rebirthCost(save.rebirths);
+  if (save.money < c || state !== 'free') return;
+  const next = rebirthMult(save.rebirths + 1);
+  if (!confirm(`リボーンしますか？
+
+お金・力・ダンベル・スピードが最初に戻ります。
+キャラ・台座にたまったお金・インデックスは残ります。
+
+稼ぎと力の伸びが ×${next} になります。`)) return;
+  save.rebirths++;
+  save.money = 0; save.strength = 20; save.dumbbellLv = 1; save.speedLv = 1;
+  play('evolve');
+  burst(pState.pos.clone().add(new THREE.Vector3(0, 3, 0)), 0xb388ff, 60, 16);
+  toast(`🔄 リボーン ${save.rebirths}回目！ 稼ぎ・力の伸び ×${next}`, { color: '#b388ff', big: true, time: 3200 });
+  shopSig = '';
+  closePanels(); lockPointer();
+  updateHud(); updateSlotLabels(); writeSave();
+}
 
 function renderChars() {
   const body = $('charBody');
