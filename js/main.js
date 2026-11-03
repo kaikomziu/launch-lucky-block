@@ -1,9 +1,10 @@
 // ラッキーブロックを打つ Web — メイン
 import * as THREE from 'three';
 import {
-  RARITIES, ZONES, CHARACTERS, CHAR_BY_ID, BASE_LINE, LAUNCH_POS, ZONE_START, ZONE_LEN, WORLD_END, WORLD_HALF_W,
+  RARITIES, ZONES, CHARACTERS, CHAR_BY_ID, BASE_LINE, LAUNCH_POS, ZONE_START, ZONE_LENS, ZONE_STARTS, WORLD_END, WORLD_HALF_W,
   MAX_STAR, SLOT_COUNT, charIncome as baseIncome, evolveCost, sellPrice as baseSellPrice, strengthRate as baseStrengthRate,
   dumbbellCost, playerSpeed, speedCost, rebirthMult, rebirthCost, launchDistance, zoneAt, rollCharacter, fmt, rarFx, rarCss,
+  MUT_BY_ID, mutMult, rollMutation, mutationEvent,
 } from './data.js';
 import { buildPlayer, buildBoss, buildLuckyBlock, buildCharacter, textTexture, mat } from './models.js';
 import { initAudio, play, startLoop, stopLoop, setVolume } from './audio.js';
@@ -12,8 +13,10 @@ import { input, initInput, pollInput, lockPointer, unlockPointer } from './input
 const $ = id => document.getElementById(id);
 
 // リボーン倍率を掛けた稼ぎ・売値・力の伸び
-const charIncome = (c, star = 1) => baseIncome(c, star) * rebirthMult(save.rebirths);
-const sellPrice = (c, star) => Math.ceil(baseSellPrice(c, star) * rebirthMult(save.rebirths));
+const charIncome = (c, star = 1, mut = null) => baseIncome(c, star) * rebirthMult(save.rebirths) * mutMult(mut);
+const sellPrice = (c, star, mut = null) => Math.ceil(baseSellPrice(c, star) * rebirthMult(save.rebirths) * mutMult(mut));
+// 変異の表示用タグ
+const mutTag = mut => (mut && MUT_BY_ID[mut] ? `<span class="mut mut-${mut}">🧬${MUT_BY_ID[mut].name} ×${MUT_BY_ID[mut].mult}</span>` : '');
 const strengthRate = lv => baseStrengthRate(lv) * rebirthMult(save.rebirths);
 
 // =====================================================================
@@ -71,7 +74,7 @@ if (offlineSec > 30) {
   save.strength += strengthRate(save.dumbbellLv) * offlineSec;
   for (const s of save.slots) {
     if (!s) continue;
-    const add = charIncome(CHAR_BY_ID[s.id], s.star) * offlineSec;
+    const add = charIncome(CHAR_BY_ID[s.id], s.star, s.mut) * offlineSec;
     s.stored += add; offlineMoney += add;
   }
 }
@@ -123,11 +126,12 @@ plane(40, 52, 0xd5dde2, 0, -26, 0.01);
 plane(W, ZONE_START, 0x8fcf62, 0, ZONE_START / 2);
 // ゾーンの地面（縞模様）
 ZONES.forEach((z, i) => {
-  const start = ZONE_START + i * ZONE_LEN;
-  for (let k = 0; k < ZONE_LEN / 10; k++) plane(W, 10, k % 2 ? z.alt : z.ground, 0, start + k * 10 + 5);
+  const start = ZONE_STARTS[i], len = ZONE_LENS[i];
+  const n = Math.round(len / 10), w = len / n;   // 縞はゾーンの長さに合わせて等分
+  for (let k = 0; k < n; k++) plane(W, w, k % 2 ? z.alt : z.ground, 0, start + k * w + w / 2);
 });
 // 世界の外側
-plane(800, 1400, 0x3d6b2f, 0, 300, -0.05);
+plane(800, WORLD_END + 800, 0x3d6b2f, 0, WORLD_END / 2, -0.05);
 
 // 安全ライン
 const safeLine = plane(W, 1.2, 0x4cd964, 0, BASE_LINE, 0.03);
@@ -165,7 +169,7 @@ function gate(z, text, color, sub) {
 }
 gate(BASE_LINE, '🏠 拠点', 0x4cd964);
 ZONES.forEach((z, i) => {
-  const start = ZONE_START + i * ZONE_LEN;
+  const start = ZONE_STARTS[i];
   gate(start, `${z.name}  ${RARITIES[i].name}`, rarFx(i), `${start - LAUNCH_POS.z - 3}m〜`);
 });
 
@@ -258,10 +262,10 @@ function decorate(type, x, z) {
   scene.add(g);
 }
 ZONES.forEach((z, i) => {
-  const start = ZONE_START + i * ZONE_LEN;
-  for (let k = 0; k < 22; k++) {
+  const start = ZONE_STARTS[i], len = ZONE_LENS[i];
+  for (let k = 0; k < Math.round(22 * len / 80); k++) {
     const side = Math.random() < 0.5 ? -1 : 1;
-    decorate(z.deco, side * (11 + Math.random() * (WORLD_HALF_W - 13)), start + 4 + Math.random() * (ZONE_LEN - 8));
+    decorate(z.deco, side * (11 + Math.random() * (WORLD_HALF_W - 13)), start + 4 + Math.random() * (len - 8));
   }
 });
 // 拠点の木
@@ -327,7 +331,7 @@ scene.add(teeBlock);
 const player = buildPlayer();
 scene.add(player.group);
 const pState = { pos: new THREE.Vector3(0, 0, -12), facing: 0, walk: 0, lift: 0 };
-let carried = null;   // { def, model }
+let carried = null;   // { def, model, mut }
 input.camYaw = 0;
 
 // =====================================================================
@@ -335,7 +339,7 @@ input.camYaw = 0;
 // =====================================================================
 const bosses = ZONES.map((z, i) => {
   const b = buildBoss(z.boss);
-  const home = new THREE.Vector3(0, 0, ZONE_START + i * ZONE_LEN + ZONE_LEN * 0.72);
+  const home = new THREE.Vector3(0, 0, ZONE_STARTS[i] + ZONE_LENS[i] * 0.72);
   b.group.position.copy(home);
   b.group.rotation.y = Math.PI;
   scene.add(b.group);
@@ -394,7 +398,7 @@ function refreshSlot(i) {
   if (o.model) { o.group.remove(o.model); o.model = null; }
   if (!s) { o.ring.material.color.set(0x777777); return; }
   const def = CHAR_BY_ID[s.id];
-  o.model = buildCharacter(def);
+  o.model = buildCharacter(def, s.mut);
   o.model.position.y = 0.6;
   o.model.scale.setScalar(1 + (s.star - 1) * 0.12);
   o.model.rotation.y = -Math.sign(SLOT_POS[i].x) * Math.PI / 2;
@@ -409,8 +413,8 @@ function updateSlotLabels() {
     if (!s) { setLabel(o.label, `<div class="n">台座${i + 1}（空き）</div>${save.inventory.length ? '<div>近づいてキャラを置こう</div>' : ''}`); return; }
     const def = CHAR_BY_ID[s.id];
     setLabel(o.label,
-      `<div class="m">$${fmt(s.stored)}</div><div class="n">${def.name}</div>` +
-      `<div>${rarityName(def.r)} <span class="s">${stars(s.star)}</span></div><div>+${fmt(charIncome(def, s.star))}/秒</div>`);
+      `<div class="m">$${fmt(s.stored)}</div><div class="n">${def.name}</div>${mutTag(s.mut)}` +
+      `<div>${rarityName(def.r)} <span class="s">${stars(s.star)}</span></div><div>+${fmt(charIncome(def, s.star, s.mut))}/秒</div>`);
   });
 }
 
@@ -477,7 +481,7 @@ let camYawTarget = null;
 let trainBoost = false;
 
 function totalIncome() {
-  return save.slots.reduce((a, s) => a + (s ? charIncome(CHAR_BY_ID[s.id], s.star) : 0), 0);
+  return save.slots.reduce((a, s) => a + (s ? charIncome(CHAR_BY_ID[s.id], s.star, s.mut) : 0), 0);
 }
 
 // ---------- 行動ボタン ----------
@@ -514,8 +518,9 @@ function launchBlock() {
   const toZ = Math.min(TEE_POS.z + d, WORLD_END - 8);
   flight.from.copy(teeBlock.position);
   flight.to.set((Math.random() - 0.5) * 20, 0.8, toZ);
-  flight.T = 1.4 + d / 150;
-  flight.h = 6 + d * 0.28;
+  // ゾーンが長くなったので、遠くまで飛ぶときも待ち時間と高さは上限を設ける
+  flight.T = Math.min(8, 1.4 + d / 150);
+  flight.h = Math.min(160, 6 + d * 0.28);
   flight.zone = zoneAt(toZ);
   flight.landed = false;
   teeBlock.visible = false;
@@ -588,19 +593,22 @@ function finishOpen() {
   burst(pos, rarFx(r), 50, 18);
   removeFlightBlock();
   teeBlock.visible = false;   // 持ち帰るまで次は打てない
-  $('revealRarity').innerHTML = rarityName(r);
+  // 変異イベント中なら変異する
+  const mut = mutationEvent().active ? rollMutation() : null;
+  $('revealRarity').innerHTML = rarityName(r) + (mut ? ` ${mutTag(mut)}` : '');
   $('revealName').textContent = def.name;
   const special = RARITIES[r].css === 'rainbow' || RARITIES[r].css === 'cosmic';
   $('revealName').className = 'name' + (special ? ` ${RARITIES[r].css}-text` : '');
   $('revealName').style.color = special ? '' : RARITIES[r].css;
-  $('revealIncome').textContent = `+${fmt(charIncome(def))}/秒`;
+  $('revealIncome').textContent = `+${fmt(charIncome(def, 1, mut))}/秒`;
+  if (mut) setTimeout(() => play('evolve', { vol: 0.7 }), 350);
   $('reveal').classList.add('pop');
   setTimeout(() => $('reveal').classList.add('hidden'), 2200);
 
-  const model = buildCharacter(def);
+  const model = buildCharacter(def, mut);
   model.scale.setScalar(0.55);
   player.carry.add(model);
-  carried = { def, model };
+  carried = { def, model, mut };
   save.stats.bestRarity = Math.max(save.stats.bestRarity, r);
 
   // ボス出現
@@ -645,7 +653,7 @@ function caught() {
 }
 
 function reachedBase() {
-  const def = carried.def;
+  const def = carried.def, mut = carried.mut || null;
   player.carry.remove(carried.model);
   carried = null;
   endChase();
@@ -655,10 +663,11 @@ function reachedBase() {
   const isNew = !save.dex[def.id];
   const entry = save.dex[def.id] ||= { count: 0, first: Date.now(), seen: false };
   entry.count++;
+  if (mut) (entry.muts ||= {})[mut] = true;
   if (isNew) setTimeout(() => toast(`📖 インデックスに ${def.name} を登録！`, { color: '#ffd23f', time: 2600 }), 700);
-  save.inventory.push({ id: def.id, star: 1 });
+  save.inventory.push(mut ? { id: def.id, star: 1, mut } : { id: def.id, star: 1 });
   newItems++;
-  toast(`🎒 ${def.name} をインベントリに入れた！${isNew ? ' <span style="color:#ffd23f">NEW!</span>' : ''}`, { color: '#7dff8a', big: true, time: 2600 });
+  toast(`🎒 ${mut ? MUT_BY_ID[mut].name + '変異の' : ''}${def.name} をインベントリに入れた！${isNew ? ' <span style="color:#ffd23f">NEW!</span>' : ''}`, { color: '#7dff8a', big: true, time: 2600 });
   if (save.stats.collected <= 2) setTimeout(() => toast('空いている台座に近づくと、キャラを選んで置けるよ', { color: '#ffd23f', time: 3500 }), 1400);
   writeSave();
   renderPanels();
@@ -723,7 +732,7 @@ function update(dt) {
   // --- 放置での成長・収入 ---
   trainBoost = state === 'free' && Math.hypot(pState.pos.x - DUMBBELL_POS.x, pState.pos.z - DUMBBELL_POS.z) < 3.4;
   save.strength += strengthRate(save.dumbbellLv) * dt * (trainBoost ? 3 : 1);
-  for (const s of save.slots) if (s) s.stored += charIncome(CHAR_BY_ID[s.id], s.star) * dt;
+  for (const s of save.slots) if (s) s.stored += charIncome(CHAR_BY_ID[s.id], s.star, s.mut) * dt;
 
   // --- 移動 ---
   const canMove = ['free', 'atBlock', 'chase'].includes(state) && !fadeBusy && !openPanel;
@@ -892,7 +901,7 @@ function update(dt) {
   $('lockHint').classList.toggle('hidden', input.isTouch || input.locked || !!openPanel || !$('title').classList.contains('hidden'));
 
   labelTimer -= dt;
-  if (labelTimer <= 0) { labelTimer = 0.2; updateHud(); updateSlotLabels(); if (openPanel === 'shopPanel') renderShop(); }
+  if (labelTimer <= 0) { labelTimer = 0.2; updateHud(); updateSlotLabels(); updateEvent(); if (openPanel === 'shopPanel') renderShop(); }
   updateLabels();
 
   saveTimer += dt;
@@ -977,10 +986,30 @@ function updateCamera(dt) {
 }
 
 const tmpCol = new THREE.Color();
+// ---------- 変異イベント ----------
+let eventOn = mutationEvent().active;
+const eventSky = new THREE.Color(0x7a3cff);
+const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+function updateEvent() {
+  const ev = mutationEvent();
+  $('eventStat').classList.toggle('on', ev.active);
+  $('sEvent').textContent = mmss(ev.left);
+  $('sEventLabel').textContent = ev.active ? '変異イベント中！' : '次の変異まで';
+  if (ev.active !== eventOn) {
+    eventOn = ev.active;
+    if (eventOn) {
+      play('evolve');
+      toast('🧬 変異イベント開始！', { color: '#c9a7ff', big: true, time: 3000 });
+      setTimeout(() => toast('3分間、手に入れたキャラが全員変異する！', { color: '#c9a7ff', time: 3500 }), 800);
+    } else toast('🧬 変異イベントが終わった（次は15分後）', { color: '#c9a7ff', time: 3000 });
+  }
+}
+
 function updateSky(dt) {
   const focusZ = state === 'flight' && flight.block ? flight.block.position.z : pState.pos.z;
   const z = focusZ < ZONE_START ? -1 : zoneAt(focusZ);
   tmpCol.set(z < 0 ? 0x8fd3ff : ZONES[z].sky);
+  if (eventOn) tmpCol.lerp(eventSky, 0.4);   // 変異イベント中は空が紫がかる
   scene.background.lerp(tmpCol, Math.min(1, dt * 2));
   scene.fog.color.copy(scene.background);
   if (z !== lastZone) {
@@ -1139,7 +1168,7 @@ function doRebirth() {
 }
 
 // 1枚のカードの左側（サムネイル）
-const charIcon = def => `<img class="thumb" src="${charThumb(def, false)}" alt="">`;
+const charIcon = (def, mut) => `<img class="thumb" src="${charThumb(def, false, mut)}" alt="">`;
 const firstEmpty = () => save.slots.findIndex(s => !s);
 
 function renderChars() {
@@ -1160,23 +1189,25 @@ function renderInventory() {
   // 同じキャラ・同じ★はまとめて表示（レア度の高い順）
   const groups = new Map();
   for (const it of save.inventory) {
-    const k = it.id + ':' + it.star;
-    if (!groups.has(k)) groups.set(k, { id: it.id, star: it.star, n: 0 });
+    const k = it.id + ':' + it.star + ':' + (it.mut || '');
+    if (!groups.has(k)) groups.set(k, { id: it.id, star: it.star, mut: it.mut || '', n: 0 });
     groups.get(k).n++;
   }
-  const list = [...groups.values()].sort((a, b) => CHAR_BY_ID[b.id].r - CHAR_BY_ID[a.id].r || b.star - a.star || CHAR_BY_ID[b.id].mult - CHAR_BY_ID[a.id].mult);
+  const list = [...groups.values()].sort((a, b) => CHAR_BY_ID[b.id].r - CHAR_BY_ID[a.id].r || mutMult(b.mut) - mutMult(a.mut) || b.star - a.star || CHAR_BY_ID[b.id].mult - CHAR_BY_ID[a.id].mult);
   const target = placeSlot >= 0 && !save.slots[placeSlot] ? placeSlot : firstEmpty();
   const head = placeSlot >= 0 && !save.slots[placeSlot]
     ? `<p class="dex-sum">台座${placeSlot + 1}に置くキャラを選んでね</p>`
     : target < 0 ? '<p class="dex-sum">台座がいっぱい！ 台座のキャラを「しまう」か「売却」すると置けるよ</p>' : '';
   body.innerHTML = head + list.map(g => {
     const def = CHAR_BY_ID[g.id];
-    return `<div class="card">${charIcon(def)}
+    const key = `${g.id}:${g.star}:${g.mut}`;
+    return `<div class="card">${charIcon(def, g.mut)}
       <div class="info"><h3>${def.name} <span class="s" style="color:#ffd23f">${stars(g.star)}</span>${g.n > 1 ? ` <span class="cnt">×${g.n}</span>` : ''}</h3>
-        <p>${rarityName(def.r)} ・ +${fmt(charIncome(def, g.star))}/秒</p></div>
+        ${g.mut ? `<p>${mutTag(g.mut)}</p>` : ''}
+        <p>${rarityName(def.r)} ・ +${fmt(charIncome(def, g.star, g.mut))}/秒</p></div>
       <div class="btns">
-        <button class="btn" data-place="${g.id}:${g.star}" ${target < 0 ? 'disabled' : ''}>${target < 0 ? '置けない' : `台座${target + 1}に置く`}</button>
-        <button class="btn sell" data-isell="${g.id}:${g.star}">売却<small>$${fmt(sellPrice(def, g.star))}</small></button>
+        <button class="btn" data-place="${key}" ${target < 0 ? 'disabled' : ''}>${target < 0 ? '置けない' : `台座${target + 1}に置く`}</button>
+        <button class="btn sell" data-isell="${key}">売却<small>$${fmt(sellPrice(def, g.star, g.mut))}</small></button>
       </div></div>`;
   }).join('');
 }
@@ -1190,14 +1221,15 @@ function renderSlots() {
     const canEvo = s.star < MAX_STAR;
     const cost = canEvo ? evolveCost(def, s.star) : 0;
     return `<div class="card" ${i === highlightSlot ? 'style="border-color:#ffd23f"' : ''} id="slotCard${i}">
-      ${charIcon(def)}
+      ${charIcon(def, s.mut)}
       <div class="info"><h3>${def.name} <span class="s" style="color:#ffd23f">${stars(s.star)}</span></h3>
-        <p>${rarityName(def.r)} ・ 台座${i + 1} ・ +${fmt(charIncome(def, s.star))}/秒</p>
-        ${canEvo ? `<p>進化後: +${fmt(charIncome(def, s.star + 1))}/秒</p>` : '<p>最大まで進化済み！</p>'}</div>
+        ${s.mut ? `<p>${mutTag(s.mut)}</p>` : ''}
+        <p>${rarityName(def.r)} ・ 台座${i + 1} ・ +${fmt(charIncome(def, s.star, s.mut))}/秒</p>
+        ${canEvo ? `<p>進化後: +${fmt(charIncome(def, s.star + 1, s.mut))}/秒</p>` : '<p>最大まで進化済み！</p>'}</div>
       <div class="btns">
         ${canEvo ? `<button class="btn" data-evo="${i}" ${save.money < cost ? 'disabled' : ''}>進化<small>$${fmt(cost)}</small></button>` : ''}
         <button class="btn store" data-store="${i}">しまう</button>
-        <button class="btn sell" data-sell="${i}">売却<small>$${fmt(sellPrice(def, s.star))}</small></button>
+        <button class="btn sell" data-sell="${i}">売却<small>$${fmt(sellPrice(def, s.star, s.mut))}</small></button>
       </div></div>`;
   }).join('');
   if (highlightSlot >= 0) $('slotCard' + highlightSlot)?.scrollIntoView({ block: 'center' });
@@ -1207,12 +1239,13 @@ document.querySelectorAll('#charPanel .tab').forEach(t => t.addEventListener('cl
 }));
 
 // インベントリから台座へ置く
-function placeChar(id, star, i) {
-  const k = save.inventory.findIndex(x => x.id === id && x.star === star);
+const sameItem = (x, id, star, mut) => x.id === id && x.star === star && (x.mut || '') === (mut || '');
+function placeChar(id, star, mut, i) {
+  const k = save.inventory.findIndex(x => sameItem(x, id, star, mut));
   if (k < 0 || i < 0 || save.slots[i]) return;
   save.inventory.splice(k, 1);
   const def = CHAR_BY_ID[id];
-  save.slots[i] = { id, star, stored: 0 };
+  save.slots[i] = mut ? { id, star, stored: 0, mut } : { id, star, stored: 0 };
   refreshSlot(i);
   play('safe', { vol: 0.6 });
   burst(SLOT_POS[i].clone().add(new THREE.Vector3(0, 2, 0)), RARITIES[def.r].color, 30, 10);
@@ -1224,16 +1257,16 @@ $('charBody').addEventListener('click', e => {
   const place = e.target.closest('[data-place]'), isell = e.target.closest('[data-isell]');
   const store = e.target.closest('[data-store]'), pick = e.target.closest('[data-pick]');
   if (place && !place.disabled) {
-    const [id, star] = place.dataset.place.split(':');
+    const [id, star, mut] = place.dataset.place.split(':');
     const i = placeSlot >= 0 && !save.slots[placeSlot] ? placeSlot : firstEmpty();
-    placeChar(id, +star, i);
+    placeChar(id, +star, mut, i);
     // 台座から開いたときは置いたら閉じてゲームに戻る
     if (placeSlot >= 0) { closePanels(); lockPointer(); updateHud(); writeSave(); return; }
   } else if (isell) {
-    const [id, star] = isell.dataset.isell.split(':');
-    const def = CHAR_BY_ID[id], price = sellPrice(def, +star);
-    if (!confirm(`${def.name}（${stars(+star)}）を $${fmt(price)} で売却しますか？`)) return;
-    const k = save.inventory.findIndex(x => x.id === id && x.star === +star);
+    const [id, star, mut] = isell.dataset.isell.split(':');
+    const def = CHAR_BY_ID[id], price = sellPrice(def, +star, mut);
+    if (!confirm(`${mut ? MUT_BY_ID[mut].name + '変異の' : ''}${def.name}（${stars(+star)}）を $${fmt(price)} で売却しますか？`)) return;
+    const k = save.inventory.findIndex(x => sameItem(x, id, +star, mut));
     if (k < 0) return;
     save.inventory.splice(k, 1);
     addMoney(price);
@@ -1242,7 +1275,7 @@ $('charBody').addEventListener('click', e => {
     // 台座からインベントリへ戻す（たまっていたお金は回収する）
     const i = +store.dataset.store, s = save.slots[i], def = CHAR_BY_ID[s.id];
     if (s.stored >= 1) addMoney(s.stored);
-    save.inventory.push({ id: s.id, star: s.star });
+    save.inventory.push(s.mut ? { id: s.id, star: s.star, mut: s.mut } : { id: s.id, star: s.star });
     save.slots[i] = null;
     refreshSlot(i);
     play('whoosh', { vol: 0.6 });
@@ -1263,8 +1296,8 @@ $('charBody').addEventListener('click', e => {
     toast(`✨ ${def.name} が ★${s.star} に進化！`, { color: '#ffd23f', big: true });
   } else if (sell) {
     const i = +sell.dataset.sell, s = save.slots[i], def = CHAR_BY_ID[s.id];
-    if (!confirm(`${def.name}（${stars(s.star)}）を $${fmt(sellPrice(def, s.star))} で売却しますか？`)) return;
-    addMoney(sellPrice(def, s.star) + s.stored);
+    if (!confirm(`${def.name}（${stars(s.star)}）を $${fmt(sellPrice(def, s.star, s.mut))} で売却しますか？`)) return;
+    addMoney(sellPrice(def, s.star, s.mut) + s.stored);
     save.slots[i] = null;
     refreshSlot(i);
     play('coin');
@@ -1276,8 +1309,8 @@ $('charBody').addEventListener('click', e => {
 // ---------- インデックス（一度持ち帰ったキャラの図鑑） ----------
 let thumb = null;
 const thumbCache = {};
-function charThumb(def, locked) {
-  const key = def.id + (locked ? ':l' : '');
+function charThumb(def, locked, mut = null) {
+  const key = def.id + (locked ? ':l' : '') + (mut ? ':' + mut : '');
   if (thumbCache[key]) return thumbCache[key];
   if (!thumb) {
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
@@ -1287,7 +1320,7 @@ function charThumb(def, locked) {
     const d = new THREE.DirectionalLight(0xffffff, 1.4); d.position.set(3, 6, 5); sc.add(d);
     thumb = { r, sc, cam: new THREE.PerspectiveCamera(35, 1, 0.1, 50), black: new THREE.MeshBasicMaterial({ color: 0x0c0c16 }) };
   }
-  const m = buildCharacter(def);
+  const m = buildCharacter(def, locked ? null : mut);
   for (const a of m.userData.anims) a(1.3);
   if (locked) m.traverse(o => { if (o.isMesh && o.material.transparent) o.visible = false; });
   thumb.sc.add(m);
@@ -1323,7 +1356,8 @@ function renderIndex() {
         ? `<div class="idx-card" style="--rc:${rc}">${e.seen ? '' : '<span class="new">NEW</span>'}
             <img src="${charThumb(c, false)}" alt=""><b>${c.name}</b>
             <div class="inc">+${fmt(charIncome(c))}/秒</div>
-            <div class="meta">獲得 ${e.count}回${e.first ? ` ・ ${fmtDate(e.first)}` : ''}</div></div>`
+            <div class="meta">獲得 ${e.count}回${e.first ? ` ・ ${fmtDate(e.first)}` : ''}</div>
+            ${e.muts ? `<div class="meta muts">${Object.keys(e.muts).map(mutTag).join('')}</div>` : ''}</div>`
         : `<div class="idx-card locked"><img src="${charThumb(c, true)}" alt=""><b>？？？</b>
             <div class="meta">${ZONES[r].name}ゾーン付近で出現</div></div>`;
     }

@@ -32,6 +32,15 @@ b { font-weight: 800; }
 .stat small { color: var(--muted); font-size: 12px; margin-left: auto; padding-left: 8px; }
 .stat.money b { color: #7dff8a; }
 .stat.reb b { color: #c9a7ff; }
+.stat.ev b { color: #c9a7ff; font-variant-numeric: tabular-nums; }
+.stat.ev.on { border-color: #b388ff; background: rgba(80, 30, 160, .6); animation: evPulse 1.2s ease-in-out infinite; }
+.stat.ev.on small { color: #fff; font-weight: 800; }
+@keyframes evPulse { 50% { box-shadow: 0 0 16px #b388ff; } }
+.mut { display: inline-block; padding: 0 6px; margin: 1px 2px; border-radius: 6px; font-size: 11px; font-weight: 900; color: #1d1240; white-space: nowrap; }
+.mut-gold { background: #ffd23f; }
+.mut-diamond { background: #8ff3ff; }
+.mut-galaxy { background: linear-gradient(90deg, #6a3cff, #ff5cf4); color: #fff; }
+#reveal .mut { font-size: 18px; vertical-align: middle; }
 .card.rebirth { border-color: #b388ff; }
 .card .warn { color: #ff9e80; font-size: 12px; }
 .btn.reb { background: #b388ff; color: #22104a; }

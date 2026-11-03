@@ -21,8 +21,10 @@ export const rarCss = r => RARITIES[r].fx ? '#' + RARITIES[r].fx.toString(16).pa
 export const BASE_LINE = 0;        // これより手前(z<0)が拠点＝安全地帯
 export const LAUNCH_POS = { x: 0, z: 6 };
 export const ZONE_START = 30;
-export const ZONE_LEN = 80;
-export const WORLD_END = ZONE_START + ZONE_LEN * RARITIES.length;
+// ゾーンの長さ: 遠いゾーンほど長い（草原80m → 1つ先ごとに +12m）
+export const ZONE_LENS = RARITIES.map((_, i) => 80 + 12 * i);
+export const ZONE_STARTS = ZONE_LENS.map((_, i) => ZONE_START + ZONE_LENS.slice(0, i).reduce((a, b) => a + b, 0));
+export const WORLD_END = ZONE_STARTS[RARITIES.length - 1] + ZONE_LENS[RARITIES.length - 1];
 export const WORLD_HALF_W = 30;
 
 export const ZONES = [
@@ -164,6 +166,30 @@ export const CHARACTERS = [
 
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));
 
+// ---- 変異イベント ----
+// 15分ごとに3分間。時計で決めるので、どの端末・どのプレイヤーでも同じ時間に起きる
+export const EVENT_PERIOD = 15 * 60;
+export const EVENT_LEN = 3 * 60;
+export function mutationEvent(now = Date.now()) {
+  const t = Math.floor(now / 1000) % EVENT_PERIOD;
+  return t < EVENT_LEN
+    ? { active: true, left: EVENT_LEN - t }
+    : { active: false, left: EVENT_PERIOD - t };
+}
+// 変異の種類（イベント中に手に入れたキャラはどれかになる）
+export const MUTATIONS = [
+  { id: 'gold',    name: 'ゴールド',     mult: 2, weight: 60, css: '#ffd23f', color: 0xffd23f },
+  { id: 'diamond', name: 'ダイヤ',       mult: 3, weight: 30, css: '#8ff3ff', color: 0x8ff3ff },
+  { id: 'galaxy',  name: 'ギャラクシー', mult: 5, weight: 10, css: '#b388ff', color: 0xb388ff },
+];
+export const MUT_BY_ID = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
+export const mutMult = id => (id && MUT_BY_ID[id] ? MUT_BY_ID[id].mult : 1);
+export function rollMutation() {
+  let t = Math.random() * MUTATIONS.reduce((a, m) => a + m.weight, 0);
+  for (const m of MUTATIONS) { t -= m.weight; if (t <= 0) return m.id; }
+  return MUTATIONS[0].id;
+}
+
 export const MAX_STAR = 5;
 export const SLOT_COUNT = 12;
 
@@ -188,8 +214,9 @@ export function launchDistance(strength, timingMult) {
 }
 
 export function zoneAt(z) {
-  if (z < ZONE_START) return 0;
-  return Math.min(RARITIES.length - 1, Math.floor((z - ZONE_START) / ZONE_LEN));
+  let i = 0;
+  while (i < RARITIES.length - 1 && z >= ZONE_STARTS[i + 1]) i++;
+  return i;
 }
 
 // ゾーンのレア度を中心に、前後のレア度も少し出る

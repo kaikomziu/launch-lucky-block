@@ -133,12 +133,24 @@ const SHAPES = {
   cone:   { top: 2.2, eyeY: 0.8,  front: 0.62 },
 };
 
-export function buildCharacter(def) {
+// 変異キャラの体の素材
+const MUT_BODY = {
+  gold:    { color: 0xffcf33, emissive: 0x8a5a00, emissiveIntensity: 0.55 },
+  diamond: { color: 0xc9f7ff, emissive: 0x2a9cc0, emissiveIntensity: 0.45 },
+  galaxy:  { color: 0x2b0f55, emissive: 0x6a3cff, emissiveIntensity: 0.6 },
+};
+const MUT_SPARK = { gold: 0xfff27a, diamond: 0xffffff, galaxy: 0xff7ae0 };
+
+export function buildCharacter(def, mut = null) {
   const g = new THREE.Group();
   const anims = [];
-  const body = def.extras.includes('rainbow')
-    ? new THREE.MeshLambertMaterial({ color: def.color, emissive: 0x222222 })
-    : mat(def.color);
+  const mb = mut && MUT_BODY[mut];
+  const rainbow = def.extras.includes('rainbow') && !mb;
+  const body = mb
+    ? new THREE.MeshLambertMaterial(mb)
+    : rainbow
+      ? new THREE.MeshLambertMaterial({ color: def.color, emissive: 0x222222 })
+      : mat(def.color);
   const accent = mat(def.accent);
   const accentGlow = glowMat(def.accent, 0.8);
   const S = SHAPES[def.shape];
@@ -466,11 +478,26 @@ export function buildCharacter(def) {
         break;
       }
       case 'rainbow':
+        if (!rainbow) break;   // 変異中は変異の色を優先
         anims.push(time => {
           body.color.setHSL((time * 0.15) % 1, def.color === 0x111111 ? 0.6 : 0.5, def.color === 0x111111 ? 0.25 : 0.82);
         });
         break;
     }
+  }
+
+  // 変異: まわりを回るキラキラ
+  if (mb) {
+    const holder = new THREE.Group(); holder.position.y = top * 0.5; g.add(holder);
+    const sp = glowMat(MUT_SPARK[mut], 1);
+    for (let i = 0; i < 6; i++) {
+      const s = new THREE.Mesh(new THREE.OctahedronGeometry(0.12), sp);
+      const a = i / 6 * Math.PI * 2;
+      s.position.set(Math.cos(a) * 1.35, Math.sin(a * 3) * 0.5, Math.sin(a) * 1.35); holder.add(s);
+    }
+    anims.push(time => { holder.rotation.y = time * 2.2; holder.children.forEach((s, i) => s.scale.setScalar(0.7 + Math.abs(Math.sin(time * 4 + i)) * 0.8)); });
+    if (mut === 'diamond') anims.push(time => { body.emissiveIntensity = 0.35 + Math.abs(Math.sin(time * 3)) * 0.35; });
+    if (mut === 'galaxy') anims.push(time => { body.emissive.setHSL(0.72 + Math.sin(time) * 0.08, 1, 0.45); });
   }
 
   g.traverse(o => { if (o.isMesh && !o.material.transparent) o.castShadow = true; });
