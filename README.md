@@ -1,4 +1,4 @@
-# ラッキーブロックを打つ Web（非公式ファンメイド） v0.33
+# ラッキーブロックを打つ Web（非公式ファンメイド） v0.34
 
 Roblox「Launch a Lucky Block（Lucky Bear Studio）」を題材にした、ブラウザで遊べる 3D ゲームです。
 HTML / CSS / JavaScript と [three.js](https://threejs.org/) で作っています。
@@ -43,6 +43,11 @@ ES Modules を使っているので、ファイルを直接開くのではなく
 ```bash
 python -m http.server 8000
 ```
+
+## 同時接続数
+
+タイトル画面と右上に、いま遊んでいる人数が出ます。画面が見えている間だけ2分ごとに1回知らせる軽い仕組みです
+（Supabase の `llb_online` と `llb_ping`。3分以内に知らせた人を数える）。
 
 ## バックアップ
 

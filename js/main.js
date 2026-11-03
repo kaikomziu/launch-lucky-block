@@ -10,7 +10,7 @@ import {
 import { buildPlayer, buildBoss, buildLuckyBlock, buildCharacter, textTexture, mat } from './models.js';
 import { initAudio, play, startLoop, stopLoop, setVolume } from './audio.js';
 import { input, initInput, pollInput, lockPointer, unlockPointer } from './input.js';
-import { GENRES, submitScore, fetchRanking, fetchMine } from './ranking.js';
+import { GENRES, submitScore, fetchRanking, fetchMine, ping } from './ranking.js';
 import { fetchEvents, adminCheck, adminPost, adminEnd } from './admin.js';
 import { localBackups, saveLocalBackup, cloudBackupPut, cloudBackupList, cloudBackupGet } from './backup.js';
 
@@ -1759,6 +1759,24 @@ $('resetBtn').addEventListener('click', async () => {
   noSave = true;
   location.reload();
 });
+
+// ---------- 同時接続数（Supabaseの節約のため、見えている間だけ2分ごとに1回） ----------
+let lastPing = 0;
+async function pingOnline() {
+  if (document.hidden) return;
+  lastPing = Date.now();
+  try {
+    const n = await ping(save.clientId);
+    if (!Number.isFinite(n)) return;
+    $('onlineNum').textContent = n;
+    $('onlineChip').classList.remove('hidden');
+    $('titleOnline').innerHTML = `<i></i>いま <b>${n}</b> 人が遊んでいます`;
+    $('titleOnline').classList.remove('hidden');
+  } catch (e) { /* 表示しないだけ */ }
+}
+setInterval(pingOnline, 120000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lastPing > 60000) pingOnline(); });
+pingOnline();
 
 // ---------- バックアップ ----------
 const hasProgress = sv => !!sv && (sv.stats?.collected > 0 || sv.rebirths > 0 || (sv.slots || []).some(Boolean));

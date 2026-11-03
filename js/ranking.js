@@ -44,6 +44,13 @@ export async function submitScore(clientId, token, score) {
   return res.json();
 }
 
+// 同時接続: 「いる」を知らせて、いまの人数を受け取る（2分ごと・1回の通信）
+export async function ping(clientId) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/llb_ping`, { method: 'POST', headers, body: JSON.stringify({ p_client_id: clientId }) });
+  if (!res.ok) throw new Error(`ping failed: ${res.status}`);
+  return res.json();
+}
+
 const COLS = 'client_id,name,best_distance,total_earned,collected,best_rarity,income_per_sec,rebirths,dex_count,mut_count';
 
 // 上位の取得
