@@ -194,6 +194,7 @@ body.touch #prompt { bottom: 200px; }
 .howto p, .credits p { font-size: 13px; color: var(--muted); line-height: 1.6; margin: 6px 0; }
 .credits a { color: #8ecbff; }
 .note { font-size: 12px !important; }
+.version { margin: 10px 0 0; text-align: center; font-size: 12px; color: var(--muted); }
 .danger-btn { margin-top: 16px; width: 100%; padding: 10px; border-radius: 12px; border: 2px solid var(--red); background: transparent; color: var(--red); font-weight: 900; }
 
 /* タイトル */
