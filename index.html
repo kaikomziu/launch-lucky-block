@@ -8,6 +8,8 @@
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
 <link rel="stylesheet" href="style.css">
+<!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
+<script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
 </script>
@@ -81,6 +83,11 @@
 <div id="settingsPanel" class="panel hidden">
   <div class="panel-head"><h2>⚙️ 設定</h2><button class="close">✕</button></div>
   <div class="panel-body">
+    <div class="account-box">
+      <h3>かるわかGAMESアカウント</h3>
+      <p id="accountStatus">ログインすると、セーブがクラウドに保存されて別の端末でも続きから遊べます。</p>
+      <button id="accountBtn" class="btn">ログイン</button>
+    </div>
     <label class="field">プレイヤー名（ランキング用・準備中）
       <input id="nameInput" maxlength="16" placeholder="名無し">
     </label>
@@ -107,7 +114,7 @@
       <p class="note">本作は Roblox「Launch a Lucky Block（Lucky Bear Studio）」を題材にした非公式のファンメイド作品です。Roblox Corporation および Lucky Bear Studio とは関係ありません。</p>
     </div>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.14</p>
+    <p class="version">v0.15</p>
   </div>
 </div>
 
@@ -118,8 +125,9 @@
     <h1>ラッキーブロックを打つ<small>LAUNCH A LUCKY BLOCK — Web</small></h1>
     <p class="sub">力を鍛えて、ブロックをかっ飛ばせ！<br>遠くに飛ぶほどレアなキャラが出る。ボスから逃げて拠点に持ち帰ろう。</p>
     <button id="startBtn">▶ スタート</button>
+    <button id="titleAccountBtn" class="account-btn">👤 かるわかGAMESアカウントでログイン</button>
     <p class="ctrl" id="ctrlHint"></p>
-    <p class="note">v0.14 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.15 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 

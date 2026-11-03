@@ -250,6 +250,14 @@ body.touch #prompt { bottom: 200px; }
 }
 #startBtn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0, 0, 0, .4); }
 #title .ctrl { font-size: 14px; color: #fff; }
+.account-btn {
+  display: block; margin: 12px auto 0; padding: 8px 16px; border-radius: 999px; border: 2px solid #7a5cff;
+  background: rgba(20, 16, 50, .75); color: #fff; font-weight: 800; font-size: 14px; cursor: pointer;
+}
+.account-btn:hover { border-color: #ff3ea5; }
+.account-box { margin-bottom: 16px; padding: 12px; border-radius: 12px; border: 2px solid #7a5cff; background: rgba(122, 92, 255, .12); }
+.account-box h3 { margin: 0 0 4px; font-size: 15px; }
+.account-box p { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
 #title .note { color: var(--muted); }
 
 @media (max-width: 600px) {

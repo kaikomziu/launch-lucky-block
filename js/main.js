@@ -1174,12 +1174,43 @@ function renderIndex() {
 
 $('nameInput').addEventListener('input', e => { save.name = e.target.value.slice(0, 16); writeSave(); });
 $('volInput').addEventListener('input', e => { save.volume = +e.target.value; setVolume(save.volume); writeSave(); });
-$('resetBtn').addEventListener('click', () => {
-  if (!confirm('セーブデータをすべて消去します。よろしいですか？')) return;
-  localStorage.removeItem(SAVE_KEY);
+$('resetBtn').addEventListener('click', async () => {
+  if (!confirm('セーブデータをすべて消去します。よろしいですか？' + (window.KaAccount?.isLoggedIn() ? '\n（クラウドのセーブも最初からになります）' : ''))) return;
   removeEventListener('beforeunload', writeSave);
+  if (window.KaAccount?.isLoggedIn()) {
+    // 消すだけだとクラウドから復元されるので、初期データで上書きしてから送る
+    const keep = { clientId: save.clientId, token: save.token };
+    save = Object.assign(defaultSave(), keep);
+    writeSave();
+    try { await window.KaAccount.saveNow(); } catch (e) { /* 通信失敗時は次回の自動同期に任せる */ }
+  } else {
+    localStorage.removeItem(SAVE_KEY);
+  }
   location.reload();
 });
+
+// ---------- かるわかGAMESアカウント ----------
+const ka = window.KaAccount;
+function updateAccountUi(user = ka?.user()) {
+  if (!ka) {
+    $('accountStatus').textContent = 'アカウント機能を読み込めませんでした（オフラインかもしれません）。';
+    $('accountBtn').classList.add('hidden'); $('titleAccountBtn').classList.add('hidden');
+    return;
+  }
+  $('accountStatus').textContent = user
+    ? `${user.avatar} ${user.display_name}（@${user.username}）でログイン中。セーブはクラウドに自動で保存されます。`
+    : 'ログインすると、セーブがクラウドに保存されて別の端末でも続きから遊べます。';
+  $('accountBtn').textContent = user ? 'アカウント・同期の状態' : 'ログイン / アカウントを作る';
+  $('titleAccountBtn').textContent = user ? `${user.avatar} ${user.display_name} でログイン中` : '👤 かるわかGAMESアカウントでログイン';
+  $('nameInput').placeholder = user ? user.display_name : '名無し';
+}
+$('accountBtn').addEventListener('click', () => ka?.openPanel());
+$('titleAccountBtn').addEventListener('click', () => ka?.openPanel());
+ka?.onChange(user => updateAccountUi(user));
+updateAccountUi();
+// アカウントの画面（同期の確認など）が出たらマウスロックを外して操作できるようにする
+new MutationObserver(() => { if (document.querySelector('.ka-overlay')) unlockPointer(); })
+  .observe(document.body, { childList: true });
 
 // =====================================================================
 // 起動
