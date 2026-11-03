@@ -988,6 +988,17 @@ function updateBoss(b, dt) {
 }
 
 function updateCamera(dt) {
+  // タイトル画面: 拠点のまわりをゆっくり回るカメラ
+  if (document.body.classList.contains('title-mode')) {
+    const t = performance.now() / 1000;
+    camPos.set(Math.sin(t * 0.07) * 40, 15 + Math.sin(t * 0.21) * 3, -14 + Math.cos(t * 0.07) * 40);
+    camLook.set(0, 3, -6);
+    camera.position.copy(camPos);
+    camera.lookAt(camLook);
+    sun.position.set(camLook.x + 30, camLook.y + 60, camLook.z - 20);
+    sun.target.position.copy(camLook);
+    return;
+  }
   if (camYawTarget !== null) {
     let diff = camYawTarget - input.camYaw;
     diff = Math.atan2(Math.sin(diff), Math.cos(diff));
@@ -1505,6 +1516,13 @@ new MutationObserver(() => { if (document.querySelector('.ka-overlay')) unlockPo
 // 起動
 // =====================================================================
 if (input.isTouch) document.body.classList.add('touch');
+document.body.classList.add('title-mode');
+// 2回目以降はタイトルに記録を出す
+if (save.stats.collected > 0) {
+  const got = CHARACTERS.filter(c => save.dex[c.id]).length;
+  $('titleWelcome').textContent = `おかえり！ 最高飛距離 ${save.stats.bestDistance}m ・ インデックス ${got}/${CHARACTERS.length} ・ 毎秒 $${fmt(totalIncome())}`;
+  $('titleWelcome').classList.remove('hidden');
+}
 $('ctrlHint').textContent = input.isTouch
   ? '左下スティックで移動・右下ボタンで行動・スワイプで視点'
   : 'WASDで移動・クリックでマウスロック（マウスで視点）・左クリック / E / スペースで行動・Escで解除';
@@ -1514,6 +1532,7 @@ setVolume(save.volume);
 $('startBtn').addEventListener('click', () => {
   initAudio();
   $('title').classList.add('hidden');
+  document.body.classList.remove('title-mode');
   lockPointer();
   if (offlineMoney > 0) toast(`おかえり！ 放置中に $${fmt(offlineMoney)} 貯まったよ`, { color: '#7dff8a', time: 3500 });
   else if (save.stats.collected === 0) toast('黄色い発射台へ行ってブロックを打とう！', { color: '#ffd23f', time: 4000 });

@@ -7,22 +7,22 @@
 <meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
-<link rel="stylesheet" href="style.css?v=0.22">
+<link rel="stylesheet" href="style.css?v=0.23">
 <!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
 <script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <!-- 更新のたびに ?v= をバージョンに合わせて変える（古いJSがキャッシュされないように） -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "./js/data.js": "./js/data.js?v=0.22",
-  "./js/models.js": "./js/models.js?v=0.22",
-  "./js/input.js": "./js/input.js?v=0.22",
-  "./js/audio.js": "./js/audio.js?v=0.22",
-  "./js/ranking.js": "./js/ranking.js?v=0.22"
+  "./js/data.js": "./js/data.js?v=0.23",
+  "./js/models.js": "./js/models.js?v=0.23",
+  "./js/input.js": "./js/input.js?v=0.23",
+  "./js/audio.js": "./js/audio.js?v=0.23",
+  "./js/ranking.js": "./js/ranking.js?v=0.23"
 } }
 </script>
 </head>
-<body>
+<body class="title-mode">
 <div id="game"></div>
 <div id="labels"></div>
 
@@ -145,24 +145,49 @@
     </div>
     <a class="btn more-games" href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ（かるわかGAMES）</a>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.22</p>
+    <p class="version">v0.23</p>
   </div>
 </div>
 
 <!-- タイトル -->
 <div id="title">
+  <!-- 背景を漂うブロックとキラキラ -->
+  <div class="title-bg" aria-hidden="true">
+    <i class="fb" style="--x:8%;--s:46px;--d:13s;--dl:-2s"></i>
+    <i class="fb" style="--x:22%;--s:28px;--d:10s;--dl:-7s"></i>
+    <i class="fb" style="--x:78%;--s:54px;--d:15s;--dl:-4s"></i>
+    <i class="fb" style="--x:90%;--s:30px;--d:11s;--dl:-9s"></i>
+    <i class="fb" style="--x:63%;--s:22px;--d:9s;--dl:-1s"></i>
+    <i class="fb" style="--x:37%;--s:20px;--d:12s;--dl:-10s"></i>
+    <b class="spark" style="--x:15%;--y:30%;--dl:0s"></b>
+    <b class="spark" style="--x:85%;--y:22%;--dl:.8s"></b>
+    <b class="spark" style="--x:70%;--y:65%;--dl:1.6s"></b>
+    <b class="spark" style="--x:28%;--y:72%;--dl:2.2s"></b>
+  </div>
   <div class="title-inner">
-    <div class="logo-block">?</div>
-    <h1>ラッキーブロックを打つ<small>LAUNCH A LUCKY BLOCK — Web</small></h1>
-    <p class="sub">力を鍛えて、ブロックをかっ飛ばせ！<br>遠くに飛ぶほどレアなキャラが出る。ボスから逃げて拠点に持ち帰ろう。</p>
-    <button id="startBtn">▶ スタート</button>
-    <button id="titleAccountBtn" class="account-btn">👤 かるわかGAMESアカウントでログイン</button>
-    <a class="account-btn more-games" href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ</a>
-    <p class="ctrl" id="ctrlHint"></p>
-    <p class="note">v0.22 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <!-- 回転する立体のラッキーブロック -->
+    <div class="cube-wrap"><div class="cube">
+      <span class="f f1">?</span><span class="f f2">?</span><span class="f f3">?</span>
+      <span class="f f4">?</span><span class="f f5">?</span><span class="f f6">?</span>
+    </div><div class="cube-shadow"></div></div>
+    <h1 class="logo"><span class="l1" data-t="ラッキーブロック">ラッキーブロック</span><span class="l2" data-t="を打つ！">を打つ！</span></h1>
+    <p class="tag">LAUNCH A LUCKY BLOCK <em>Web</em></p>
+    <ul class="flow">
+      <li>💪 鍛える</li><li>🏏 打つ</li><li>👹 逃げる</li><li>💰 稼ぐ</li>
+    </ul>
+    <p class="welcome hidden" id="titleWelcome"></p>
+    <div class="title-card">
+      <button id="startBtn"><span>▶ スタート</span></button>
+      <div class="title-links">
+        <button id="titleAccountBtn" class="account-btn">👤 かるわかGAMESアカウントでログイン</button>
+        <a class="account-btn more-games" href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ</a>
+      </div>
+      <p class="ctrl" id="ctrlHint"></p>
+    </div>
+    <p class="note">v0.23 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=0.22"></script>
+<script type="module" src="js/main.js?v=0.23"></script>
 </body>
 </html>
