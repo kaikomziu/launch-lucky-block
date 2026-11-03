@@ -691,3 +691,8 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .adm-row b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adm-row small { color: var(--muted); white-space: nowrap; }
 .adm-row .btn { min-width: 0; padding: 4px 10px; }
+.adm-row.sched { border: 1px dashed rgba(122, 200, 255, .6); }
+.adm-row.sched small { color: #9ad0ff; font-weight: 800; }
+.adm-when span { font-size: 13px; color: var(--muted); }
+.adm-when select { flex: 0 0 auto; width: auto !important; }
+.adm-when input[type=datetime-local] { flex: 1; min-width: 180px; color-scheme: dark; }

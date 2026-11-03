@@ -1063,7 +1063,11 @@ const liveEvents = kind => adminEvents.filter(e => e.kind === kind && Date.parse
 function currentEvent() {
   const a = liveEvents('mutation')[0];
   if (a) return { active: true, left: Math.max(0, Math.ceil((Date.parse(a.ends_at) - Date.now()) / 1000)), mut: a.payload.mut || null, admin: true };
-  return mutationEvent();
+  const ev = mutationEvent();
+  const next = adminEvents.filter(e => e.kind === 'mutation' && Date.parse(e.starts_at) > Date.now())
+    .map(e => Math.ceil((Date.parse(e.starts_at) - Date.now()) / 1000)).sort((x, y) => x - y)[0];
+  if (!ev.active && next !== undefined && next < ev.left) return { active: false, left: next };
+  return ev;
 }
 let eventOn = currentEvent().active;
 const eventSky = new THREE.Color(0x7a3cff);
@@ -1718,20 +1722,43 @@ function renderAdminActive() {
   const list = adminEvents.filter(e => Date.parse(e.ends_at) > Date.now());
   $('admActive').innerHTML = list.length ? list.map(e => {
     const left = Math.max(0, Math.round((Date.parse(e.ends_at) - Date.now()) / 60000));
+    const future = Date.parse(e.starts_at) > Date.now();
     const what = e.kind === 'message' ? escHtml(e.payload.text)
       : e.kind === 'gift' ? `${e.payload.mut ? MUT_BY_ID[e.payload.mut].name + '変異の' : ''}${CHAR_BY_ID[e.payload.char]?.name || e.payload.char}`
       : (e.payload.mut ? MUT_BY_ID[e.payload.mut].name : 'ランダム');
-    return `<div class="adm-row"><span>${KIND_LABEL[e.kind]}</span><b>${what}</b><small>あと${left}分</small><button class="btn sell" data-end="${e.id}">終了</button></div>`;
+    return `<div class="adm-row ${future ? 'sched' : ''}"><span>${KIND_LABEL[e.kind]}</span><b>${what}</b>
+      <small>${future ? `⏰ ${fmtWhen(e.starts_at)} から` : `あと${left}分`}</small>
+      <button class="btn sell" data-end="${e.id}">${future ? '取り消し' : '終了'}</button></div>`;
   }).join('') : '<p class="dex-sum">いま出しているものはありません</p>';
 }
-async function postAdmin(kind, payload, minutes) {
+// 予約の日時: 入力欄の初期値は「今夜21時」（過ぎていたら明日の21時）
+const fmtWhen = iso => { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+function defaultAt() {
+  const d = new Date(); d.setHours(21, 0, 0, 0);
+  if (d <= new Date()) d.setDate(d.getDate() + 1);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+document.querySelectorAll('#adminPanel .adm-when').forEach(w => {
+  w.querySelector('.at').value = defaultAt();
+  w.querySelector('.when').addEventListener('change', e => w.querySelector('.at').classList.toggle('hidden', e.target.value !== 'at'));
+});
+// ボタンのあるカードの「いつ」を読む（undefined = 入力がおかしい）
+function readWhen(btn) {
+  const w = btn.closest('.card').querySelector('.adm-when');
+  if (w.querySelector('.when').value !== 'at') return { start: null, label: '今すぐ' };
+  const t = new Date(w.querySelector('.at').value);
+  if (isNaN(t) || t <= new Date()) { toast('予約の日時は、これから先の時間にしてください', { color: '#ff6b6b' }); return undefined; }
+  return { start: t.toISOString(), label: `${fmtWhen(t)} に` };
+}
+async function postAdmin(kind, payload, minutes, start = null) {
   try {
-    const r = await adminPost(ka?.token(), kind, payload, minutes);
+    const r = await adminPost(ka?.token(), kind, payload, minutes, start);
     if (!r?.ok) {
-      const why = { auth: '管理者として確認できませんでした', rate: '短い時間に出しすぎです（1時間に30回まで）', text: 'メッセージは1〜120文字です', char: 'キャラが正しくありません' }[r?.reason] || 'うまく出せませんでした';
+      const why = { auth: '管理者として確認できませんでした', rate: '短い時間に出しすぎです（1時間に30回まで）', text: 'メッセージは1〜120文字です', char: 'キャラが正しくありません', start: '予約は30日先までです' }[r?.reason] || 'うまく出せませんでした';
       toast(`⚠ ${why}`, { color: '#ff6b6b' }); return;
     }
-    toast('✅ 全員に出しました', { color: '#7dff8a' });
+    toast(start ? `⏰ ${fmtWhen(start)} に予約しました` : '✅ 全員に出しました', { color: '#7dff8a' });
     await pollEvents(); renderAdminActive();
   } catch (e) { toast('⚠ 通信に失敗しました', { color: '#ff6b6b' }); }
 }
@@ -1743,20 +1770,22 @@ $('adminPanel').addEventListener('click', async e => {
     await pollEvents(); renderAdminActive(); return;
   }
   const k = b.dataset.adm;
+  const when = readWhen(b);
+  if (!when) return;
   if (k === 'message') {
     const text = $('admMsg').value.trim();
     if (!text) return toast('メッセージを入れてください', { color: '#ff6b6b' });
-    if (!confirm(`全員にこのメッセージを出しますか？\n\n${text}`)) return;
-    await postAdmin('message', { text }, +$('admMsgMin').value);
+    if (!confirm(`${when.label}全員にこのメッセージを出しますか？\n\n${text}`)) return;
+    await postAdmin('message', { text }, +$('admMsgMin').value, when.start);
     $('admMsg').value = '';
   } else if (k === 'gift') {
     const def = CHAR_BY_ID[gift.char], mut = gift.mut;
-    if (!confirm(`全員に「${mut ? MUT_BY_ID[mut].name + '変異の' : ''}${def.name}」を1体ずつ配りますか？`)) return;
-    await postAdmin('gift', { char: def.id, mut, note: $('admGiftNote').value.trim() }, +$('admGiftMin').value);
+    if (!confirm(`${when.label}全員に「${mut ? MUT_BY_ID[mut].name + '変異の' : ''}${def.name}」を1体ずつ配りますか？`)) return;
+    await postAdmin('gift', { char: def.id, mut, note: $('admGiftNote').value.trim() }, +$('admGiftMin').value, when.start);
   } else if (k === 'mutation') {
     const mut = $('admMut').value;
-    if (!confirm(`変異イベント（${mut ? MUT_BY_ID[mut].name : 'ランダム'}・${$('admMutMin').value}分）を今すぐ始めますか？`)) return;
-    await postAdmin('mutation', { mut }, +$('admMutMin').value);
+    if (!confirm(`${when.label}変異イベント（${mut ? MUT_BY_ID[mut].name : 'ランダム'}・${$('admMutMin').value}分）を始めますか？`)) return;
+    await postAdmin('mutation', { mut }, +$('admMutMin').value, when.start);
   }
 });
 checkAdmin();
