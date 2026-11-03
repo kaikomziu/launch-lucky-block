@@ -7,8 +7,15 @@ export const RARITIES = [
   { name: 'エピック',       color: 0xb05cff, css: '#b05cff', income: 200 },
   { name: 'レジェンダリー', color: 0xffc21a, css: '#ffc21a', income: 1200 },
   { name: 'ミシック',       color: 0xff3b3b, css: '#ff3b3b', income: 7000 },
-  { name: 'シークレット',   color: 0xffffff, css: 'rainbow', income: 40000 },
+  { name: 'シークレット',   color: 0xffffff, css: 'rainbow', income: 40000, fx: 0xff77e9 },
+  { name: 'セレスティアル', color: 0x7df9ff, css: '#7df9ff', income: 250000 },
+  { name: 'ゴッド',         color: 0xff9f1c, css: '#ff9f1c', income: 1600000 },
+  { name: 'エターナル',     color: 0xc0c8ff, css: '#c0c8ff', income: 10000000 },
+  { name: 'インフィニティ', color: 0xffffff, css: 'cosmic', income: 70000000, fx: 0x8a7dff },
 ];
+// 3D演出・枠線に使う色（白いレア度は代わりの色）
+export const rarFx = r => RARITIES[r].fx ?? RARITIES[r].color;
+export const rarCss = r => RARITIES[r].fx ? '#' + RARITIES[r].fx.toString(16).padStart(6, '0') : RARITIES[r].css;
 
 // ワールド配置
 export const BASE_LINE = 0;        // これより手前(z<0)が拠点＝安全地帯
@@ -33,6 +40,14 @@ export const ZONES = [
     boss: { name: 'マグマドラゴン', color: 0xff4a1c, speed: 26, scale: 3.6 } },
   { name: '虚空',   ground: 0x1b1530, alt: 0x251c40, sky: 0x2a1f4f, deco: 'crystal',
     boss: { name: 'ヴォイドロード', color: 0x9b6bff, speed: 30, scale: 4.0 } },
+  { name: '天空',     ground: 0xf4f9ff, alt: 0xe2efff, sky: 0xc9e8ff, deco: 'cloud',
+    boss: { name: 'テンペストグリフォン', color: 0xe0f4ff, speed: 34, scale: 4.4 } },
+  { name: '深海',     ground: 0x0e3b5c, alt: 0x12476d, sky: 0x1d5f8a, deco: 'coral',
+    boss: { name: 'クラーケン',     color: 0xd81b60, speed: 38, scale: 4.8 } },
+  { name: '機械都市', ground: 0x3a3f47, alt: 0x454b55, sky: 0x8e9aab, deco: 'tower',
+    boss: { name: 'ギガロボ',       color: 0x8d99ae, speed: 42, scale: 5.2 } },
+  { name: '時空の果て', ground: 0x0a0a16, alt: 0x15152c, sky: 0x0b0820, deco: 'clock',
+    boss: { name: 'クロノス',       color: 0xffe066, speed: 46, scale: 5.6 } },
 ];
 
 // キャラクター（形状パラメータは models.js の buildCharacter で使う）
@@ -115,6 +130,36 @@ export const CHARACTERS = [
   { id: 'kansokusha', r: 6, name: '次元の観測者',    mult: 1.2, shape: 'sphere', color: 0x111111, accent: 0x00ffd0, extras: ['gem', 'ring', 'rainbow'] },
   { id: 'miraclepurin', r: 6, name: 'ミラクルプリン', mult: 1.4, shape: 'cyl',   color: 0xffe08a, accent: 0xff4d6d, extras: ['topcap', 'crown', 'stars', 'glow'] },
   { id: 'hoshipen',  r: 6, name: '星くずペンギン',   mult: 1.5, shape: 'sphere', color: 0x14213d, accent: 0xfff27a, extras: ['belly', 'stars', 'halo', 'propeller'] },
+
+  // ---- v0.18 で追加（新ゾーン） ----
+  // セレスティアル（天空）
+  { id: 'tenshineko', r: 7, name: '天使ネコ',        mult: 0.7, shape: 'sphere', color: 0xfffaf0, accent: 0xffe066, extras: ['ears', 'halo', 'wings'] },
+  { id: 'kumokujira', r: 7, name: '雲クジラ',        mult: 0.9, shape: 'egg',    color: 0xe3f2fd, accent: 0x90caf9, extras: ['fins', 'puffs', 'tail'] },
+  { id: 'kazeryu',   r: 7, name: '風の竜',           mult: 1.1, shape: 'egg',    color: 0xb2ebf2, accent: 0x00bcd4, extras: ['horns', 'wings', 'tail', 'glow'] },
+  { id: 'hoshiyomi', r: 7, name: '星読みフクロウ',   mult: 1.2, shape: 'egg',    color: 0x283593, accent: 0xfff27a, extras: ['beak', 'glasses', 'stars'] },
+  { id: 'pegasus',   r: 7, name: 'ペガサス',         mult: 1.4, shape: 'sphere', color: 0xffffff, accent: 0x7df9ff, extras: ['unihorn', 'wings', 'glow'] },
+  { id: 'tenkuou',   r: 7, name: '天空の王',         mult: 1.5, shape: 'box',    color: 0xf5f5f5, accent: 0xffd23f, extras: ['crown', 'cape', 'halo'] },
+  // ゴッド（深海）
+  { id: 'kingkraken', r: 8, name: '王様クラーケン',  mult: 0.7, shape: 'dome',   color: 0xc2185b, accent: 0xffd23f, extras: ['tentacles', 'crown', 'glow'] },
+  { id: 'chouchin',  r: 8, name: 'チョウチン親方',   mult: 0.9, shape: 'egg',    color: 0x263238, accent: 0xfff176, extras: ['antenna', 'teeth', 'fins'] },
+  { id: 'shinjugai', r: 8, name: '真珠ガイ',         mult: 1.1, shape: 'dome',   color: 0xf8bbd0, accent: 0xffffff, extras: ['shell', 'gem', 'glow'] },
+  { id: 'umiryu',    r: 8, name: '海竜',             mult: 1.2, shape: 'egg',    color: 0x00695c, accent: 0x64ffda, extras: ['horns', 'fins', 'tail'] },
+  { id: 'kaijin',    r: 8, name: '海神ダルマ',       mult: 1.4, shape: 'sphere', color: 0x0d47a1, accent: 0xffd23f, extras: ['crown', 'mustache', 'glow'] },
+  { id: 'kuragetei', r: 8, name: 'クラゲ大帝',       mult: 1.5, shape: 'dome',   color: 0xb388ff, accent: 0x7df9ff, extras: ['tentacles', 'tiara', 'halo', 'glow'] },
+  // エターナル（機械都市）
+  { id: 'megabot',   r: 9, name: 'メガボット',       mult: 0.7, shape: 'box',    color: 0x90a4ae, accent: 0x00e5ff, extras: ['antenna', 'visor', 'arms'] },
+  { id: 'cyberneko', r: 9, name: 'サイバーネコ',     mult: 0.9, shape: 'box',    color: 0x212121, accent: 0x00ffa3, extras: ['ears', 'headphones', 'glow'] },
+  { id: 'dronemaru', r: 9, name: 'ドローン丸',       mult: 1.1, shape: 'sphere', color: 0xeceff1, accent: 0xff1744, extras: ['propeller', 'visor'] },
+  { id: 'mechadragon', r: 9, name: 'メカドラゴン',   mult: 1.2, shape: 'egg',    color: 0x546e7a, accent: 0xff6d00, extras: ['horns', 'wings', 'spikes', 'glow'] },
+  { id: 'robohakase', r: 9, name: '博士ロボX',       mult: 1.4, shape: 'cyl',    color: 0xcfd8dc, accent: 0x2979ff, extras: ['glasses', 'antenna', 'cape'] },
+  { id: 'coreking',  r: 9, name: 'コアキング',       mult: 1.5, shape: 'box',    color: 0x1a237e, accent: 0x00ffa3, extras: ['crown', 'gem', 'orbit', 'glow'] },
+  // インフィニティ（時空の果て）
+  { id: 'jikuneko',  r: 10, name: '時空ネコ',        mult: 0.7, shape: 'box',    color: 0x0b0b12, accent: 0x8a7dff, extras: ['ears', 'orbit', 'ring', 'glow'] },
+  { id: 'chronosegg', r: 10, name: 'クロノスの卵',   mult: 0.9, shape: 'egg',    color: 0xfff3c4, accent: 0xffd23f, extras: ['halo', 'ring', 'orbit', 'rainbow'] },
+  { id: 'mugensl',   r: 10, name: '無限スライム',    mult: 1.1, shape: 'dome',   color: 0x111111, accent: 0xff5cf4, extras: ['gem', 'stars', 'orbit', 'rainbow'] },
+  { id: 'souseiryu', r: 10, name: '創世ドラゴン',    mult: 1.2, shape: 'egg',    color: 0xffffff, accent: 0x8a7dff, extras: ['horns', 'wings', 'tail', 'halo', 'rainbow'] },
+  { id: 'shuen',     r: 10, name: '終焉の王',        mult: 1.4, shape: 'box',    color: 0x14001f, accent: 0xff1744, extras: ['crown', 'cape', 'horns', 'glow'] },
+  { id: 'luckygod',  r: 10, name: 'ラッキーゴッド',  mult: 1.5, shape: 'box',    color: 0xffd23f, accent: 0xffffff, extras: ['halo', 'wings', 'stars', 'glow'] },
 ];
 
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));

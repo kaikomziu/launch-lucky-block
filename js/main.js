@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import {
   RARITIES, ZONES, CHARACTERS, CHAR_BY_ID, BASE_LINE, LAUNCH_POS, ZONE_START, ZONE_LEN, WORLD_END, WORLD_HALF_W,
   MAX_STAR, SLOT_COUNT, charIncome as baseIncome, evolveCost, sellPrice as baseSellPrice, strengthRate as baseStrengthRate,
-  dumbbellCost, playerSpeed, speedCost, rebirthMult, rebirthCost, launchDistance, zoneAt, rollCharacter, fmt,
+  dumbbellCost, playerSpeed, speedCost, rebirthMult, rebirthCost, launchDistance, zoneAt, rollCharacter, fmt, rarFx, rarCss,
 } from './data.js';
 import { buildPlayer, buildBoss, buildLuckyBlock, buildCharacter, textTexture, mat } from './models.js';
 import { initAudio, play, startLoop, stopLoop, setVolume } from './audio.js';
@@ -166,7 +166,7 @@ function gate(z, text, color, sub) {
 gate(BASE_LINE, '🏠 拠点', 0x4cd964);
 ZONES.forEach((z, i) => {
   const start = ZONE_START + i * ZONE_LEN;
-  gate(start, `${z.name}  ${RARITIES[i].name}`, RARITIES[i].color === 0xffffff ? 0xff77e9 : RARITIES[i].color, `${start - LAUNCH_POS.z - 3}m〜`);
+  gate(start, `${z.name}  ${RARITIES[i].name}`, rarFx(i), `${start - LAUNCH_POS.z - 3}m〜`);
 });
 
 // 距離表示の杭
@@ -192,6 +192,11 @@ const decoGeo = {
   rock: new THREE.DodecahedronGeometry(1.6, 0),
   pool: new THREE.CircleGeometry(2.4, 16),
   crystal: new THREE.OctahedronGeometry(1.4, 0),
+  puff: new THREE.SphereGeometry(1.4, 10, 8),
+  coral: new THREE.CylinderGeometry(0.25, 0.35, 3, 6),
+  tower: new THREE.BoxGeometry(3, 1, 3),
+  ring: new THREE.TorusGeometry(2, 0.25, 8, 28),
+  hand: new THREE.BoxGeometry(0.25, 1.6, 0.25),
 };
 const glowMats = {};
 const glow = c => (glowMats[c] ||= new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.7 }));
@@ -218,6 +223,36 @@ function decorate(type, x, z) {
       else { const p = add(decoGeo.pool, glow(0xff5a1c), 0, 0.04, 0); p.rotation.x = -Math.PI / 2; }
       break;
     case 'crystal': { const c = add(decoGeo.crystal, glow(0x9b6bff), 0, 2.2, 0); c.scale.y = 1.8; spinners.push(c); break; }
+    case 'cloud': {
+      // ふわふわ浮かぶ雲
+      const y = 2.5 + Math.random() * 4;
+      for (let k = 0; k < 4; k++) add(decoGeo.puff, mat(0xffffff), (k - 1.5) * 1.3, y + (k % 2) * 0.6, (Math.random() - 0.5));
+      break;
+    }
+    case 'coral': {
+      const col = [0xff6f91, 0xffc75f, 0x7df9ff][Math.floor(Math.random() * 3)];
+      for (let k = 0; k < 3; k++) {
+        const c = add(decoGeo.coral, glow(col), (k - 1) * 0.7, 1.5, 0);
+        c.rotation.z = (k - 1) * 0.45;
+      }
+      break;
+    }
+    case 'tower': {
+      // 光る窓のビル
+      const h = 4 + Math.floor(Math.random() * 6);
+      const b = add(decoGeo.tower, mat(0x5c6370), 0, h / 2, 0); b.scale.y = h;
+      for (let k = 1; k < h; k += 2) add(new THREE.BoxGeometry(3.05, 0.25, 3.05), glow(0x7df9ff), 0, k, 0);
+      break;
+    }
+    case 'clock': {
+      // 浮かぶ時計の輪と針
+      const c = new THREE.Group(); c.position.y = 3 + Math.random() * 2; g.add(c);
+      const r = new THREE.Mesh(decoGeo.ring, glow(0xffe066)); c.add(r);
+      const h1 = new THREE.Mesh(decoGeo.hand, glow(0xb388ff)); h1.position.y = 0.7; c.add(h1);
+      c.rotation.y = Math.random() * Math.PI;
+      spinners.push(r);
+      break;
+    }
   }
   g.scale.setScalar(s);
   scene.add(g);
@@ -335,8 +370,8 @@ function updateLabels() {
   }
 }
 
-const rarityName = r => RARITIES[r].css === 'rainbow'
-  ? `<span class="rar rainbow-text">${RARITIES[r].name}</span>`
+const rarityName = r => RARITIES[r].css === 'rainbow' || RARITIES[r].css === 'cosmic'
+  ? `<span class="rar ${RARITIES[r].css}-text">${RARITIES[r].name}</span>`
   : `<span class="rar" style="color:${RARITIES[r].css}">${RARITIES[r].name}</span>`;
 const stars = n => '★'.repeat(n) + '☆'.repeat(MAX_STAR - n);
 
@@ -364,7 +399,7 @@ function refreshSlot(i) {
   o.model.scale.setScalar(1 + (s.star - 1) * 0.12);
   o.model.rotation.y = -Math.sign(SLOT_POS[i].x) * Math.PI / 2;
   o.group.add(o.model);
-  o.ring.material.color.set(def.r === 6 ? 0xff77e9 : RARITIES[def.r].color);
+  o.ring.material.color.set(rarFx(def.r));
 }
 save.slots.forEach((_, i) => refreshSlot(i));
 
@@ -501,7 +536,7 @@ function landBlock() {
   b.position.copy(flight.to);
   b.rotation.set(0, 0, 0);
   const r = flight.zone;
-  const col = r === 6 ? 0xff77e9 : RARITIES[r].color;
+  const col = rarFx(r);
   b.material.color.set(col);
   b.material.emissive.set(new THREE.Color(col).multiplyScalar(0.25));
   play('land');
@@ -550,13 +585,14 @@ function finishOpen() {
   const r = def.r;
   play('reveal');
   const pos = flight.block.position.clone();
-  burst(pos, r === 6 ? 0xff77e9 : RARITIES[r].color, 50, 18);
+  burst(pos, rarFx(r), 50, 18);
   removeFlightBlock();
   teeBlock.visible = false;   // 持ち帰るまで次は打てない
   $('revealRarity').innerHTML = rarityName(r);
   $('revealName').textContent = def.name;
-  $('revealName').className = 'name' + (r === 6 ? ' rainbow-text' : '');
-  $('revealName').style.color = r === 6 ? '' : RARITIES[r].css;
+  const special = RARITIES[r].css === 'rainbow' || RARITIES[r].css === 'cosmic';
+  $('revealName').className = 'name' + (special ? ` ${RARITIES[r].css}-text` : '');
+  $('revealName').style.color = special ? '' : RARITIES[r].css;
   $('revealIncome').textContent = `+${fmt(charIncome(def))}/秒`;
   $('reveal').classList.add('pop');
   setTimeout(() => $('reveal').classList.add('hidden'), 2200);
@@ -1008,6 +1044,28 @@ document.querySelectorAll('#menu button').forEach(b => b.addEventListener('click
 document.querySelectorAll('.panel .close').forEach(b => b.addEventListener('click', () => { closePanels(); lockPointer(); }));
 addEventListener('keydown', e => { if (e.code === 'Escape') { closePanels(); if (state === 'aim') { $('timing').classList.add('hidden'); setState('free'); } } });
 
+// 数字キー 1〜4 でメニューパネルを開閉（PC 用。テンキーにも対応）
+const menuKeyPanels = {
+  Digit1: 'shopPanel', Digit2: 'charPanel', Digit3: 'indexPanel', Digit4: 'settingsPanel',
+  Numpad1: 'shopPanel', Numpad2: 'charPanel', Numpad3: 'indexPanel', Numpad4: 'settingsPanel',
+};
+addEventListener('keydown', e => {
+  const panelId = menuKeyPanels[e.code];
+  if (!panelId || e.repeat) return;
+  // 入力欄にフォーカスがあるときは無視する
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+  // タイトル画面・かるわかGAMESアカウント画面では無視する
+  if (!$('title').classList.contains('hidden')) return;
+  if (document.querySelector('.ka-overlay')) return;
+  // 同じキーをもう一度押したら閉じてマウスロックを戻す
+  if (openPanel === panelId) { closePanels(); lockPointer(); return; }
+  // 打つ構え中なら Escape と同じく構えを解除してから開く
+  if (state === 'aim') { $('timing').classList.add('hidden'); setState('free'); }
+  // openPanelById 内で unlockPointer() が呼ばれ、マウスロックは解除される
+  openPanelById(panelId);
+});
+
 function renderPanels() {
   if (openPanel === 'shopPanel') renderShop();
   if (openPanel === 'charPanel') renderChars();
@@ -1257,7 +1315,7 @@ function renderIndex() {
   RARITIES.forEach((rar, r) => {
     const pool = CHARACTERS.filter(c => c.r === r);
     const n = pool.filter(c => save.dex[c.id]).length;
-    const rc = rar.css === 'rainbow' ? '#ff77e9' : rar.css;
+    const rc = rarCss(r);
     html += `<div class="idx-sec"><h3>${rarityName(r)}<span class="cnt ${n === pool.length ? 'done' : ''}">${n === pool.length ? '👑 コンプリート ' : ''}${n} / ${pool.length}</span></h3><div class="idx-grid">`;
     for (const c of pool) {
       const e = save.dex[c.id];

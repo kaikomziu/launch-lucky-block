@@ -1,4 +1,4 @@
-# ラッキーブロックを打つ Web（非公式ファンメイド） v0.17
+# ラッキーブロックを打つ Web（非公式ファンメイド） v0.18
 
 Roblox「Launch a Lucky Block（Lucky Bear Studio）」を題材にした、ブラウザで遊べる 3D ゲームです。
 HTML / CSS / JavaScript と [three.js](https://threejs.org/) で作っています。
@@ -20,6 +20,7 @@ HTML / CSS / JavaScript と [three.js](https://threejs.org/) で作っていま�
 | 移動 | WASD / 矢印キー | 左下のジョイスティック |
 | 行動 | 左クリック / E / スペース / Enter | 右下のボタン |
 | 視点 | クリックでマウスロック → マウス移動（Esc で解除）・ホイールでズーム | 画面をスワイプ |
+| メニュー | 1〜4 キー（ショップ・インベントリ・インデックス・設定） | 右上のボタン |
 
 ## ローカルで動かす
 

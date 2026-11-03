@@ -112,6 +112,11 @@ b { font-weight: 800; }
   text-shadow: none !important; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .6));
 }
 @keyframes rb { to { background-position: 200% 0; } }
+.cosmic-text {
+  background: linear-gradient(90deg, #8a7dff, #ff5cf4, #7df9ff, #fff27a, #8a7dff); background-size: 200%;
+  -webkit-background-clip: text; background-clip: text; color: transparent !important; animation: rb 1.4s linear infinite;
+  text-shadow: none !important; filter: drop-shadow(0 0 4px rgba(138, 125, 255, .9)) drop-shadow(0 3px 0 rgba(0, 0, 0, .6));
+}
 
 /* ラベル */
 #labels { position: fixed; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
@@ -285,3 +290,7 @@ body.touch #prompt { bottom: 200px; }
   #flightHud { top: 150px; }
   body.touch #prompt { bottom: 150px; font-size: 15px; }
 }
+
+/* メニューボタンのキー表示（PC のみ。1〜4 キーでパネルを開く） */
+#menu button kbd { position: absolute; left: 4px; top: 2px; font-size: 10px; font-weight: 900; opacity: .7; font-family: inherit; }
+body.touch #menu button kbd { display: none; }
