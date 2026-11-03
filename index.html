@@ -7,19 +7,19 @@
 <meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
-<link rel="stylesheet" href="style.css?v=0.29">
+<link rel="stylesheet" href="style.css?v=0.30">
 <!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
 <script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <!-- 更新のたびに ?v= をバージョンに合わせて変える（古いJSがキャッシュされないように） -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "./js/data.js": "./js/data.js?v=0.29",
-  "./js/models.js": "./js/models.js?v=0.29",
-  "./js/input.js": "./js/input.js?v=0.29",
-  "./js/audio.js": "./js/audio.js?v=0.29",
-  "./js/ranking.js": "./js/ranking.js?v=0.29",
-  "./js/admin.js": "./js/admin.js?v=0.29"
+  "./js/data.js": "./js/data.js?v=0.30",
+  "./js/models.js": "./js/models.js?v=0.30",
+  "./js/input.js": "./js/input.js?v=0.30",
+  "./js/audio.js": "./js/audio.js?v=0.30",
+  "./js/ranking.js": "./js/ranking.js?v=0.30",
+  "./js/admin.js": "./js/admin.js?v=0.30"
 } }
 </script>
 </head>
@@ -46,6 +46,7 @@
 <!-- プレイ中も使えるアカウント・ほかのゲームへのボタン -->
 <div id="subMenu" class="hud">
   <button id="hudRankBtn"><kbd class="pc-only">5</kbd>🏆 ランキング</button>
+  <button id="hudSkinBtn"><kbd class="pc-only">6</kbd>👕 スキン</button>
   <button id="hudAccountBtn">👤 ログイン</button>
   <button id="hudAdminBtn" class="hidden">🛠 管理者メニュー</button>
   <a href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ</a>
@@ -172,6 +173,11 @@
   </div>
 </div>
 
+<div id="skinPanel" class="panel hidden">
+  <div class="panel-head"><h2>👕 スキン</h2><button class="close">✕</button></div>
+  <div class="panel-body" id="skinBody"></div>
+</div>
+
 <div id="settingsPanel" class="panel hidden">
   <div class="panel-head"><h2>⚙️ 設定</h2><button class="close">✕</button></div>
   <div class="panel-body">
@@ -196,6 +202,7 @@
         <li>🎒 持ち帰ったキャラはインベントリに入る。「⭐ 一番いいキャラを装備する」で稼ぎの多いキャラを自動で台座に並べられる。空いている台座で好きなキャラを選んで置こう（台座からしまうこともできる）。</li>
         <li>💰 台座のキャラがお金を稼ぐ。台座に触れて回収しよう。</li>
         <li>🧬 15分ごとに3分間の「変異イベント」。その間に手に入れたキャラは全員変異して、稼ぎが ×2〜×5 になる（ゴールド・ダイヤ・ギャラクシー）。</li>
+        <li>👕 右上の「スキン」で見た目を着がえられる。遊び進めると新しいスキンが解放される。</li>
         <li>📖 一度持ち帰ったキャラは「インデックス」に登録される。変異ごとのタブもあり、その変異を75%集めると拠点の色を変えられる。</li>
         <li>🔄 お金がたまったらショップでリボーン。最初からやり直す代わりに、稼ぎと力の伸びがずっと増える。</li>
       </ol>
@@ -209,7 +216,7 @@
     </div>
     <a class="btn more-games" href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ（かるわかGAMES）</a>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.29</p>
+    <p class="version">v0.30</p>
   </div>
 </div>
 
@@ -249,10 +256,10 @@
       </div>
       <p class="ctrl" id="ctrlHint"></p>
     </div>
-    <p class="note">v0.29 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.30 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=0.29"></script>
+<script type="module" src="js/main.js?v=0.30"></script>
 </body>
 </html>

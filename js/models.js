@@ -17,9 +17,16 @@ function box(w, h, d, material) {
 }
 
 // ---------- プレイヤー（ブロック人間風） ----------
-export function buildPlayer() {
+// sk: data.js の SKINS の1つ（省略時はいつもの見た目）
+export function buildPlayer(sk = {}) {
   const g = new THREE.Group();
-  const skin = mat(0xffd29c), shirt = mat(0x3a8dff), pants = mat(0x2d3436), black = mat(0x111111);
+  const anims = [];
+  const skin = mat(sk.skin ?? 0xffd29c), pants = mat(sk.pants ?? 0x2d3436), black = mat(0x111111);
+  // 服は光る・虹色になるスキンがあるので専用の素材にする
+  const shirt = (sk.glow || sk.rainbow)
+    ? new THREE.MeshLambertMaterial({ color: sk.shirt ?? 0x3a8dff, emissive: sk.glow ?? 0x222222 })
+    : mat(sk.shirt ?? 0x3a8dff);
+  if (sk.rainbow) anims.push(t => shirt.color.setHSL((t * 0.15) % 1, 0.75, 0.6));
 
   const torso = box(2, 2, 1, shirt); torso.position.y = 3; g.add(torso);
   const head = box(1.2, 1.2, 1.2, skin); head.position.y = 4.6; g.add(head);
@@ -41,16 +48,51 @@ export function buildPlayer() {
   const bat = new THREE.Group();
   const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.0, 8), mat(0x6b4423));
   handle.position.y = -0.5;
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.16, 2.0, 10), mat(0xc8894a));
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.16, 2.0, 10), mat(sk.bat ?? 0xc8894a));
   barrel.position.y = -2.0; barrel.castShadow = true;
   bat.add(handle, barrel);
   bat.position.y = -1.9;
   armR.add(bat);
 
+  // 頭の飾り
+  const hc = mat(sk.hatColor ?? 0xffd23f);
+  const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); g.add(o); return o; };
+  if (sk.hat === 'cap') {
+    const c = add(new THREE.SphereGeometry(0.66, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), hc, 0, 5.15, 0); c.scale.y = 0.7;
+    add(new THREE.BoxGeometry(1.0, 0.08, 0.6), hc, 0, 5.18, 0.75);
+  } else if (sk.hat === 'headband') {
+    add(new THREE.BoxGeometry(1.26, 0.22, 1.26), hc, 0, 4.98, 0);
+    const tail = add(new THREE.BoxGeometry(0.12, 0.6, 0.18), hc, 0.2, 4.75, -0.7); tail.rotation.x = 0.5;
+    anims.push(t => { tail.rotation.z = Math.sin(t * 6) * 0.3; });
+  } else if (sk.hat === 'crown') {
+    const gold = new THREE.MeshLambertMaterial({ color: 0xffd23f, emissive: 0x6a4200 });
+    add(new THREE.CylinderGeometry(0.6, 0.6, 0.3, 12, 1, true), gold, 0, 5.35, 0);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; add(new THREE.ConeGeometry(0.11, 0.32, 4), gold, Math.cos(a) * 0.55, 5.62, Math.sin(a) * 0.55); }
+  } else if (sk.hat === 'horns') {
+    for (const s of [-1, 1]) { const h = add(new THREE.ConeGeometry(0.16, 0.6, 6), mat(0xfff1d6), s * 0.42, 5.45, 0); h.rotation.z = -s * 0.4; }
+  } else if (sk.hat === 'halo') {
+    const h = add(new THREE.TorusGeometry(0.5, 0.07, 8, 24), new THREE.MeshBasicMaterial({ color: 0xfff7a8 }), 0, 5.6, 0);
+    h.rotation.x = Math.PI / 2;
+    anims.push(t => { h.position.y = 5.6 + Math.sin(t * 2) * 0.08; });
+  }
+  // 背中の飾り
+  const bc = mat(sk.backColor ?? 0xe63946);
+  if (sk.back === 'cape') {
+    const pv = new THREE.Group(); pv.position.set(0, 3.95, -0.55); g.add(pv);
+    const c = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.4, 0.06), bc); c.position.y = -1.2; pv.add(c);
+    anims.push(t => { pv.rotation.x = -0.12 - Math.abs(Math.sin(t * 3)) * 0.18; });
+  } else if (sk.back === 'wings') {
+    for (const s of [-1, 1]) {
+      const pv = new THREE.Group(); pv.position.set(s * 0.4, 3.6, -0.55); g.add(pv);
+      const w = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.0, 0.06), bc); w.position.x = s * 0.8; pv.add(w);
+      anims.push(t => { pv.rotation.y = s * (0.35 + Math.sin(t * 4) * 0.3); });
+    }
+  }
+
   const carry = new THREE.Group(); carry.position.y = 5.6; g.add(carry);
 
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-  return { group: g, armL, armR, legL, legR, bat, carry };
+  return { group: g, armL, armR, legL, legR, bat, carry, anims };
 }
 
 // ---------- ボス ----------

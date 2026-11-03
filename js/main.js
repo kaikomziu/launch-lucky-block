@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import {
   RARITIES, ZONES, CHARACTERS, CHAR_BY_ID, BASE_LINE, LAUNCH_POS, ZONE_START, ZONE_LENS, ZONE_STARTS, WORLD_END, WORLD_HALF_W,
   MAX_STAR, SLOT_COUNT, charIncome as baseIncome, evolveCost, sellPrice as baseSellPrice, strengthRate as baseStrengthRate,
-  dumbbellCost, playerSpeed, speedCost, rebirthMult, rebirthCost, launchDistance, zoneAt, rollCharacter, fmt, rarFx, rarCss,
+  dumbbellCost, playerSpeed, speedCost, rebirthMult, rebirthCost, launchDistance, zoneAt, rollCharacter, fmt, rarFx, rarCss, SKINS, SKIN_BY_ID,
   MUT_BY_ID, mutMult, rollMutation, mutationEvent,
   BOSS_ACCEL, BOSS_ACCEL_MAX, BOSS_DASH_EVERY, BOSS_DASH_TIME, BOSS_DASH_MULT,
 } from './data.js';
@@ -36,6 +36,7 @@ function defaultSave() {
     money: 0, strength: 20, dumbbellLv: 1, speedLv: 1, rebirths: 0,
     launchPower: 1,
     baseTheme: '',
+    skin: 'basic',                               // プレイヤーのスキン
     claimedGifts: [],                            // 受け取った管理者のプレゼントのID                               // 拠点の色（インデックスの変異を75%集めると選べる）                              // 飛ばす力（0.1〜1）。強すぎて逃げ切れないとき用
     slots: Array(SLOT_COUNT).fill(null),         // { id, star, stored }
     inventory: [],                               // { id, star } 持ち帰ったが台座に置いていないキャラ
@@ -349,7 +350,7 @@ scene.add(teeBlock);
 // =====================================================================
 // プレイヤー
 // =====================================================================
-const player = buildPlayer();
+const player = buildPlayer(SKIN_BY_ID[save.skin] || SKINS[0]);
 scene.add(player.group);
 const pState = { pos: new THREE.Vector3(0, 0, -12), facing: 0, walk: 0, lift: 0 };
 let carried = null;   // { def, model, mut }
@@ -884,6 +885,7 @@ function update(dt) {
   for (const b of bosses) updateBoss(b, dt);
 
   // --- プレイヤーのアニメーション ---
+  for (const a of player.anims) a(elapsed);
   const g = player.group;
   g.position.copy(pState.pos);
   let twist = 0;
@@ -1194,8 +1196,8 @@ addEventListener('keydown', e => { if (e.code === 'Escape') { closePanels(); if 
 
 // 数字キー 1〜4 でメニューパネルを開閉（PC 用。テンキーにも対応）
 const menuKeyPanels = {
-  Digit1: 'shopPanel', Digit2: 'charPanel', Digit3: 'indexPanel', Digit4: 'settingsPanel', Digit5: 'rankPanel',
-  Numpad1: 'shopPanel', Numpad2: 'charPanel', Numpad3: 'indexPanel', Numpad4: 'settingsPanel', Numpad5: 'rankPanel',
+  Digit1: 'shopPanel', Digit2: 'charPanel', Digit3: 'indexPanel', Digit4: 'settingsPanel', Digit5: 'rankPanel', Digit6: 'skinPanel',
+  Numpad1: 'shopPanel', Numpad2: 'charPanel', Numpad3: 'indexPanel', Numpad4: 'settingsPanel', Numpad5: 'rankPanel', Numpad6: 'skinPanel',
 };
 addEventListener('keydown', e => {
   const panelId = menuKeyPanels[e.code];
@@ -1219,6 +1221,7 @@ function renderPanels() {
   if (openPanel === 'charPanel') renderChars();
   if (openPanel === 'indexPanel') renderIndex();
   if (openPanel === 'rankPanel') openRanking();
+  if (openPanel === 'skinPanel') renderSkins();
   if (openPanel === 'adminPanel') { renderAdminActive(); renderGiftPicker(); }
   if (openPanel === 'settingsPanel') {
     $('nameInput').value = save.name;
@@ -1533,12 +1536,62 @@ $('titleRankBtn').addEventListener('click', () => {
   rankFromTitle = true;
 });
 
+// ---------- スキン ----------
+function skinStats() {
+  const muts = { gold: 0, diamond: 0, galaxy: 0 };
+  for (const e of Object.values(save.dex)) for (const k of Object.keys(e.muts || {})) muts[k]++;
+  return {
+    collected: save.stats.collected, rebirths: save.rebirths, dist: save.stats.bestDistance, muts,
+    dex: CHARACTERS.filter(c => save.dex[c.id]).length, total: CHARACTERS.length,
+  };
+}
+const skinOpen = (k, st = skinStats()) => !k.need || k.need(st);
+function skinThumb(k) {
+  const key = 'skin:' + k.id;
+  if (thumbCache[key]) return thumbCache[key];
+  const p = buildPlayer(k);
+  for (const a of p.anims) a(1.3);
+  // 斜め前から（背中の飾りがあるスキンは横寄りにして見えるように）
+  p.group.rotation.y = k.back ? 1.0 : 0.45;
+  return snapThumb(p.group, key);
+}
+// 見た目を差し替える（位置・向き・持っているキャラはそのまま）
+function applySkin() {
+  const np = buildPlayer(SKIN_BY_ID[save.skin] || SKINS[0]);
+  np.group.position.copy(player.group.position);
+  np.group.rotation.copy(player.group.rotation);
+  while (player.carry.children.length) np.carry.add(player.carry.children[0]);
+  scene.remove(player.group);
+  Object.assign(player, np);
+  scene.add(player.group);
+}
+function renderSkins() {
+  const st = skinStats();
+  const n = SKINS.filter(k => skinOpen(k, st)).length;
+  $('skinBody').innerHTML = `<p class="dex-sum">解放したスキン ${n} / ${SKINS.length}</p><div class="skin-grid">` + SKINS.map(k => {
+    const open = skinOpen(k, st), on = save.skin === k.id;
+    return `<button class="skin-card ${open ? '' : 'locked'} ${on ? 'on' : ''}" data-skin="${k.id}" ${open ? '' : 'disabled'}>
+      <img src="${skinThumb(k)}" alt=""><b>${k.name}</b>
+      <small>${on ? '✔ 使用中' : open ? 'タップで着がえ' : '🔒 ' + k.hint}</small></button>`;
+  }).join('') + '</div>';
+}
+$('skinBody').addEventListener('click', e => {
+  const b = e.target.closest('[data-skin]');
+  if (!b || b.disabled) return;
+  const k = SKIN_BY_ID[b.dataset.skin];
+  if (!skinOpen(k) || save.skin === k.id) return;
+  save.skin = k.id;
+  applySkin(); writeSave(); renderSkins();
+  play('evolve', { vol: 0.6 });
+  burst(pState.pos.clone().add(new THREE.Vector3(0, 3, 0)), 0xffffff, 30, 10);
+  toast(`👕 ${k.name} に着がえた！`, { color: '#ffd23f' });
+});
+$('hudSkinBtn').addEventListener('click', () => openPanelById('skinPanel'));
+
 // ---------- インデックス（一度持ち帰ったキャラの図鑑） ----------
 let thumb = null;
 const thumbCache = {};
-function charThumb(def, locked, mut = null) {
-  const key = def.id + (locked ? ':l' : '') + (mut ? ':' + mut : '');
-  if (thumbCache[key]) return thumbCache[key];
+function ensureThumb() {
   if (!thumb) {
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
     r.setPixelRatio(1); r.setSize(192, 192);
@@ -1547,9 +1600,18 @@ function charThumb(def, locked, mut = null) {
     const d = new THREE.DirectionalLight(0xffffff, 1.4); d.position.set(3, 6, 5); sc.add(d);
     thumb = { r, sc, cam: new THREE.PerspectiveCamera(35, 1, 0.1, 50), black: new THREE.MeshBasicMaterial({ color: 0x0c0c16 }) };
   }
+}
+function charThumb(def, locked, mut = null) {
+  const key = def.id + (locked ? ':l' : '') + (mut ? ':' + mut : '');
+  if (thumbCache[key]) return thumbCache[key];
   const m = buildCharacter(def, locked ? null : mut);
   for (const a of m.userData.anims) a(1.3);
   if (locked) m.traverse(o => { if (o.isMesh && o.material.transparent) o.visible = false; });
+  return snapThumb(m, key, locked);
+}
+// 3Dモデルを1枚の絵にする（キャラ・スキン共通）
+function snapThumb(m, key, locked = false) {
+  ensureThumb();
   thumb.sc.add(m);
   thumb.sc.overrideMaterial = locked ? thumb.black : null;
   // オーラなどの半透明部分を除いた大きさに合わせてカメラを引く

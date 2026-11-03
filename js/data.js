@@ -173,6 +173,24 @@ export const CHARACTERS = [
 
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));
 
+// ---- プレイヤーのスキン ----
+// need: 解放条件（stats を受け取って true なら解放）、hint: 条件の説明
+export const SKINS = [
+  { id: 'basic',   name: 'ベーシック',     shirt: 0x3a8dff, pants: 0x2d3436, hint: 'はじめから' },
+  { id: 'red',     name: 'レッド',         shirt: 0xe63946, pants: 0x1d3557, hint: 'はじめから' },
+  { id: 'night',   name: 'ナイト',         shirt: 0x22223b, pants: 0x111111, skin: 0xf1c6a0, bat: 0x4a4e69, hint: 'はじめから' },
+  { id: 'baseball', name: '野球少年',      shirt: 0xffffff, pants: 0xdfe6ee, hat: 'cap', hatColor: 0x1e5aa8, hint: 'キャラを10体持ち帰る', need: s => s.collected >= 10 },
+  { id: 'ninja',   name: 'ニンジャ',       shirt: 0x1b1b2f, pants: 0x1b1b2f, hat: 'headband', hatColor: 0xe63946, bat: 0x2b2b2b, hint: 'キャラを50体持ち帰る', need: s => s.collected >= 50 },
+  { id: 'gold',    name: 'ゴールド',       shirt: 0xffc21a, pants: 0x8a5a00, glow: 0x6a4200, bat: 0xffd23f, hint: 'インデックスを30体集める', need: s => s.dex >= 30 },
+  { id: 'king',    name: '王様',           shirt: 0xb5179e, pants: 0x3a0ca3, hat: 'crown', back: 'cape', backColor: 0xe63946, hint: 'リボーンを1回する', need: s => s.rebirths >= 1 },
+  { id: 'dragon',  name: 'ドラゴン',       shirt: 0x2d6a4f, pants: 0x1b4332, skin: 0x95d5b2, hat: 'horns', back: 'wings', backColor: 0x40916c, hint: '最高飛距離 700m（虚空）', need: s => s.dist >= 700 },
+  { id: 'diamond', name: 'ダイヤ',         shirt: 0x8ff3ff, pants: 0x48cae4, glow: 0x0a5a6a, bat: 0xc9f7ff, hint: 'ダイヤ変異を10体集める', need: s => s.muts.diamond >= 10 },
+  { id: 'galaxy',  name: 'ギャラクシー',   shirt: 0x2b0f55, pants: 0x14002b, glow: 0x5a2bff, hat: 'halo', bat: 0xb388ff, hint: 'ギャラクシー変異を10体集める', need: s => s.muts.galaxy >= 10 },
+  { id: 'angel',   name: '天使',           shirt: 0xfffaf0, pants: 0xf1f1f1, hat: 'halo', back: 'wings', backColor: 0xffffff, hint: 'リボーンを5回する', need: s => s.rebirths >= 5 },
+  { id: 'rainbow', name: 'インフィニティ', shirt: 0xffffff, pants: 0x222244, rainbow: true, hat: 'crown', back: 'wings', backColor: 0xfff27a, hint: 'インデックスをコンプリート', need: s => s.dex >= s.total },
+];
+export const SKIN_BY_ID = Object.fromEntries(SKINS.map(k => [k.id, k]));
+
 // ---- 変異イベント ----
 // 15分ごとに3分間。時計で決めるので、どの端末・どのプレイヤーでも同じ時間に起きる
 export const EVENT_PERIOD = 15 * 60;

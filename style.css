@@ -637,6 +637,23 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #subMenu kbd { font-family: inherit; font-size: 10px; opacity: .7; margin-right: 4px; }
 #title .rank-btn { border-color: #ffd23f; }
 
+/* スキン */
+#skinPanel { width: min(640px, 96vw); }
+.skin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.skin-card {
+  padding: 8px 6px 10px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, .16); color: #fff; text-align: center;
+  background: radial-gradient(circle at 50% 30%, rgba(122, 200, 255, .2), rgba(255, 255, 255, .03) 70%); transition: transform .12s;
+}
+.skin-card img { display: block; width: 110px; height: 110px; margin: 0 auto 4px; }
+.skin-card b { display: block; font-size: 15px; }
+.skin-card small { display: block; margin-top: 2px; font-size: 11px; color: var(--muted); }
+.skin-card:not(.locked):hover { transform: translateY(-3px); border-color: #ffd23f; }
+.skin-card.on { border: 2px solid #7dff8a; box-shadow: 0 0 16px rgba(125, 255, 138, .45); }
+.skin-card.on small { color: #7dff8a; font-weight: 800; }
+.skin-card.locked { cursor: default; border-style: dashed; background: rgba(0, 0, 0, .25); }
+.skin-card.locked img { filter: grayscale(1) brightness(.35); }
+@media (max-width: 600px) { .skin-grid { grid-template-columns: repeat(2, 1fr); } }
+
 /* 管理者のお知らせ・管理者メニュー */
 #adminMsg {
   top: calc(max(14px, env(safe-area-inset-top)) + 44px); left: 50%; transform: translateX(-50%); max-width: min(560px, 70vw);
