@@ -7,19 +7,19 @@
 <meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
-<link rel="stylesheet" href="style.css?v=0.27">
+<link rel="stylesheet" href="style.css?v=0.28">
 <!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
 <script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <!-- 更新のたびに ?v= をバージョンに合わせて変える（古いJSがキャッシュされないように） -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "./js/data.js": "./js/data.js?v=0.27",
-  "./js/models.js": "./js/models.js?v=0.27",
-  "./js/input.js": "./js/input.js?v=0.27",
-  "./js/audio.js": "./js/audio.js?v=0.27",
-  "./js/ranking.js": "./js/ranking.js?v=0.27",
-  "./js/admin.js": "./js/admin.js?v=0.27"
+  "./js/data.js": "./js/data.js?v=0.28",
+  "./js/models.js": "./js/models.js?v=0.28",
+  "./js/input.js": "./js/input.js?v=0.28",
+  "./js/audio.js": "./js/audio.js?v=0.28",
+  "./js/ranking.js": "./js/ranking.js?v=0.28",
+  "./js/admin.js": "./js/admin.js?v=0.28"
 } }
 </script>
 </head>
@@ -143,8 +143,18 @@
       <button class="btn" data-adm="message">送る</button></div></div></div>
     <div class="card adm"><div class="info">
       <h3>🎁 キャラクター配布（1人1体）</h3>
-      <div class="adm-line"><select id="admChar"></select>
-        <select id="admGiftMut"><option value="">変異なし</option><option value="gold">ゴールド</option><option value="diamond">ダイヤ</option><option value="galaxy">ギャラクシー</option></select></div>
+      <!-- 配るキャラのプレビュー -->
+      <div class="gift-pick" id="giftPick"></div>
+      <!-- 変異を選ぶ -->
+      <div class="gift-muts" id="giftMuts">
+        <button data-gmut="" class="active">ふつう</button>
+        <button data-gmut="gold">🟡 ゴールド</button>
+        <button data-gmut="diamond">💎 ダイヤ</button>
+        <button data-gmut="galaxy">🌌 ギャラクシー</button>
+      </div>
+      <!-- レア度ごとのキャラ一覧（インデックス風） -->
+      <div class="rank-tabs gift-rars" id="giftRars"></div>
+      <div class="gift-grid" id="giftGrid"></div>
       <input id="admGiftNote" maxlength="60" placeholder="ひとこと（なくてもOK）">
       <div class="adm-line"><label>受け取れる期間 <select id="admGiftMin"><option value="60">1時間</option><option value="360">6時間</option><option value="1440" selected>1日</option><option value="4320">3日</option><option value="10080">7日</option></select></label>
       <button class="btn" data-adm="gift">配る</button></div></div></div>
@@ -196,7 +206,7 @@
     </div>
     <a class="btn more-games" href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ（かるわかGAMES）</a>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.27</p>
+    <p class="version">v0.28</p>
   </div>
 </div>
 
@@ -236,10 +246,10 @@
       </div>
       <p class="ctrl" id="ctrlHint"></p>
     </div>
-    <p class="note">v0.27 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.28 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=0.27"></script>
+<script type="module" src="js/main.js?v=0.28"></script>
 </body>
 </html>

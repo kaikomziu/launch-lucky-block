@@ -1215,7 +1215,7 @@ function renderPanels() {
   if (openPanel === 'charPanel') renderChars();
   if (openPanel === 'indexPanel') renderIndex();
   if (openPanel === 'rankPanel') openRanking();
-  if (openPanel === 'adminPanel') renderAdminActive();
+  if (openPanel === 'adminPanel') { renderAdminActive(); renderGiftPicker(); }
   if (openPanel === 'settingsPanel') {
     $('nameInput').value = save.name;
     $('volInput').value = save.volume;
@@ -1687,7 +1687,32 @@ async function checkAdmin() {
 }
 $('hudAdminBtn').addEventListener('click', () => openPanelById('adminPanel'));
 // キャラの選択肢（レア度ごと）
-$('admChar').innerHTML = RARITIES.map((rar, r) => `<optgroup label="${rar.name}">${CHARACTERS.filter(c => c.r === r).map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</optgroup>`).join('');
+// ---- 配布するキャラ選び（インデックス風のカードから選ぶ） ----
+const gift = { char: CHARACTERS[0].id, mut: '', rar: 0 };
+$('giftRars').innerHTML = RARITIES.map((rar, r) => `<button class="rank-tab" data-grar="${r}" style="--rc:${rarCss(r)}">${rar.name}</button>`).join('');
+function renderGiftPicker() {
+  const def = CHAR_BY_ID[gift.char];
+  $('giftPick').innerHTML = `<img src="${charThumb(def, false, gift.mut || null)}" alt="">
+    <div><span class="lbl">配るキャラ</span><b>${def.name}</b>
+    <div>${rarityName(def.r)} ${gift.mut ? mutTag(gift.mut) : ''}</div>
+    <small>基本の稼ぎ +${fmt(baseIncome(def) * mutMult(gift.mut || null))}/秒</small></div>`;
+  document.querySelectorAll('#giftMuts [data-gmut]').forEach(b => b.classList.toggle('active', b.dataset.gmut === gift.mut));
+  document.querySelectorAll('#giftRars [data-grar]').forEach(b => b.classList.toggle('active', +b.dataset.grar === gift.rar));
+  // 選んだレア度のボタンが横スクロールの外に隠れないようにする
+  const rb = $('giftRars').querySelector('.active');
+  if (rb) $('giftRars').scrollLeft = rb.offsetLeft - $('giftRars').clientWidth / 2 + rb.offsetWidth / 2;
+  $('giftGrid').innerHTML = CHARACTERS.filter(c => c.r === gift.rar).map(c => `
+    <button class="gift-card ${c.id === gift.char ? 'sel' : ''}" data-gchar="${c.id}" style="--rc:${rarCss(c.r)}">
+      <img src="${charThumb(c, false, gift.mut || null)}" alt=""><b>${c.name}</b></button>`).join('');
+}
+$('adminPanel').addEventListener('click', e => {
+  const m = e.target.closest('[data-gmut]'), r = e.target.closest('[data-grar]'), c = e.target.closest('[data-gchar]');
+  if (m) gift.mut = m.dataset.gmut;
+  else if (r) gift.rar = +r.dataset.grar;
+  else if (c) gift.char = c.dataset.gchar;
+  else return;
+  renderGiftPicker();
+});
 const KIND_LABEL = { message: '📢 お知らせ', gift: '🎁 配布', mutation: '🧬 変異イベント' };
 function renderAdminActive() {
   const list = adminEvents.filter(e => Date.parse(e.ends_at) > Date.now());
@@ -1725,7 +1750,7 @@ $('adminPanel').addEventListener('click', async e => {
     await postAdmin('message', { text }, +$('admMsgMin').value);
     $('admMsg').value = '';
   } else if (k === 'gift') {
-    const def = CHAR_BY_ID[$('admChar').value], mut = $('admGiftMut').value;
+    const def = CHAR_BY_ID[gift.char], mut = gift.mut;
     if (!confirm(`全員に「${mut ? MUT_BY_ID[mut].name + '変異の' : ''}${def.name}」を1体ずつ配りますか？`)) return;
     await postAdmin('gift', { char: def.id, mut, note: $('admGiftNote').value.trim() }, +$('admGiftMin').value);
   } else if (k === 'mutation') {
