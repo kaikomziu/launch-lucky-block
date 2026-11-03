@@ -7,18 +7,18 @@
 <meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
-<link rel="stylesheet" href="style.css?v=0.25">
+<link rel="stylesheet" href="style.css?v=0.26">
 <!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
 <script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <!-- 更新のたびに ?v= をバージョンに合わせて変える（古いJSがキャッシュされないように） -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "./js/data.js": "./js/data.js?v=0.25",
-  "./js/models.js": "./js/models.js?v=0.25",
-  "./js/input.js": "./js/input.js?v=0.25",
-  "./js/audio.js": "./js/audio.js?v=0.25",
-  "./js/ranking.js": "./js/ranking.js?v=0.25"
+  "./js/data.js": "./js/data.js?v=0.26",
+  "./js/models.js": "./js/models.js?v=0.26",
+  "./js/input.js": "./js/input.js?v=0.26",
+  "./js/audio.js": "./js/audio.js?v=0.26",
+  "./js/ranking.js": "./js/ranking.js?v=0.26"
 } }
 </script>
 </head>
@@ -44,6 +44,7 @@
 
 <!-- プレイ中も使えるアカウント・ほかのゲームへのボタン -->
 <div id="subMenu" class="hud">
+  <button id="hudRankBtn"><kbd class="pc-only">5</kbd>🏆 ランキング</button>
   <button id="hudAccountBtn">👤 ログイン</button>
   <a href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ</a>
 </div>
@@ -114,6 +115,21 @@
   <div class="panel-body" id="indexBody"></div>
 </div>
 
+<div id="rankPanel" class="panel hidden">
+  <div class="panel-head"><h2>🏆 ランキング</h2><button class="close">✕</button></div>
+  <div class="rank-tabs">
+    <button class="rank-tab active" data-col="best_distance">🏏 最高飛距離</button>
+    <button class="rank-tab" data-col="income_per_sec">💰 毎秒の稼ぎ</button>
+    <button class="rank-tab" data-col="total_earned">💵 累計の稼ぎ</button>
+    <button class="rank-tab" data-col="dex_count">📖 インデックス</button>
+    <button class="rank-tab" data-col="mut_count">🧬 変異コレクション</button>
+    <button class="rank-tab" data-col="rebirths">🔄 リボーン</button>
+    <button class="rank-tab" data-col="collected">🎁 持ち帰った数</button>
+  </div>
+  <p class="rank-name">名前: <b id="rankName">名無し</b>（設定で変えられます）</p>
+  <div class="panel-body" id="rankBody"></div>
+</div>
+
 <div id="settingsPanel" class="panel hidden">
   <div class="panel-head"><h2>⚙️ 設定</h2><button class="close">✕</button></div>
   <div class="panel-body">
@@ -122,7 +138,7 @@
       <p id="accountStatus">ログインすると、セーブがクラウドに保存されて別の端末でも続きから遊べます。</p>
       <button id="accountBtn" class="btn">ログイン</button>
     </div>
-    <label class="field">プレイヤー名（ランキング用・準備中）
+    <label class="field">プレイヤー名（ランキングに出る名前）
       <input id="nameInput" maxlength="16" placeholder="名無し">
     </label>
     <label class="field">音量
@@ -151,7 +167,7 @@
     </div>
     <a class="btn more-games" href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ（かるわかGAMES）</a>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.25</p>
+    <p class="version">v0.26</p>
   </div>
 </div>
 
@@ -185,15 +201,16 @@
     <div class="title-card">
       <button id="startBtn"><span>▶ スタート</span></button>
       <div class="title-links">
+        <button id="titleRankBtn" class="account-btn rank-btn">🏆 ランキング</button>
         <button id="titleAccountBtn" class="account-btn">👤 かるわかGAMESアカウントでログイン</button>
         <a class="account-btn more-games" href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ</a>
       </div>
       <p class="ctrl" id="ctrlHint"></p>
     </div>
-    <p class="note">v0.25 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.26 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=0.25"></script>
+<script type="module" src="js/main.js?v=0.26"></script>
 </body>
 </html>

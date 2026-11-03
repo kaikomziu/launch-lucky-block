@@ -10,6 +10,7 @@ import {
 import { buildPlayer, buildBoss, buildLuckyBlock, buildCharacter, textTexture, mat } from './models.js';
 import { initAudio, play, startLoop, stopLoop, setVolume } from './audio.js';
 import { input, initInput, pollInput, lockPointer, unlockPointer } from './input.js';
+import { GENRES, submitScore, fetchRanking, fetchMine } from './ranking.js';
 
 const $ = id => document.getElementById(id);
 
@@ -712,6 +713,7 @@ function reachedBase() {
   if (save.stats.collected <= 2) setTimeout(() => toast('空いている台座に近づくと、キャラを選んで置けるよ', { color: '#ffd23f', time: 3500 }), 1400);
   writeSave();
   renderPanels();
+  sendScore();
 }
 
 function addMoney(v) {
@@ -1055,7 +1057,9 @@ const tmpCol = new THREE.Color();
 let eventOn = mutationEvent().active;
 const eventSky = new THREE.Color(0x7a3cff);
 const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+let rankTimer = 0;
 function updateEvent() {
+  if ((rankTimer -= 0.2) <= 0) { rankTimer = 60; sendScore(); }
   const ev = mutationEvent();
   $('eventStat').classList.toggle('on', ev.active);
   $('sEvent').textContent = mmss(ev.left);
@@ -1127,21 +1131,23 @@ function openPanelById(id, slot = -1) {
   $(id).classList.remove('hidden');
   renderPanels();
 }
+let rankFromTitle = false;   // タイトルからランキングだけ開いたとき
 function closePanels() {
   document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
   openPanel = null;
+  if (rankFromTitle) { rankFromTitle = false; $('title').classList.remove('hidden'); document.body.classList.add('title-mode'); }
 }
 document.querySelectorAll('#menu button').forEach(b => b.addEventListener('click', () => {
   const id = b.dataset.panel;
   if (openPanel === id) closePanels(); else openPanelById(id);
 }));
-document.querySelectorAll('.panel .close').forEach(b => b.addEventListener('click', () => { closePanels(); lockPointer(); }));
+document.querySelectorAll('.panel .close').forEach(b => b.addEventListener('click', () => { closePanels(); if ($('title').classList.contains('hidden')) lockPointer(); }));
 addEventListener('keydown', e => { if (e.code === 'Escape') { closePanels(); if (state === 'aim') { $('timing').classList.add('hidden'); setState('free'); } } });
 
 // 数字キー 1〜4 でメニューパネルを開閉（PC 用。テンキーにも対応）
 const menuKeyPanels = {
-  Digit1: 'shopPanel', Digit2: 'charPanel', Digit3: 'indexPanel', Digit4: 'settingsPanel',
-  Numpad1: 'shopPanel', Numpad2: 'charPanel', Numpad3: 'indexPanel', Numpad4: 'settingsPanel',
+  Digit1: 'shopPanel', Digit2: 'charPanel', Digit3: 'indexPanel', Digit4: 'settingsPanel', Digit5: 'rankPanel',
+  Numpad1: 'shopPanel', Numpad2: 'charPanel', Numpad3: 'indexPanel', Numpad4: 'settingsPanel', Numpad5: 'rankPanel',
 };
 addEventListener('keydown', e => {
   const panelId = menuKeyPanels[e.code];
@@ -1164,6 +1170,7 @@ function renderPanels() {
   if (openPanel === 'shopPanel') renderShop();
   if (openPanel === 'charPanel') renderChars();
   if (openPanel === 'indexPanel') renderIndex();
+  if (openPanel === 'rankPanel') openRanking();
   if (openPanel === 'settingsPanel') {
     $('nameInput').value = save.name;
     $('volInput').value = save.volume;
@@ -1242,6 +1249,7 @@ function doRebirth() {
   play('evolve');
   burst(pState.pos.clone().add(new THREE.Vector3(0, 3, 0)), 0xb388ff, 60, 16);
   toast(`🔄 リボーン ${save.rebirths}回目！ 稼ぎ・力の伸び ×${next}`, { color: '#b388ff', big: true, time: 3200 });
+  sendScore();
   shopSig = '';
   closePanels(); lockPointer();
   updateHud(); updateSlotLabels(); writeSave();
@@ -1420,6 +1428,60 @@ $('charBody').addEventListener('click', e => {
   } else return;
   highlightSlot = -1;
   renderChars(); updateHud(); writeSave();
+});
+
+// ---------- オンラインランキング ----------
+let rankGenre = 'best_distance';
+let lastSent = '';
+const playerName = () => save.name || window.KaAccount?.user()?.display_name || '名無し';
+function myScore() {
+  return {
+    name: playerName(),
+    bestDistance: save.stats.bestDistance, totalEarned: save.stats.totalEarned, collected: save.stats.collected,
+    bestRarity: save.stats.bestRarity, income: totalIncome(), rebirths: save.rebirths,
+    dexCount: CHARACTERS.filter(c => save.dex[c.id]).length,
+    mutCount: Object.values(save.dex).reduce((a, e) => a + (e.muts ? Object.keys(e.muts).length : 0), 0),
+  };
+}
+// 記録が変わったときだけ送る（失敗しても遊びは止めない）
+async function sendScore(force = false) {
+  const sc = myScore();
+  if (!sc.collected) return;   // まだ1体も持ち帰っていない人は載せない
+  const sig = JSON.stringify(sc);
+  if (!force && sig === lastSent) return;
+  lastSent = sig;
+  try { await submitScore(save.clientId, save.token, sc); } catch (e) { lastSent = ''; }
+}
+const fmtVal = (g, v) => (g.money ? '$' + fmt(v) : Math.round(v).toLocaleString('ja-JP')) + (g.unit || '');
+const medal = i => ['🥇', '🥈', '🥉'][i] || `${i + 1}`;
+async function openRanking() {
+  const g = GENRES.find(x => x.col === rankGenre);
+  document.querySelectorAll('#rankPanel .rank-tab').forEach(t => t.classList.toggle('active', t.dataset.col === rankGenre));
+  $('rankName').textContent = playerName();
+  $('rankBody').innerHTML = '<p class="dex-sum">読み込み中…</p>';
+  try {
+    await sendScore(true);
+    const [list, me] = await Promise.all([fetchRanking(rankGenre, 50), fetchMine(rankGenre, save.clientId)]);
+    if (rankGenre !== g.col || openPanel !== 'rankPanel') return;
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const mine = me
+      ? `<div class="rank-me">あなたは <b>${me.rank ?? '?'}位</b> ・ ${g.icon} ${fmtVal(g, me[g.col])}</div>`
+      : '<div class="rank-me">まだ記録がありません。キャラを持ち帰ると載ります！</div>';
+    const rows = list.length ? list.map((r, i) => `<div class="rank-row ${r.client_id === save.clientId ? 'me' : ''} ${i < 3 ? 'top' : ''}">
+        <span class="pos">${medal(i)}</span><span class="nm">${esc(r.name)}</span><span class="val">${fmtVal(g, r[g.col])}</span></div>`).join('')
+      : '<p class="dex-sum">まだだれも載っていません。一番乗りのチャンス！</p>';
+    $('rankBody').innerHTML = mine + rows;
+  } catch (e) {
+    $('rankBody').innerHTML = '<p class="dex-sum">ランキングを読み込めませんでした。通信を確認して、もう一度開いてください。</p>';
+  }
+}
+document.querySelectorAll('#rankPanel .rank-tab').forEach(t => t.addEventListener('click', () => { rankGenre = t.dataset.col; openRanking(); }));
+$('hudRankBtn').addEventListener('click', () => openPanelById('rankPanel'));
+$('titleRankBtn').addEventListener('click', () => {
+  // タイトルからはランキングだけを見る（スタートは押さない）
+  document.body.classList.remove('title-mode'); $('title').classList.add('hidden');
+  openPanelById('rankPanel');
+  rankFromTitle = true;
 });
 
 // ---------- インデックス（一度持ち帰ったキャラの図鑑） ----------
