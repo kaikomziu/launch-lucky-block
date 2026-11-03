@@ -5,6 +5,7 @@ import {
   MAX_STAR, SLOT_COUNT, charIncome as baseIncome, evolveCost, sellPrice as baseSellPrice, strengthRate as baseStrengthRate,
   dumbbellCost, playerSpeed, speedCost, rebirthMult, rebirthCost, launchDistance, zoneAt, rollCharacter, fmt, rarFx, rarCss,
   MUT_BY_ID, mutMult, rollMutation, mutationEvent,
+  BOSS_ACCEL, BOSS_ACCEL_MAX, BOSS_DASH_EVERY, BOSS_DASH_TIME, BOSS_DASH_MULT,
 } from './data.js';
 import { buildPlayer, buildBoss, buildLuckyBlock, buildCharacter, textTexture, mat } from './models.js';
 import { initAudio, play, startLoop, stopLoop, setVolume } from './audio.js';
@@ -615,7 +616,7 @@ function finishOpen() {
   chaseBoss = bosses[flight.zone];
   const b = chaseBoss;
   b.from.copy(b.group.position);
-  const tz = Math.min(pos.z + 26, WORLD_END - 3);
+  const tz = Math.min(pos.z + 18, WORLD_END - 3);   // ボスはすぐ後ろに着地する
   b.to.set(tz - pos.z < 15 ? pos.x + (pos.x > 0 ? -16 : 16) : pos.x, 0, tz);
   b.state = 'leap'; b.t = 0;
   setTimeout(() => {
@@ -827,7 +828,7 @@ function update(dt) {
     $('chaseHome').textContent = Math.round(home) + 'm';
     if (chaseBoss) {
       const bd = Math.hypot(chaseBoss.group.position.x - pState.pos.x, chaseBoss.group.position.z - pState.pos.z);
-      $('chaseBoss').textContent = Math.round(bd) + 'm';
+      $('chaseBoss').textContent = Math.round(bd) + 'm' + (chaseBoss.dash > 0 ? ' 💨' : '');
       $('chaseHud').classList.toggle('close', bd < 14);
     }
     if (pState.pos.z < BASE_LINE) reachedBase();
@@ -925,7 +926,7 @@ function updateBoss(b, dt) {
     b.armL.rotation.x = b.armR.rotation.x = -2.6;
     if (u >= 1) {
       if (b.state === 'leap') {
-        b.state = 'chase'; b.t = 0;
+        b.state = 'chase'; b.t = 0; b.dash = 0; b.nextDash = BOSS_DASH_EVERY;
         play('boss'); shake = 0.7;
         burst(g.position.clone().add(new THREE.Vector3(0, 1, 0)), b.def.color, 30, 14);
         startLoop('boss_run', 0.5);
@@ -935,10 +936,21 @@ function updateBoss(b, dt) {
     if (state !== 'chase') { b.state = 'idle'; return; }
     const dx = pState.pos.x - g.position.x, dz = pState.pos.z - g.position.z;
     const d = Math.hypot(dx, dz);
-    if (b.t > 0.5) {   // 着地後の硬直
-      g.position.x += dx / d * b.def.speed * dt;
-      g.position.z += dz / d * b.def.speed * dt;
-      b.walk += dt * b.def.speed * 0.25;
+    if (b.t > 0.3) {   // 着地後の短い硬直
+      // 追いかけるほど速くなる＋ときどきダッシュ
+      const accel = Math.min(BOSS_ACCEL_MAX, 1 + (b.t - 0.3) * BOSS_ACCEL);
+      b.nextDash -= dt;
+      if (b.nextDash <= 0 && b.dash <= 0) {
+        b.dash = BOSS_DASH_TIME; b.nextDash = BOSS_DASH_EVERY * (0.8 + Math.random() * 0.4);
+        play('whoosh', { vol: 0.7, rate: 0.7 });
+        burst(g.position.clone().add(new THREE.Vector3(0, 1, 0)), b.def.color, 14, 8);
+      }
+      if (b.dash > 0) b.dash -= dt;
+      const spd = b.def.speed * accel * (b.dash > 0 ? BOSS_DASH_MULT : 1);
+      b.curSpeed = spd;
+      g.position.x += dx / d * spd * dt;
+      g.position.z += dz / d * spd * dt;
+      b.walk += dt * spd * 0.25;
     }
     g.position.y = 0;
     g.rotation.y = Math.atan2(dx, dz);
@@ -1124,7 +1136,7 @@ function renderShop() {
       <h3>リボーン ${rn}回</h3><p>稼ぎ・力の伸び ×${rebirthMult(rn)} → <b>×${rebirthMult(rn + 1)}</b></p>
       <p class="warn">お金・力・ダンベル・スピードが最初に戻る（キャラとインデックスは残る）</p></div>
       <div class="btns"><button class="btn reb" data-buy="rebirth" ${save.money < rc ? 'disabled' : ''}>リボーン<small>$${fmt(rc)}</small></button></div></div>
-    <p class="dex-sum">💡 ボスの速さ: ${ZONES.map((z, i) => `${RARITIES[i].name} ${z.boss.speed}`).join(' / ')}</p>
+    <p class="dex-sum">💡 ボスの速さ（最初）: ${ZONES.map((z, i) => `${RARITIES[i].name} ${z.boss.speed}`).join(' / ')}<br>ボスは追いかけるほど速くなり（最大1.25倍）、ときどきダッシュしてくる！</p>
     <p class="dex-sum">現在の力での飛距離の目安: 約${Math.round(18 + 5.5 * Math.sqrt(save.strength))}m（PERFECTで約${Math.round(18 + 5.5 * Math.sqrt(save.strength) * 1.3)}m）</p>`;
 }
 $('shopBody').addEventListener('click', e => {
@@ -1179,6 +1191,42 @@ function renderChars() {
   if (charTab === 'inv') { newItems = 0; renderInventory(); return; }
   renderSlots();
 }
+
+// 台座とインベントリ全体から、稼ぎの多い順に台座へ並べ直す
+function equipBest() {
+  const inc = x => charIncome(CHAR_BY_ID[x.id], x.star, x.mut);
+  const all = [
+    ...save.slots.map((s, i) => s && { s, slot: i, v: inc(s) }).filter(Boolean),
+    ...save.inventory.map((x, k) => ({ s: x, inv: k, v: inc(x) })),
+  ].sort((a, b) => b.v - a.v);
+  const best = new Set(all.slice(0, SLOT_COUNT));
+  let moved = 0;
+  // 選ばれなかった台座のキャラはインベントリへ（たまったお金は回収）
+  save.slots.forEach((s, i) => {
+    if (!s || [...best].some(e => e.slot === i)) return;
+    if (s.stored >= 1) addMoney(s.stored);
+    save.inventory.push(s.mut ? { id: s.id, star: s.star, mut: s.mut } : { id: s.id, star: s.star });
+    save.slots[i] = null; moved++;
+  });
+  // 選ばれたインベントリのキャラを空いた台座へ（稼ぎの多い順）
+  const take = [...best].filter(e => e.inv !== undefined);
+  const takenObjs = new Set(take.map(e => e.s));
+  for (const e of take) {
+    const i = firstEmpty();
+    if (i < 0) break;
+    save.slots[i] = e.s.mut ? { id: e.s.id, star: e.s.star, stored: 0, mut: e.s.mut } : { id: e.s.id, star: e.s.star, stored: 0 };
+    moved++;
+  }
+  save.inventory = save.inventory.filter(x => !takenObjs.has(x));
+  save.slots.forEach((_, i) => refreshSlot(i));
+  if (moved) {
+    play('evolve', { vol: 0.6 });
+    toast(`⭐ 一番いいキャラを装備した！（毎秒 +$${fmt(totalIncome())}）`, { color: '#ffd23f', big: true, time: 2600 });
+  } else toast('すでに一番いいキャラを装備しているよ', { color: '#9ad0ff' });
+  highlightSlot = -1; placeSlot = -1;
+  renderChars(); updateHud(); writeSave();
+}
+$('bestBtn').addEventListener('click', equipBest);
 
 function renderInventory() {
   const body = $('charBody');
@@ -1437,3 +1485,4 @@ renderer.setAnimationLoop(() => {
   update(dt);
   renderer.render(scene, camera);
 });
+

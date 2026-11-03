@@ -192,6 +192,8 @@ body.touch #prompt { bottom: 200px; }
 .rar { font-weight: 900; }
 .empty-slot { color: var(--muted); font-size: 14px; }
 .tabs { display: flex; gap: 6px; padding: 10px 16px 0; }
+.best-row { padding: 8px 16px 0; }
+.btn.best { width: 100%; background: #ffd23f; color: #3b2a00; }
 .tab { flex: 1; padding: 8px; border-radius: 10px; border: 2px solid var(--line); background: transparent; color: var(--muted); font-weight: 800; cursor: pointer; }
 .tab b { margin-left: 4px; font-size: 12px; opacity: .85; }
 .tab.active { background: var(--accent); color: #3b2a00; border-color: var(--accent); }

@@ -17,6 +17,13 @@ export const RARITIES = [
 export const rarFx = r => RARITIES[r].fx ?? RARITIES[r].color;
 export const rarCss = r => RARITIES[r].fx ? '#' + RARITIES[r].fx.toString(16).padStart(6, '0') : RARITIES[r].css;
 
+// ボスの追跡: 追いかけるほど速くなり（最大 +25%）、ときどきダッシュする
+export const BOSS_ACCEL = 0.05;        // 1秒ごとに基本の速さの +5%
+export const BOSS_ACCEL_MAX = 1.25;
+export const BOSS_DASH_EVERY = 4;    // 秒
+export const BOSS_DASH_TIME = 0.6;     // 秒
+export const BOSS_DASH_MULT = 1.6;
+
 // ワールド配置
 export const BASE_LINE = 0;        // これより手前(z<0)が拠点＝安全地帯
 export const LAUNCH_POS = { x: 0, z: 6 };
@@ -29,27 +36,27 @@ export const WORLD_HALF_W = 30;
 
 export const ZONES = [
   { name: '草原',   ground: 0x7ec850, alt: 0x6fb944, sky: 0x8fd3ff, deco: 'tree',
-    boss: { name: 'スライム大将',   color: 0x5ad16a, speed: 11, scale: 2.0 } },
+    boss: { name: 'スライム大将',   color: 0x5ad16a, speed: 13, scale: 2.0 } },
   { name: '砂漠',   ground: 0xe9cf86, alt: 0xdcc077, sky: 0xffd9a0, deco: 'cactus',
-    boss: { name: 'サンドワーム',   color: 0xc9a25a, speed: 14, scale: 2.3 } },
+    boss: { name: 'サンドワーム',   color: 0xc9a25a, speed: 17, scale: 2.3 } },
   { name: '氷河',   ground: 0xd8f1ff, alt: 0xc2e6fb, sky: 0xbfe6ff, deco: 'ice',
-    boss: { name: 'アイスゴーレム', color: 0x8fd6ff, speed: 17, scale: 2.6 } },
+    boss: { name: 'アイスゴーレム', color: 0x8fd6ff, speed: 21, scale: 2.6 } },
   { name: '毒沼',   ground: 0x7a4f9a, alt: 0x6b4189, sky: 0xb48ad6, deco: 'mushroom',
-    boss: { name: 'ポイズンキング', color: 0xa64dff, speed: 20, scale: 2.9 } },
+    boss: { name: 'ポイズンキング', color: 0xa64dff, speed: 25, scale: 2.9 } },
   { name: '黄金郷', ground: 0xf3c94b, alt: 0xe5b934, sky: 0xfff0b0, deco: 'gold',
-    boss: { name: 'ゴールドナイト', color: 0xffd23f, speed: 23, scale: 3.2 } },
+    boss: { name: 'ゴールドナイト', color: 0xffd23f, speed: 29, scale: 3.2 } },
   { name: '溶岩',   ground: 0x4a2a24, alt: 0x5a2f26, sky: 0xff8a5c, deco: 'lava',
-    boss: { name: 'マグマドラゴン', color: 0xff4a1c, speed: 26, scale: 3.6 } },
+    boss: { name: 'マグマドラゴン', color: 0xff4a1c, speed: 33, scale: 3.6 } },
   { name: '虚空',   ground: 0x1b1530, alt: 0x251c40, sky: 0x2a1f4f, deco: 'crystal',
-    boss: { name: 'ヴォイドロード', color: 0x9b6bff, speed: 30, scale: 4.0 } },
+    boss: { name: 'ヴォイドロード', color: 0x9b6bff, speed: 37, scale: 4.0 } },
   { name: '天空',     ground: 0xf4f9ff, alt: 0xe2efff, sky: 0xc9e8ff, deco: 'cloud',
-    boss: { name: 'テンペストグリフォン', color: 0xe0f4ff, speed: 34, scale: 4.4 } },
+    boss: { name: 'テンペストグリフォン', color: 0xe0f4ff, speed: 41, scale: 4.4 } },
   { name: '深海',     ground: 0x0e3b5c, alt: 0x12476d, sky: 0x1d5f8a, deco: 'coral',
-    boss: { name: 'クラーケン',     color: 0xd81b60, speed: 38, scale: 4.8 } },
+    boss: { name: 'クラーケン',     color: 0xd81b60, speed: 45, scale: 4.8 } },
   { name: '機械都市', ground: 0x3a3f47, alt: 0x454b55, sky: 0x8e9aab, deco: 'tower',
-    boss: { name: 'ギガロボ',       color: 0x8d99ae, speed: 42, scale: 5.2 } },
+    boss: { name: 'ギガロボ',       color: 0x8d99ae, speed: 49, scale: 5.2 } },
   { name: '時空の果て', ground: 0x0a0a16, alt: 0x15152c, sky: 0x0b0820, deco: 'clock',
-    boss: { name: 'クロノス',       color: 0xffe066, speed: 46, scale: 5.6 } },
+    boss: { name: 'クロノス',       color: 0xffe066, speed: 53, scale: 5.6 } },
 ];
 
 // キャラクター（形状パラメータは models.js の buildCharacter で使う）
