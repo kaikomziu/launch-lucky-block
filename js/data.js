@@ -12,6 +12,10 @@ export const RARITIES = [
   { name: 'ゴッド',         color: 0xff9f1c, css: '#ff9f1c', income: 1600000 },
   { name: 'エターナル',     color: 0xc0c8ff, css: '#c0c8ff', income: 10000000 },
   { name: 'インフィニティ', color: 0xffffff, css: 'cosmic', income: 70000000, fx: 0x8a7dff },
+  { name: 'オーロラ',       color: 0x7dffd8, css: '#7dffd8', income: 500000000 },
+  { name: 'ネビュラ',       color: 0xff7ae0, css: '#ff7ae0', income: 3500000000 },
+  { name: 'カオス',         color: 0xd6336c, css: '#d6336c', income: 25000000000 },
+  { name: 'オメガ',         color: 0xffffff, css: 'rainbow', income: 180000000000, fx: 0xffd23f },
 ];
 // 3D演出・枠線に使う色（白いレア度は代わりの色）
 export const rarFx = r => RARITIES[r].fx ?? RARITIES[r].color;
@@ -57,6 +61,14 @@ export const ZONES = [
     boss: { name: 'ギガロボ',       color: 0x8d99ae, speed: 49, scale: 5.2 } },
   { name: '時空の果て', ground: 0x0a0a16, alt: 0x15152c, sky: 0x0b0820, deco: 'clock',
     boss: { name: 'クロノス',       color: 0xffe066, speed: 53, scale: 5.6 } },
+  { name: 'オーロラ平原', ground: 0x0f2238, alt: 0x13304d, sky: 0x1b3b5f, deco: 'aurora',
+    boss: { name: 'オーロラフェンリル', color: 0x7dffd8, speed: 57, scale: 6.0 } },
+  { name: '星雲の海', ground: 0x2a0f3a, alt: 0x3a1452, sky: 0x3d1a5c, deco: 'nebula',
+    boss: { name: 'ネビュラクイーン', color: 0xff7ae0, speed: 61, scale: 6.4 } },
+  { name: '混沌の大地', ground: 0x2b0a0a, alt: 0x3a0f0f, sky: 0x4a0d0d, deco: 'chaos',
+    boss: { name: 'カオスタイタン',   color: 0xff2a2a, speed: 65, scale: 6.8 } },
+  { name: 'ラッキーの頂', ground: 0xfff3c4, alt: 0xffe58a, sky: 0xfff6d5, deco: 'luckyblock',
+    boss: { name: 'ラッキーキング',   color: 0xffd23f, speed: 69, scale: 7.2 } },
 ];
 
 // キャラクター（形状パラメータは models.js の buildCharacter で使う）
@@ -169,6 +181,36 @@ export const CHARACTERS = [
   { id: 'souseiryu', r: 10, name: '創世ドラゴン',    mult: 1.2, shape: 'egg',    color: 0xffffff, accent: 0x8a7dff, extras: ['horns', 'wings', 'tail', 'halo', 'rainbow'] },
   { id: 'shuen',     r: 10, name: '終焉の王',        mult: 1.4, shape: 'box',    color: 0x14001f, accent: 0xff1744, extras: ['crown', 'cape', 'horns', 'glow'] },
   { id: 'luckygod',  r: 10, name: 'ラッキーゴッド',  mult: 1.5, shape: 'box',    color: 0xffd23f, accent: 0xffffff, extras: ['halo', 'wings', 'stars', 'glow'] },
+
+  // ---- v0.32 で追加（新ゾーン） ----
+  // オーロラ（オーロラ平原）
+  { id: 'aurorafox', r: 11, name: 'オーロラギツネ',  mult: 0.7, shape: 'egg',    color: 0xe0fff7, accent: 0x7dffd8, extras: ['ears', 'tail', 'glow'] },
+  { id: 'yukihime',  r: 11, name: '雪の姫',          mult: 0.9, shape: 'cone',   color: 0xf0f8ff, accent: 0x9ad0ff, extras: ['tiara', 'cape', 'stars'] },
+  { id: 'hyougakujira', r: 11, name: '氷河クジラ',   mult: 1.1, shape: 'dome',   color: 0x9fe8f5, accent: 0x2a9d8f, extras: ['fins', 'tail', 'glow'] },
+  { id: 'kyokkouryu', r: 11, name: '極光竜',         mult: 1.2, shape: 'egg',    color: 0x1b4965, accent: 0x7dffd8, extras: ['horns', 'wings', 'tail', 'glow'] },
+  { id: 'hoshiookami', r: 11, name: '星オオカミ',    mult: 1.4, shape: 'box',    color: 0x2b2d42, accent: 0x7df9ff, extras: ['ears', 'halo', 'stars'] },
+  { id: 'aurorakami', r: 11, name: 'オーロラの神',   mult: 1.5, shape: 'sphere', color: 0xffffff, accent: 0x7dffd8, extras: ['crown', 'wings', 'orbit', 'glow'] },
+  // ネビュラ（星雲の海）
+  { id: 'nebulaneko', r: 12, name: '星雲ネコ',       mult: 0.7, shape: 'box',    color: 0x3d1a5c, accent: 0xff7ae0, extras: ['ears', 'orbit', 'glow'] },
+  { id: 'uchuukurage', r: 12, name: '宇宙クラゲ',    mult: 0.9, shape: 'dome',   color: 0xff9ad5, accent: 0x7df9ff, extras: ['tentacles', 'stars', 'glow'] },
+  { id: 'meteorkun', r: 12, name: 'メテオくん',      mult: 1.1, shape: 'sphere', color: 0x6c4f3d, accent: 0xff6d00, extras: ['flame', 'cracks'] },
+  { id: 'nebularyu', r: 12, name: 'ネビュラドラゴン', mult: 1.2, shape: 'egg',   color: 0x5a189a, accent: 0xff7ae0, extras: ['horns', 'wings', 'spikes', 'glow'] },
+  { id: 'seizakenja', r: 12, name: '星座の賢者',     mult: 1.4, shape: 'cyl',    color: 0x240046, accent: 0xfff27a, extras: ['tophat', 'glasses', 'stars'] },
+  { id: 'nebulaqueen', r: 12, name: '星雲の女王',    mult: 1.5, shape: 'cone',   color: 0xff7ae0, accent: 0xffd23f, extras: ['crown', 'cape', 'orbit', 'glow'] },
+  // カオス（混沌の大地）
+  { id: 'chaosblock', r: 13, name: 'カオスブロック', mult: 0.7, shape: 'box',    color: 0x1a0000, accent: 0xff2a2a, extras: ['cracks', 'glow', 'ring'] },
+  { id: 'koakuma',   r: 13, name: '小悪魔',          mult: 0.9, shape: 'egg',    color: 0x8b0000, accent: 0x222222, extras: ['horns', 'wings', 'tail'] },
+  { id: 'hametsunome', r: 13, name: '破滅の目',      mult: 1.1, shape: 'sphere', color: 0x111111, accent: 0xff2a2a, extras: ['gem', 'ring', 'glow'] },
+  { id: 'kurokishi', r: 13, name: '黒騎士',          mult: 1.2, shape: 'box',    color: 0x22223b, accent: 0xff2a2a, extras: ['helmet', 'katana', 'cape'] },
+  { id: 'chaosryu',  r: 13, name: 'カオスドラゴン',  mult: 1.4, shape: 'egg',    color: 0x2b0000, accent: 0xff6d00, extras: ['horns', 'wings', 'spikes', 'flame'] },
+  { id: 'konton',    r: 13, name: '混沌の王',        mult: 1.5, shape: 'box',    color: 0x14001f, accent: 0xff2a2a, extras: ['crown', 'cape', 'orbit', 'glow'] },
+  // オメガ（ラッキーの頂）
+  { id: 'ougonblock', r: 14, name: '黄金ブロック',   mult: 0.7, shape: 'box',    color: 0xffd23f, accent: 0xffffff, extras: ['halo', 'glow', 'stars'] },
+  { id: 'luckyneko', r: 14, name: '招きラッキーネコ', mult: 0.9, shape: 'sphere', color: 0xffffff, accent: 0xffd23f, extras: ['ears', 'bow', 'glow', 'rainbow'] },
+  { id: 'omegaegg',  r: 14, name: 'オメガの卵',      mult: 1.1, shape: 'egg',    color: 0xffffff, accent: 0xffd23f, extras: ['crown', 'orbit', 'rainbow'] },
+  { id: 'tenchi',    r: 14, name: '天地創造',        mult: 1.2, shape: 'sphere', color: 0xfff3c4, accent: 0x7df9ff, extras: ['halo', 'wings', 'ring', 'glow'] },
+  { id: 'omegaryu',  r: 14, name: 'オメガドラゴン',  mult: 1.4, shape: 'egg',    color: 0xffd23f, accent: 0xff3b3b, extras: ['horns', 'wings', 'tail', 'orbit', 'glow'] },
+  { id: 'luckyking', r: 14, name: 'ラッキーキング',  mult: 1.5, shape: 'box',    color: 0xffd23f, accent: 0xff7ae0, extras: ['crown', 'cape', 'wings', 'rainbow'] },
 ];
 
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));

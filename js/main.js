@@ -273,6 +273,38 @@ function decorate(type, x, z) {
       for (let k = 1; k < h; k += 2) add(new THREE.BoxGeometry(3.05, 0.25, 3.05), glow(0x7df9ff), 0, k, 0);
       break;
     }
+    case 'aurora': {
+      // 光のカーテンと雪の山
+      const col = Math.random() < 0.5 ? 0x7dffd8 : 0x7df9ff;
+      const a = add(new THREE.BoxGeometry(0.2, 9, 3.5), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.45 }), 0, 6, 0);
+      a.rotation.y = Math.random() * Math.PI; a.castShadow = false;
+      add(decoGeo.puff, mat(0xf4fbff), 0, 0.3, 0).scale.set(1.2, 0.5, 1.2);
+      break;
+    }
+    case 'nebula': {
+      // ふわふわ浮かぶ光の玉
+      for (let k = 0; k < 3; k++) {
+        const o = add(decoGeo.puff, glow([0xff7ae0, 0x7df9ff, 0xb388ff][k]), (k - 1) * 1.8, 3 + Math.random() * 5, (Math.random() - 0.5) * 2);
+        o.scale.setScalar(0.4 + Math.random() * 0.5);
+      }
+      break;
+    }
+    case 'chaos': {
+      // 傾いた黒いブロックと赤い光
+      const c = add(new THREE.BoxGeometry(2.2, 2.2, 2.2), mat(0x1a0505), 0, 2 + Math.random() * 3, 0);
+      c.rotation.set(Math.random(), Math.random(), Math.random());
+      const core = add(new THREE.OctahedronGeometry(0.7), glow(0xff2a2a), c.position.x, c.position.y + 2.4, c.position.z);
+      spinners.push(core);
+      break;
+    }
+    case 'luckyblock': {
+      // 大きなラッキーブロック
+      const b = buildLuckyBlock();
+      b.scale.setScalar(1.6 + Math.random()); b.position.y = 2.5 + Math.random() * 3;
+      b.rotation.set(0.3, Math.random() * 3, 0.2);
+      g.add(b); spinners.push(b);
+      break;
+    }
     case 'clock': {
       // 浮かぶ時計の輪と針
       const c = new THREE.Group(); c.position.y = 3 + Math.random() * 2; g.add(c);
@@ -1984,5 +2016,6 @@ renderer.setAnimationLoop(() => {
   update(dt);
   renderer.render(scene, camera);
 });
+
 
 
