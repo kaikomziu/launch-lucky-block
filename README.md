@@ -1,4 +1,4 @@
-# ラッキーブロックを打つ Web（非公式ファンメイド） v0.32
+# ラッキーブロックを打つ Web（非公式ファンメイド） v0.33
 
 Roblox「Launch a Lucky Block（Lucky Bear Studio）」を題材にした、ブラウザで遊べる 3D ゲームです。
 HTML / CSS / JavaScript と [three.js](https://threejs.org/) で作っています。
@@ -28,7 +28,7 @@ HTML / CSS / JavaScript と [three.js](https://threejs.org/) で作っていま�
 
 ## 管理者メニュー
 
-かるわかGAMESの管理者アカウント（`ka_accounts.is_admin`）でログインすると、右上に「🛠 管理者メニュー」が出ます。
+かるわかGAMESの管理者アカウント（`ka_accounts.is_admin`）でログインすると、右上に「🛠 管理者メニュー」が出ます（PCは7キーでも開けます）。
 全員へのメッセージ、キャラクター配布（1人1体）、変異イベントの開始（最長10分）ができます。どれも「⏰ 予約する」で開始日時を指定できます（30日先まで、始まる前なら取り消し可）。
 権限の確認と値の検査はサーバー（Supabase の `llb_admin_post` など）で行い、お金や力のようにゲームが壊れるものは配れません。
 
