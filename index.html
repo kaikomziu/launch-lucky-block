@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>ラッキーブロックを打つ Web（非公式ファンメイド）</title>
+<meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
+<meta name="theme-color" content="#1b1530">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<div id="game"></div>
+<div id="labels"></div>
+
+<!-- ステータス -->
+<div id="stats" class="hud">
+  <div class="stat money"><span class="ico">💰</span><b id="sMoney">0</b><small id="sIncome">+0/秒</small></div>
+  <div class="stat"><span class="ico">💪</span><b id="sStrength">0</b><small id="sRate">+0/秒</small></div>
+  <div class="stat"><span class="ico">👟</span><b id="sSpeed">0</b><small>スピード</small></div>
+</div>
+
+<div id="menu" class="hud">
+  <button data-panel="shopPanel">🛒<span>ショップ</span></button>
+  <button data-panel="charPanel">🧸<span>キャラ</span></button>
+  <button data-panel="settingsPanel">⚙️<span>設定</span></button>
+</div>
+
+<div id="zoneLabel" class="hud"></div>
+<div id="toasts"></div>
+<div id="prompt" class="hud hidden"></div>
+<div id="lockHint" class="hud hidden">🖱️ クリックで視点をロック（Esc で解除）</div>
+
+<!-- 飛行中・追跡中のHUD -->
+<div id="flightHud" class="hud hidden"><b id="flightDist">0m</b><span id="flightZone"></span></div>
+<div id="chaseHud" class="hud hidden">
+  <div class="row"><span>🏠 拠点まで</span><b id="chaseHome">0m</b></div>
+  <div class="row danger"><span id="chaseBossName">👹 ボス</span><b id="chaseBoss">0m</b></div>
+</div>
+
+<!-- タイミングゲージ -->
+<div id="timing" class="hidden">
+  <div class="label">タイミングよく押せ！</div>
+  <div class="bar"><div class="good"></div><div class="perfect"></div><div class="cursor"></div></div>
+</div>
+
+<!-- ガチャ演出 -->
+<div id="reveal" class="hidden">
+  <div class="rarity" id="revealRarity"></div>
+  <div class="name" id="revealName"></div>
+  <div class="income" id="revealIncome"></div>
+</div>
+
+<!-- スマホ操作 -->
+<div id="joystick" class="touch-only"><div class="knob"></div></div>
+<button id="actionBtn" class="touch-only hidden">打つ</button>
+
+<div id="fade"></div>
+
+<!-- パネル -->
+<div id="shopPanel" class="panel hidden">
+  <div class="panel-head"><h2>🛒 ショップ</h2><button class="close">✕</button></div>
+  <div class="panel-body" id="shopBody"></div>
+</div>
+
+<div id="charPanel" class="panel hidden">
+  <div class="panel-head"><h2>🧸 キャラクター</h2><button class="close">✕</button></div>
+  <div class="tabs"><button class="tab active" data-tab="slots">拠点</button><button class="tab" data-tab="dex">図鑑</button></div>
+  <div class="panel-body" id="charBody"></div>
+</div>
+
+<div id="settingsPanel" class="panel hidden">
+  <div class="panel-head"><h2>⚙️ 設定</h2><button class="close">✕</button></div>
+  <div class="panel-body">
+    <label class="field">プレイヤー名（ランキング用・準備中）
+      <input id="nameInput" maxlength="16" placeholder="名無し">
+    </label>
+    <label class="field">音量
+      <input id="volInput" type="range" min="0" max="1" step="0.05">
+    </label>
+    <div class="howto">
+      <h3>あそびかた</h3>
+      <ol>
+        <li>💪 力は放置で増える。ダンベルの上に立つと3倍、押すとさらにボーナス。</li>
+        <li>🏏 黄色い発射台でラッキーブロックを打つ。遠くに飛ぶほどレア！</li>
+        <li>📦 落ちた場所でブロックを開けるとキャラが出てくる。</li>
+        <li>👹 ゾーンのボスが追ってくる！拠点（緑のライン）まで逃げ切れ。</li>
+        <li>💰 台座のキャラがお金を稼ぐ。台座に触れて回収しよう。</li>
+      </ol>
+      <p>PC: WASD移動 / クリックでマウスロック（マウスで視点）/ 左クリック・E・スペースで行動 / Escでロック解除 / ホイールでズーム<br>スマホ: 左下スティックで移動 / 右下ボタンで行動 / 画面スワイプで視点</p>
+    </div>
+    <div class="credits">
+      <h3>クレジット</h3>
+      <p>効果音: <a href="https://otologic.jp" target="_blank" rel="noopener">OtoLogic</a>（CC BY 4.0）／ <a href="https://soundeffect-lab.info/" target="_blank" rel="noopener">効果音ラボ</a></p>
+      <p>3D: <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p>
+      <p class="note">本作は Roblox「Launch a Lucky Block（Lucky Bear Studio）」を題材にした非公式のファンメイド作品です。Roblox Corporation および Lucky Bear Studio とは関係ありません。</p>
+    </div>
+    <button id="resetBtn" class="danger-btn">データをリセット</button>
+  </div>
+</div>
+
+<!-- タイトル -->
+<div id="title">
+  <div class="title-inner">
+    <div class="logo-block">?</div>
+    <h1>ラッキーブロックを打つ<small>LAUNCH A LUCKY BLOCK — Web</small></h1>
+    <p class="sub">力を鍛えて、ブロックをかっ飛ばせ！<br>遠くに飛ぶほどレアなキャラが出る。ボスから逃げて拠点に持ち帰ろう。</p>
+    <button id="startBtn">▶ スタート</button>
+    <p class="ctrl" id="ctrlHint"></p>
+    <p class="note">非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
