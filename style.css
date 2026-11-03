@@ -177,6 +177,13 @@ body.touch #prompt { bottom: 200px; }
 .btn:not(:disabled):active { transform: translateY(2px); box-shadow: none; }
 .rar { font-weight: 900; }
 .empty-slot { color: var(--muted); font-size: 14px; }
+.tabs { display: flex; gap: 6px; padding: 10px 16px 0; }
+.tab { flex: 1; padding: 8px; border-radius: 10px; border: 2px solid var(--line); background: transparent; color: var(--muted); font-weight: 800; cursor: pointer; }
+.tab b { margin-left: 4px; font-size: 12px; opacity: .85; }
+.tab.active { background: var(--accent); color: #3b2a00; border-color: var(--accent); }
+.card .thumb { width: 56px; height: 56px; flex: 0 0 56px; }
+.card .cnt { color: #9ad0ff; font-size: 14px; }
+.btn.store { background: #9ad0ff; color: #0b2540; }
 
 .dex-sum { margin: 0 0 10px; color: var(--muted); }
 
@@ -213,6 +220,11 @@ body.touch #prompt { bottom: 200px; }
 }
 @media (max-width: 600px) {
   .idx-grid { grid-template-columns: repeat(2, 1fr); }
+  /* 狭い画面ではボタンをカードの下に横並びにする */
+  .card { flex-wrap: wrap; }
+  .card .info { flex: 1 1 150px; }
+  .card .btns { flex-direction: row; flex: 1 1 100%; }
+  .card .btns .btn { flex: 1; min-width: 0; }
 }
 
 .field { display: block; margin-bottom: 14px; font-weight: 800; }

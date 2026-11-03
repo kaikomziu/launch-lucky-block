@@ -29,6 +29,7 @@ function defaultSave() {
   return {
     money: 0, strength: 20, dumbbellLv: 1, speedLv: 1, rebirths: 0,
     slots: Array(SLOT_COUNT).fill(null),         // { id, star, stored }
+    inventory: [],                               // { id, star } 持ち帰ったが台座に置いていないキャラ
     stats: { bestDistance: 0, totalEarned: 0, collected: 0, bestRarity: 0 },
     dex: {},
     name: '', volume: 0.7,
@@ -46,6 +47,7 @@ function loadSave() {
     s.stats = Object.assign(defaultSave().stats, s.stats);
     while (s.slots.length < SLOT_COUNT) s.slots.push(null);
     s.slots = s.slots.map(x => (x && CHAR_BY_ID[x.id] ? x : null));
+    s.inventory = (Array.isArray(s.inventory) ? s.inventory : []).filter(x => x && CHAR_BY_ID[x.id]);
     // 旧形式（id: true）のインデックスを移行
     for (const k of Object.keys(s.dex)) {
       if (!CHAR_BY_ID[k]) delete s.dex[k];
@@ -369,7 +371,7 @@ save.slots.forEach((_, i) => refreshSlot(i));
 function updateSlotLabels() {
   slotObjs.forEach((o, i) => {
     const s = save.slots[i];
-    if (!s) return;
+    if (!s) { setLabel(o.label, `<div class="n">台座${i + 1}（空き）</div>${save.inventory.length ? '<div>近づいてキャラを置こう</div>' : ''}`); return; }
     const def = CHAR_BY_ID[s.id];
     setLabel(o.label,
       `<div class="m">$${fmt(s.stored)}</div><div class="n">${def.name}</div>` +
@@ -618,17 +620,10 @@ function reachedBase() {
   const entry = save.dex[def.id] ||= { count: 0, first: Date.now(), seen: false };
   entry.count++;
   if (isNew) setTimeout(() => toast(`📖 インデックスに ${def.name} を登録！`, { color: '#ffd23f', time: 2600 }), 700);
-  const idx = save.slots.findIndex(s => !s);
-  if (idx >= 0) {
-    save.slots[idx] = { id: def.id, star: 1, stored: 0 };
-    refreshSlot(idx);
-    burst(SLOT_POS[idx].clone().add(new THREE.Vector3(0, 2, 0)), RARITIES[def.r].color, 30, 10);
-    toast(`🎉 ${def.name} を台座${idx + 1}に設置！${isNew ? ' <span style="color:#ffd23f">NEW!</span>' : ''}`, { color: '#7dff8a', big: true, time: 2600 });
-  } else {
-    const price = sellPrice(def, 1);
-    addMoney(price);
-    toast(`台座がいっぱい！ ${def.name} を $${fmt(price)} で売却`, { color: '#ffd23f', time: 3000 });
-  }
+  save.inventory.push({ id: def.id, star: 1 });
+  newItems++;
+  toast(`🎒 ${def.name} をインベントリに入れた！${isNew ? ' <span style="color:#ffd23f">NEW!</span>' : ''}`, { color: '#7dff8a', big: true, time: 2600 });
+  if (save.stats.collected <= 2) setTimeout(() => toast('空いている台座に近づくと、キャラを選んで置けるよ', { color: '#ffd23f', time: 3500 }), 1400);
   writeSave();
   renderPanels();
 }
@@ -656,7 +651,8 @@ function decideAction() {
     if (Math.hypot(p.x - LAUNCH.x, p.z - LAUNCH.z) < 3.2) return { label: '打つ', fn: startAim };
     if (Math.hypot(p.x - DUMBBELL_POS.x, p.z - DUMBBELL_POS.z) < 3.4) return { label: '持ち上げる', fn: liftDumbbell };
     const si = nearestSlot();
-    if (si >= 0 && save.slots[si]) return { label: 'キャラを見る', fn: () => openPanelById('charPanel', si) };
+    if (si >= 0 && save.slots[si]) return { label: 'キャラを見る', fn: () => openChars('slots', si) };
+    if (si >= 0 && save.inventory.length) return { label: 'キャラを置く', fn: () => openChars('inv', si) };
     return null;
   }
   if (state === 'aim') return { label: '打つ！', fn: doSwing };
@@ -970,6 +966,8 @@ function updateHud() {
   $('rebirthStat').classList.toggle('hidden', !save.rebirths);
   $('sRebirth').textContent = save.rebirths;
   $('sRebirthMult').textContent = `×${rebirthMult(save.rebirths)}`;
+  $('invBadge').textContent = newItems;
+  $('invBadge').classList.toggle('hidden', newItems === 0 || openPanel === 'charPanel');
   const unseen = Object.values(save.dex).filter(e => !e.seen).length;
   $('indexBadge').textContent = unseen;
   $('indexBadge').classList.toggle('hidden', unseen === 0 || openPanel === 'indexPanel');
@@ -980,9 +978,19 @@ function updateHud() {
 // =====================================================================
 let openPanel = null;
 let highlightSlot = -1;
+let charTab = 'inv';        // キャラ画面のタブ: inv（インベントリ）/ slots（台座）
+let placeSlot = -1;         // 台座から開いたとき、置き先の台座
+let newItems = 0;           // まだ見ていないインベントリの新入り数
+function openChars(tab, slot = -1) {
+  charTab = tab;
+  openPanelById('charPanel', tab === 'slots' ? slot : -1);
+  placeSlot = tab === 'inv' ? slot : -1;
+  renderChars();
+}
 
 function openPanelById(id, slot = -1) {
   closePanels();
+  placeSlot = -1;
   unlockPointer();
   openPanel = id;
   highlightSlot = slot;
@@ -1072,28 +1080,121 @@ function doRebirth() {
   updateHud(); updateSlotLabels(); writeSave();
 }
 
+// 1枚のカードの左側（サムネイル）
+const charIcon = def => `<img class="thumb" src="${charThumb(def, false)}" alt="">`;
+const firstEmpty = () => save.slots.findIndex(s => !s);
+
 function renderChars() {
+  const used = save.slots.filter(Boolean).length;
+  document.querySelectorAll('#charPanel .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === charTab));
+  $('tabInvCount').textContent = save.inventory.length;
+  $('tabSlotCount').textContent = `${used}/${SLOT_COUNT}`;
+  if (charTab === 'inv') { newItems = 0; renderInventory(); return; }
+  renderSlots();
+}
+
+function renderInventory() {
+  const body = $('charBody');
+  if (!save.inventory.length) {
+    body.innerHTML = '<p class="empty-slot">インベントリは空っぽ。ブロックを打ってキャラを持ち帰ろう！</p>';
+    return;
+  }
+  // 同じキャラ・同じ★はまとめて表示（レア度の高い順）
+  const groups = new Map();
+  for (const it of save.inventory) {
+    const k = it.id + ':' + it.star;
+    if (!groups.has(k)) groups.set(k, { id: it.id, star: it.star, n: 0 });
+    groups.get(k).n++;
+  }
+  const list = [...groups.values()].sort((a, b) => CHAR_BY_ID[b.id].r - CHAR_BY_ID[a.id].r || b.star - a.star || CHAR_BY_ID[b.id].mult - CHAR_BY_ID[a.id].mult);
+  const target = placeSlot >= 0 && !save.slots[placeSlot] ? placeSlot : firstEmpty();
+  const head = placeSlot >= 0 && !save.slots[placeSlot]
+    ? `<p class="dex-sum">台座${placeSlot + 1}に置くキャラを選んでね</p>`
+    : target < 0 ? '<p class="dex-sum">台座がいっぱい！ 台座のキャラを「しまう」か「売却」すると置けるよ</p>' : '';
+  body.innerHTML = head + list.map(g => {
+    const def = CHAR_BY_ID[g.id];
+    return `<div class="card">${charIcon(def)}
+      <div class="info"><h3>${def.name} <span class="s" style="color:#ffd23f">${stars(g.star)}</span>${g.n > 1 ? ` <span class="cnt">×${g.n}</span>` : ''}</h3>
+        <p>${rarityName(def.r)} ・ +${fmt(charIncome(def, g.star))}/秒</p></div>
+      <div class="btns">
+        <button class="btn" data-place="${g.id}:${g.star}" ${target < 0 ? 'disabled' : ''}>${target < 0 ? '置けない' : `台座${target + 1}に置く`}</button>
+        <button class="btn sell" data-isell="${g.id}:${g.star}">売却<small>$${fmt(sellPrice(def, g.star))}</small></button>
+      </div></div>`;
+  }).join('');
+}
+
+function renderSlots() {
   const body = $('charBody');
   body.innerHTML = save.slots.map((s, i) => {
-    if (!s) return `<div class="card"><div class="icon">⬜</div><div class="info"><h3>台座 ${i + 1}</h3><p class="empty-slot">空き — ブロックからキャラを持ち帰ろう</p></div></div>`;
+    if (!s) return `<div class="card"><div class="icon">⬜</div><div class="info"><h3>台座 ${i + 1}</h3><p class="empty-slot">空き</p></div>
+      <div class="btns"><button class="btn" data-pick="${i}" ${save.inventory.length ? '' : 'disabled'}>キャラを置く</button></div></div>`;
     const def = CHAR_BY_ID[s.id];
     const canEvo = s.star < MAX_STAR;
     const cost = canEvo ? evolveCost(def, s.star) : 0;
     return `<div class="card" ${i === highlightSlot ? 'style="border-color:#ffd23f"' : ''} id="slotCard${i}">
-      <div class="icon">${['⚪', '🟢', '🔵', '🟣', '🟡', '🔴', '🌈'][def.r]}</div>
+      ${charIcon(def)}
       <div class="info"><h3>${def.name} <span class="s" style="color:#ffd23f">${stars(s.star)}</span></h3>
         <p>${rarityName(def.r)} ・ 台座${i + 1} ・ +${fmt(charIncome(def, s.star))}/秒</p>
         ${canEvo ? `<p>進化後: +${fmt(charIncome(def, s.star + 1))}/秒</p>` : '<p>最大まで進化済み！</p>'}</div>
       <div class="btns">
         ${canEvo ? `<button class="btn" data-evo="${i}" ${save.money < cost ? 'disabled' : ''}>進化<small>$${fmt(cost)}</small></button>` : ''}
+        <button class="btn store" data-store="${i}">しまう</button>
         <button class="btn sell" data-sell="${i}">売却<small>$${fmt(sellPrice(def, s.star))}</small></button>
       </div></div>`;
   }).join('');
   if (highlightSlot >= 0) $('slotCard' + highlightSlot)?.scrollIntoView({ block: 'center' });
 }
+document.querySelectorAll('#charPanel .tab').forEach(t => t.addEventListener('click', () => {
+  charTab = t.dataset.tab; placeSlot = -1; highlightSlot = -1; renderChars(); updateHud();
+}));
+
+// インベントリから台座へ置く
+function placeChar(id, star, i) {
+  const k = save.inventory.findIndex(x => x.id === id && x.star === star);
+  if (k < 0 || i < 0 || save.slots[i]) return;
+  save.inventory.splice(k, 1);
+  const def = CHAR_BY_ID[id];
+  save.slots[i] = { id, star, stored: 0 };
+  refreshSlot(i);
+  play('safe', { vol: 0.6 });
+  burst(SLOT_POS[i].clone().add(new THREE.Vector3(0, 2, 0)), RARITIES[def.r].color, 30, 10);
+  toast(`🎉 ${def.name} を台座${i + 1}に置いた！`, { color: '#7dff8a', big: true, time: 2200 });
+}
+
 $('charBody').addEventListener('click', e => {
   const evo = e.target.closest('[data-evo]'), sell = e.target.closest('[data-sell]');
-  if (evo && !evo.disabled) {
+  const place = e.target.closest('[data-place]'), isell = e.target.closest('[data-isell]');
+  const store = e.target.closest('[data-store]'), pick = e.target.closest('[data-pick]');
+  if (place && !place.disabled) {
+    const [id, star] = place.dataset.place.split(':');
+    const i = placeSlot >= 0 && !save.slots[placeSlot] ? placeSlot : firstEmpty();
+    placeChar(id, +star, i);
+    // 台座から開いたときは置いたら閉じてゲームに戻る
+    if (placeSlot >= 0) { closePanels(); lockPointer(); updateHud(); writeSave(); return; }
+  } else if (isell) {
+    const [id, star] = isell.dataset.isell.split(':');
+    const def = CHAR_BY_ID[id], price = sellPrice(def, +star);
+    if (!confirm(`${def.name}（${stars(+star)}）を $${fmt(price)} で売却しますか？`)) return;
+    const k = save.inventory.findIndex(x => x.id === id && x.star === +star);
+    if (k < 0) return;
+    save.inventory.splice(k, 1);
+    addMoney(price);
+    play('coin');
+  } else if (store) {
+    // 台座からインベントリへ戻す（たまっていたお金は回収する）
+    const i = +store.dataset.store, s = save.slots[i], def = CHAR_BY_ID[s.id];
+    if (s.stored >= 1) addMoney(s.stored);
+    save.inventory.push({ id: s.id, star: s.star });
+    save.slots[i] = null;
+    refreshSlot(i);
+    play('whoosh', { vol: 0.6 });
+    toast(`🎒 ${def.name} をインベントリにしまった`, { color: '#9ad0ff' });
+  } else if (pick && !pick.disabled) {
+    charTab = 'inv'; placeSlot = +pick.dataset.pick; highlightSlot = -1;
+    renderChars();
+    $('charBody').scrollTop = 0;
+    return;
+  } else if (evo && !evo.disabled) {
     const i = +evo.dataset.evo, s = save.slots[i], def = CHAR_BY_ID[s.id];
     const cost = evolveCost(def, s.star);
     if (save.money < cost || s.star >= MAX_STAR) return;
