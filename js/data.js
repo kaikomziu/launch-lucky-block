@@ -65,6 +65,56 @@ export const CHARACTERS = [
   { id: 'unicorn',   r: 6, name: '虹色ユニコーン',   mult: 0.8, shape: 'sphere', color: 0xffffff, accent: 0xff77e9, extras: ['unihorn', 'rainbow', 'wings'] },
   { id: 'spacewhale', r: 6, name: '宇宙クジラ',      mult: 1.0, shape: 'dome',   color: 0x1d2b64, accent: 0x9ad0ff, extras: ['stars', 'ring', 'glow'] },
   { id: 'nazoblock', r: 6, name: 'ナゾノブロック',   mult: 1.3, shape: 'box',    color: 0x111111, accent: 0x00ffd0, extras: ['halo', 'rainbow', 'glow'] },
+  // ---- v0.16 で追加 ----
+  // コモン
+  { id: 'purin',     r: 0, name: 'プリンちゃん',     mult: 0.7, shape: 'cyl',    color: 0xffd27f, accent: 0x7a3e12, extras: ['topcap', 'blush'] },
+  { id: 'onigiri',   r: 0, name: 'おにぎりくん',     mult: 0.9, shape: 'cone',   color: 0xfafafa, accent: 0x1b2a1b, extras: ['nori'] },
+  { id: 'hiyoko',    r: 0, name: 'ぴよ助',           mult: 1.1, shape: 'egg',    color: 0xffe14d, accent: 0xff9f1c, extras: ['beak', 'sprout'] },
+  { id: 'ishikoro',  r: 0, name: 'いしころ親分',     mult: 1.2, shape: 'sphere', color: 0x9aa0a6, accent: 0x6b7280, extras: ['mustache'] },
+  { id: 'kumocchi',  r: 0, name: 'くもっち',         mult: 1.4, shape: 'sphere', color: 0xffffff, accent: 0xff9ad5, extras: ['puffs', 'blush'] },
+  { id: 'tamago',    r: 0, name: 'ゆでたまご',       mult: 1.5, shape: 'egg',    color: 0xfff8ec, accent: 0xffb3c7, extras: ['blush', 'bow'] },
+  // アンコモン
+  { id: 'hamutai',   r: 1, name: 'ハムスター隊長',   mult: 0.7, shape: 'sphere', color: 0xf4b183, accent: 0xffffff, extras: ['ears', 'belly', 'helmet'] },
+  { id: 'kamekichi', r: 1, name: 'カメ吉',           mult: 0.9, shape: 'dome',   color: 0x7bc96f, accent: 0x8b5a2b, extras: ['shell'] },
+  { id: 'togetoge',  r: 1, name: 'トゲトゲ丸',       mult: 1.1, shape: 'sphere', color: 0xc9a27e, accent: 0x5d4037, extras: ['spikes', 'blush'] },
+  { id: 'teruteru',  r: 1, name: 'てるてる坊',       mult: 1.2, shape: 'egg',    color: 0xf7f9ff, accent: 0xff5a5a, extras: ['scarf', 'blush'] },
+  { id: 'usaphone',  r: 1, name: 'ヘッドホンうさぎ', mult: 1.4, shape: 'egg',    color: 0xffc0d9, accent: 0x7c4dff, extras: ['ears', 'headphones'] },
+  { id: 'yukidaruma', r: 1, name: 'ゆきだるマン',    mult: 1.5, shape: 'sphere', color: 0xffffff, accent: 0xff7b00, extras: ['beak', 'scarf'] },
+  // レア
+  { id: 'kaizoku',   r: 2, name: 'パイレーツバード', mult: 0.7, shape: 'egg',    color: 0x2ec4b6, accent: 0xffbf00, extras: ['beak', 'eyepatch'] },
+  { id: 'ninja',     r: 2, name: 'ニンジャだるま',   mult: 0.9, shape: 'sphere', color: 0x2b2d42, accent: 0xe63946, extras: ['scarf', 'katana'] },
+  { id: 'herimame',  r: 2, name: 'ヘリまめ',         mult: 1.1, shape: 'egg',    color: 0x9be15d, accent: 0xff6b6b, extras: ['propeller', 'blush'] },
+  { id: 'samebou',   r: 2, name: 'シャーク坊',       mult: 1.2, shape: 'egg',    color: 0x5c9ead, accent: 0xdfefff, extras: ['fins', 'teeth'] },
+  { id: 'hakase',    r: 2, name: 'メガネ博士',       mult: 1.4, shape: 'cyl',    color: 0xf1f1f1, accent: 0x3a86ff, extras: ['glasses', 'mustache'] },
+  { id: 'kinokoou',  r: 2, name: 'キノコ大王',       mult: 1.5, shape: 'cyl',    color: 0xfff1d6, accent: 0x7b2cbf, extras: ['cap', 'crown'] },
+  // エピック
+  { id: 'hero',      r: 3, name: 'ヒーローマン',     mult: 0.7, shape: 'box',    color: 0x1e88e5, accent: 0xe53935, extras: ['cape', 'visor'] },
+  { id: 'crystalsl', r: 3, name: 'クリスタルスライム', mult: 0.9, shape: 'dome', color: 0x7af0ff, accent: 0xb388ff, extras: ['gem', 'glow'] },
+  { id: 'stego',     r: 3, name: 'ステゴくん',       mult: 1.1, shape: 'egg',    color: 0x6fbf73, accent: 0xff8f00, extras: ['spikes', 'tail'] },
+  { id: 'djcat',     r: 3, name: 'DJキャット',       mult: 1.2, shape: 'box',    color: 0x2b2d42, accent: 0x00f5d4, extras: ['headphones', 'ears', 'glow'] },
+  { id: 'fukurou',   r: 3, name: 'オーロラフクロウ', mult: 1.4, shape: 'egg',    color: 0x5e548e, accent: 0x9ef01a, extras: ['beak', 'wings', 'glasses'] },
+  { id: 'candymajo', r: 3, name: 'キャンディ魔女',   mult: 1.5, shape: 'cone',   color: 0xff70a6, accent: 0x70d6ff, extras: ['bow', 'stars'] },
+  // レジェンダリー
+  { id: 'musha',     r: 4, name: '武者カブト',       mult: 0.7, shape: 'box',    color: 0x8d0801, accent: 0xffd23f, extras: ['horns', 'katana', 'cape'] },
+  { id: 'kumoryu',   r: 4, name: '雲海ドラゴン',     mult: 0.9, shape: 'egg',    color: 0xe0f7fa, accent: 0x26c6da, extras: ['horns', 'wings', 'tail'] },
+  { id: 'pyramid',   r: 4, name: 'ピラミッド王',     mult: 1.1, shape: 'cone',   color: 0xe9c46a, accent: 0x2a9d8f, extras: ['gem', 'glow'] },
+  { id: 'santa',     r: 4, name: 'サンタ大将',       mult: 1.2, shape: 'sphere', color: 0xe63946, accent: 0xffffff, extras: ['mustache', 'topcap', 'belly'] },
+  { id: 'mechashark', r: 4, name: 'メカシャーク',    mult: 1.4, shape: 'egg',    color: 0x6c757d, accent: 0xff3b3b, extras: ['fins', 'visor', 'antenna'] },
+  { id: 'sakura',    r: 4, name: '桜の精',           mult: 1.5, shape: 'egg',    color: 0xffd6e8, accent: 0xff8fab, extras: ['sprout', 'bow', 'stars'] },
+  // ミシック
+  { id: 'koorijo',   r: 5, name: '氷の女王',         mult: 0.7, shape: 'cone',   color: 0xbde0fe, accent: 0x4895ef, extras: ['crown', 'cape', 'glow'] },
+  { id: 'monban',    r: 5, name: '冥界の門番',       mult: 0.9, shape: 'box',    color: 0x14213d, accent: 0x9d4edd, extras: ['horns', 'eyepatch', 'cape', 'glow'] },
+  { id: 'tokeiusa',  r: 5, name: '時計うさぎ',       mult: 1.1, shape: 'egg',    color: 0xf8f9fa, accent: 0xd4a017, extras: ['ears', 'glasses', 'orbit'] },
+  { id: 'yogankame', r: 5, name: '溶岩タートル',     mult: 1.2, shape: 'dome',   color: 0x5c2a1e, accent: 0xff6d00, extras: ['shell', 'cracks', 'glow'] },
+  { id: 'gingasl',   r: 5, name: '銀河スライム',     mult: 1.4, shape: 'dome',   color: 0x240046, accent: 0xff9e00, extras: ['orbit', 'stars', 'glow'] },
+  { id: 'griffon',   r: 5, name: '雷鳴グリフォン',   mult: 1.5, shape: 'egg',    color: 0xf4a261, accent: 0xffe600, extras: ['beak', 'wings', 'bolt'] },
+  // シークレット
+  { id: 'uchuneko',  r: 6, name: '大宇宙ネコ',       mult: 0.7, shape: 'box',    color: 0x0b0b12, accent: 0xff5cf4, extras: ['ears', 'orbit', 'halo', 'glow'] },
+  { id: 'nijifenix', r: 6, name: '虹のフェニックス王', mult: 0.9, shape: 'sphere', color: 0xffffff, accent: 0xffd23f, extras: ['crown', 'wings', 'flame', 'rainbow'] },
+  { id: 'kinryujin', r: 6, name: '黄金竜神',         mult: 1.1, shape: 'egg',    color: 0xffd23f, accent: 0xff3b3b, extras: ['horns', 'wings', 'tail', 'glow'] },
+  { id: 'kansokusha', r: 6, name: '次元の観測者',    mult: 1.2, shape: 'sphere', color: 0x111111, accent: 0x00ffd0, extras: ['gem', 'ring', 'rainbow'] },
+  { id: 'miraclepurin', r: 6, name: 'ミラクルプリン', mult: 1.4, shape: 'cyl',   color: 0xffe08a, accent: 0xff4d6d, extras: ['topcap', 'crown', 'stars', 'glow'] },
+  { id: 'hoshipen',  r: 6, name: '星くずペンギン',   mult: 1.5, shape: 'sphere', color: 0x14213d, accent: 0xfff27a, extras: ['belly', 'stars', 'halo', 'propeller'] },
 ];
 
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));

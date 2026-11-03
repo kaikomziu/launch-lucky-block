@@ -129,6 +129,8 @@ const SHAPES = {
   box:    { top: 1.8, eyeY: 1.05, front: 0.91 },
   cyl:    { top: 1.8, eyeY: 1.15, front: 0.84 },
   dome:   { top: 1.6, eyeY: 0.9,  front: 0.8 },
+  egg:    { top: 2.5, eyeY: 1.45, front: 0.82 },
+  cone:   { top: 2.2, eyeY: 0.8,  front: 0.62 },
 };
 
 export function buildCharacter(def) {
@@ -148,6 +150,11 @@ export function buildCharacter(def) {
     mainMesh = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.8, 1.8), body); mainMesh.position.y = 0.9;
   } else if (def.shape === 'cyl') {
     mainMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.95, 1.8, 18), body); mainMesh.position.y = 0.9;
+  } else if (def.shape === 'egg') {
+    mainMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), body);
+    mainMesh.scale.set(0.9, 1.25, 0.9); mainMesh.position.y = 1.25;
+  } else if (def.shape === 'cone') {
+    mainMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 1.0, 2.2, 18), body); mainMesh.position.y = 1.1;
   } else {
     mainMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), body);
     mainMesh.position.y = 0.6;
@@ -158,7 +165,9 @@ export function buildCharacter(def) {
 
   // 目
   const white = mat(0xffffff), black = mat(0x111111);
-  const eyeColor = def.color === 0x0b0b12 || def.color === 0x111111 ? glowMat(def.accent, 1) : black;
+  // 体が暗い色のときは目を光らせて見やすくする
+  const dark = new THREE.Color(def.color).getHSL({}).l < 0.12;
+  const eyeColor = dark ? glowMat(def.accent, 1) : black;
   for (const s of [-1, 1]) {
     const e = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), white);
     e.position.set(s * 0.36, S.eyeY, S.front); g.add(e);
@@ -326,6 +335,134 @@ export function buildCharacter(def) {
         const h = add(new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.08, 8, 24), glowMat(0xfff7a8, 1)), 0, top + 0.6, 0);
         h.rotation.x = Math.PI / 2;
         anims.push(time => { h.position.y = top + 0.6 + Math.sin(time * 2) * 0.1; });
+        break;
+      }
+      case 'tail': {
+        const t = add(new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.1, 8), body), 0, 0.5, -1.05);
+        t.rotation.x = -1.1;
+        anims.push(time => { t.rotation.z = Math.sin(time * 4) * 0.4; });
+        break;
+      }
+      case 'beak': {
+        const b = add(new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 8), accent), 0, S.eyeY - 0.3, S.front + 0.2);
+        b.rotation.x = Math.PI / 2;
+        break;
+      }
+      case 'mustache':
+        for (const s of [-1, 1]) {
+          const m = add(new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.12, 0.1), mat(0x2a1a10)), s * 0.24, S.eyeY - 0.38, S.front + 0.08);
+          m.rotation.z = s * 0.25;
+        }
+        break;
+      case 'glasses':
+        for (const s of [-1, 1]) add(new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.05, 6, 18), mat(0x111111)), s * 0.36, S.eyeY, S.front + 0.2);
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.05), mat(0x111111)), 0, S.eyeY, S.front + 0.2);
+        break;
+      case 'scarf': {
+        const sc = add(new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.17, 8, 24), accent), 0, S.eyeY - 0.55, 0);
+        sc.rotation.x = Math.PI / 2;
+        const tail = add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.7, 0.1), accent), 0.45, S.eyeY - 0.95, S.front - 0.05);
+        anims.push(time => { tail.rotation.z = 0.2 + Math.sin(time * 3) * 0.15; });
+        break;
+      }
+      case 'sprout': {
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4, 6), mat(0x3a9d23)), 0, top + 0.2, 0);
+        for (const s of [-1, 1]) {
+          const l = add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), mat(0x5cd64a)), s * 0.22, top + 0.45, 0);
+          l.scale.set(1.3, 0.4, 0.8); l.rotation.z = s * 0.4;
+        }
+        break;
+      }
+      case 'spikes':
+        // 背中に沿ってトゲを並べる
+        for (const a of [0.35, 0.9, 1.45]) {
+          for (const phi of [-1.1, 0, 1.1]) {
+            const d = new THREE.Vector3(Math.sin(a) * Math.sin(phi), Math.cos(a), -Math.sin(a) * Math.cos(phi));
+            const R = top * 0.5 + 0.12;
+            const sp = add(new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.7, 6), accent), d.x * R, top * 0.5 + d.y * R, d.z * R);
+            sp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+          }
+        }
+        break;
+      case 'bow': {
+        for (const s of [-1, 1]) {
+          const w = add(new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.5, 4), accent), s * 0.28, top + 0.1, 0.1);
+          w.rotation.z = s * Math.PI / 2;
+        }
+        add(new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), accent), 0, top + 0.1, 0.1);
+        break;
+      }
+      case 'headphones': {
+        const hy = Math.max(S.eyeY + 0.1, top - 1.05);
+        add(new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.1, 6, 24, Math.PI), mat(0x222233)), 0, hy, 0);
+        for (const s of [-1, 1]) {
+          const p = add(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.22, 14), accentGlow), s * 1.05, hy, 0);
+          p.rotation.z = Math.PI / 2;
+        }
+        break;
+      }
+      case 'shell': {
+        const sh = add(new THREE.Mesh(new THREE.SphereGeometry(0.95, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), accent), 0, top * 0.4, -0.55);
+        sh.rotation.x = -1.2;
+        break;
+      }
+      case 'fins': {
+        add(new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.8, 4), accent), 0, top + 0.25, -0.2).scale.z = 0.3;
+        for (const s of [-1, 1]) {
+          const f = add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.1, 0.4), accent), s * 1.0, top * 0.4, 0);
+          anims.push(time => { f.rotation.z = -s * (0.5 + Math.sin(time * 5) * 0.25); });
+        }
+        break;
+      }
+      case 'eyepatch': {
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.06, 14), mat(0x111111)), -0.36, S.eyeY, S.front + 0.2).rotation.x = Math.PI / 2;
+        const st = add(new THREE.Mesh(new THREE.TorusGeometry(S.front + 0.12, 0.03, 4, 28), mat(0x111111)), 0, S.eyeY + 0.12, 0);
+        st.rotation.x = Math.PI / 2; st.rotation.y = 0.25;
+        break;
+      }
+      case 'cape': {
+        const pivot = new THREE.Group(); pivot.position.set(0, top * 0.75, -0.75); g.add(pivot);
+        const c = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.6, 0.06), accent); c.position.y = -0.8; pivot.add(c);
+        anims.push(time => { pivot.rotation.x = -0.15 - Math.abs(Math.sin(time * 2.5)) * 0.25; });
+        break;
+      }
+      case 'propeller': {
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4, 6), mat(0x555555)), 0, top + 0.2, 0);
+        const p = new THREE.Group(); p.position.y = top + 0.42; g.add(p);
+        for (const s of [-1, 1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.04, 0.2), accent); b.position.x = s * 0.45; p.add(b); }
+        anims.push(time => { p.rotation.y = time * 14; });
+        break;
+      }
+      case 'gem': {
+        const gm = add(new THREE.Mesh(new THREE.OctahedronGeometry(0.25), glowMat(def.accent, 1)), 0, S.eyeY + 0.5, S.front - 0.05);
+        anims.push(time => { gm.rotation.y = time * 2; });
+        break;
+      }
+      case 'teeth':
+        for (const s of [-1, 1]) add(new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.2, 4), white), s * 0.12, S.eyeY - 0.45, S.front + 0.02).rotation.x = Math.PI;
+        break;
+      case 'topcap': {
+        const c = add(new THREE.Mesh(new THREE.SphereGeometry(1.0, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2), accent), 0, top - 0.5, 0);
+        c.scale.set(0.95, 0.55, 0.95);
+        break;
+      }
+      case 'nori':
+        add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.7, 0.1), accent), 0, 0.38, 0.86);
+        break;
+      case 'puffs':
+        for (let i = 0; i < 6; i++) {
+          const a = i / 6 * Math.PI * 2;
+          add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 10), body), Math.cos(a) * 0.95, 0.8 + (i % 2) * 0.25, Math.sin(a) * 0.55 - 0.15);
+        }
+        break;
+      case 'orbit': {
+        const holder = new THREE.Group(); holder.position.y = top * 0.55; g.add(holder);
+        for (let i = 0; i < 3; i++) {
+          const m = new THREE.Mesh(new THREE.SphereGeometry(0.18 + i * 0.04, 10, 8), glowMat([0xffd23f, 0x7ad7ff, 0xff7ae0][i], 0.8));
+          const a = i / 3 * Math.PI * 2;
+          m.position.set(Math.cos(a) * 1.7, (i - 1) * 0.35, Math.sin(a) * 1.7); holder.add(m);
+        }
+        anims.push(time => { holder.rotation.y = -time * 1.2; });
         break;
       }
       case 'rainbow':

@@ -1133,9 +1133,14 @@ function charThumb(def, locked) {
   if (locked) m.traverse(o => { if (o.isMesh && o.material.transparent) o.visible = false; });
   thumb.sc.add(m);
   thumb.sc.overrideMaterial = locked ? thumb.black : null;
-  const h = m.userData.height;
-  thumb.cam.position.set(2.4, h * 0.6 + 1.1, 6.2);
-  thumb.cam.lookAt(0, h * 0.45, 0);
+  // オーラなどの半透明部分を除いた大きさに合わせてカメラを引く
+  const box = new THREE.Box3();
+  m.updateMatrixWorld(true);
+  m.traverse(o => { if (o.isMesh && !o.material.transparent) box.expandByObject(o); });
+  const c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
+  const dist = Math.max(sz.y, Math.max(sz.x, sz.z) * 0.9, 2.4) / (2 * Math.tan(THREE.MathUtils.degToRad(17.5))) * 1.15 + 1;
+  thumb.cam.position.set(c.x + dist * 0.36, c.y + dist * 0.18, c.z + dist * 0.92);
+  thumb.cam.lookAt(c);
   thumb.r.render(thumb.sc, thumb.cam);
   thumbCache[key] = thumb.r.domElement.toDataURL();
   thumb.sc.remove(m);
