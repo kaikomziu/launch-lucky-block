@@ -32,6 +32,7 @@ const randomId = () => (crypto.randomUUID ? crypto.randomUUID()
 function defaultSave() {
   return {
     money: 0, strength: 20, dumbbellLv: 1, speedLv: 1, rebirths: 0,
+    launchPower: 1,                              // 飛ばす力（0.1〜1）。強すぎて逃げ切れないとき用
     slots: Array(SLOT_COUNT).fill(null),         // { id, star, stored }
     inventory: [],                               // { id, star } 持ち帰ったが台座に置いていないキャラ
     stats: { bestDistance: 0, totalEarned: 0, collected: 0, bestRarity: 0 },
@@ -485,6 +486,25 @@ function totalIncome() {
   return save.slots.reduce((a, s) => a + (s ? charIncome(CHAR_BY_ID[s.id], s.star, s.mut) : 0), 0);
 }
 
+// ---------- ダッシュ ----------
+const DASH_TIME = 0.5, DASH_CD = 3, DASH_MULT = 1.9;
+let dashT = 0, dashCd = 0;
+input.onDash = () => {
+  if (!$('title').classList.contains('hidden') || openPanel || dashCd > 0) return;
+  if (!['free', 'atBlock', 'chase'].includes(state)) return;
+  dashT = DASH_TIME; dashCd = DASH_CD;
+  play('whoosh', { vol: 0.6, rate: 1.3 });
+  burst(pState.pos.clone().add(new THREE.Vector3(0, 0.5, 0)), 0xffffff, 12, 6);
+};
+function updateDashHud() {
+  const ready = dashCd <= 0;
+  const p = ready ? 1 : 1 - dashCd / DASH_CD;
+  $('dashHud').classList.toggle('ready', ready);
+  $('dashHud').style.setProperty('--p', p);
+  $('dashBtn').classList.toggle('ready', ready);
+  $('dashBtn').style.setProperty('--p', p);
+}
+
 // ---------- 行動ボタン ----------
 let currentAction = null;
 input.onAction = () => {
@@ -514,8 +534,12 @@ function doSwing() {
   setState('swing');
 }
 
+// 飛ばす力を下げると、力による飛距離の伸びがその割合になる
+const usedStrength = () => save.strength * save.launchPower ** 2;
+const estDistance = (mult = 1) => Math.round(18 + 5.5 * Math.sqrt(usedStrength()) * mult);
+
 function launchBlock() {
-  const d = launchDistance(save.strength, flight.timing);
+  const d = launchDistance(usedStrength(), flight.timing);
   const toZ = Math.min(TEE_POS.z + d, WORLD_END - 8);
   flight.from.copy(teeBlock.position);
   flight.to.set((Math.random() - 0.5) * 20, 0.8, toZ);
@@ -694,7 +718,7 @@ function nearestSlot() {
 function decideAction() {
   const p = pState.pos;
   if (state === 'free') {
-    if (Math.hypot(p.x - LAUNCH.x, p.z - LAUNCH.z) < 3.2) return { label: '打つ', fn: startAim };
+    if (Math.hypot(p.x - LAUNCH.x, p.z - LAUNCH.z) < 3.2) return { label: save.launchPower < 1 ? `打つ（力${Math.round(save.launchPower * 100)}%）` : '打つ', fn: startAim };
     if (Math.hypot(p.x - DUMBBELL_POS.x, p.z - DUMBBELL_POS.z) < 3.4) return { label: '持ち上げる', fn: liftDumbbell };
     const si = nearestSlot();
     if (si >= 0 && save.slots[si]) return { label: 'キャラを見る', fn: () => openChars('slots', si) };
@@ -737,7 +761,8 @@ function update(dt) {
 
   // --- 移動 ---
   const canMove = ['free', 'atBlock', 'chase'].includes(state) && !fadeBusy && !openPanel;
-  const spd = playerSpeed(save.speedLv);
+  dashT -= dt; dashCd -= dt;
+  const spd = playerSpeed(save.speedLv) * (dashT > 0 ? DASH_MULT : 1);
   let moving = false;
   if (canMove && (input.move.x || input.move.y)) {
     const yaw = input.camYaw;
@@ -902,6 +927,7 @@ function update(dt) {
   $('lockHint').classList.toggle('hidden', input.isTouch || input.locked || !!openPanel || !$('title').classList.contains('hidden'));
 
   labelTimer -= dt;
+  updateDashHud();
   if (labelTimer <= 0) { labelTimer = 0.2; updateHud(); updateSlotLabels(); updateEvent(); if (openPanel === 'shopPanel') renderShop(); }
   updateLabels();
 
@@ -1117,12 +1143,27 @@ function renderPanels() {
   }
 }
 
+// ---------- 飛ばす力の調整 ----------
+function updatePowerText() {
+  const pct = Math.round(save.launchPower * 100);
+  const d = Math.min(estDistance(1.3), WORLD_END - 8);
+  const z = zoneAt(TEE_POS.z + d);
+  $('powerVal').textContent = `${pct}%`;
+  $('powerHint').innerHTML = `PERFECTで約${d}m → ${d + TEE_POS.z < ZONE_START ? '発射エリア' : `${ZONES[z].name}（${rarityName(z)}）`}まで`;
+}
+$('powerInput').addEventListener('input', e => {
+  save.launchPower = Math.min(1, Math.max(0.1, +e.target.value / 100));
+  updatePowerText(); writeSave();
+});
+
 let shopSig = '';
 function renderShop() {
+  if (document.activeElement !== $('powerInput')) $('powerInput').value = Math.round(save.launchPower * 100);
+  updatePowerText();
   const dl = save.dumbbellLv, sl = save.speedLv;
   const dc = dumbbellCost(dl + 1), sc = speedCost(sl + 1);
   const rn = save.rebirths, rc = rebirthCost(rn);
-  const sig = [dl, sl, rn, save.money >= dc, save.money >= sc, save.money >= rc].join();
+  const sig = [dl, sl, rn, save.launchPower, save.money >= dc, save.money >= sc, save.money >= rc].join();
   if (sig === shopSig && $('shopBody').children.length) return;
   shopSig = sig;
   $('shopBody').innerHTML = `
@@ -1137,7 +1178,7 @@ function renderShop() {
       <p class="warn">お金・力・ダンベル・スピードが最初に戻る（キャラとインデックスは残る）</p></div>
       <div class="btns"><button class="btn reb" data-buy="rebirth" ${save.money < rc ? 'disabled' : ''}>リボーン<small>$${fmt(rc)}</small></button></div></div>
     <p class="dex-sum">💡 ボスの速さ（最初）: ${ZONES.map((z, i) => `${RARITIES[i].name} ${z.boss.speed}`).join(' / ')}<br>ボスは追いかけるほど速くなり（最大1.25倍）、ときどきダッシュしてくる！</p>
-    <p class="dex-sum">現在の力での飛距離の目安: 約${Math.round(18 + 5.5 * Math.sqrt(save.strength))}m（PERFECTで約${Math.round(18 + 5.5 * Math.sqrt(save.strength) * 1.3)}m）</p>`;
+    <p class="dex-sum">現在の力での飛距離の目安: 約${estDistance()}m（PERFECTで約${estDistance(1.3)}m）</p>`;
 }
 $('shopBody').addEventListener('click', e => {
   const b = e.target.closest('[data-buy]');
@@ -1485,4 +1526,5 @@ renderer.setAnimationLoop(() => {
   update(dt);
   renderer.render(scene, camera);
 });
+
 

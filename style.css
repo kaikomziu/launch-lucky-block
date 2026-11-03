@@ -156,6 +156,28 @@ body.touch #actionBtn.hidden { display: none !important; }
   font-size: 18px; font-weight: 900; color: #3b2a00; box-shadow: 0 5px 0 rgba(0, 0, 0, .35); touch-action: none;
 }
 #actionBtn:active { transform: translateY(3px); }
+/* ダッシュ（--p: クールダウンの進み具合 0〜1） */
+.pc-only { display: block; }
+body.touch .pc-only { display: none !important; }
+#dashBtn {
+  position: fixed; right: 136px; bottom: max(36px, env(safe-area-inset-bottom)); width: 72px; height: 72px; border-radius: 50%;
+  z-index: 15; border: 3px solid rgba(0, 0, 0, .3); font-size: 24px; line-height: 1; color: #fff; touch-action: none;
+  background: conic-gradient(rgba(122, 200, 255, .95) calc(var(--p, 1) * 360deg), rgba(40, 50, 70, .85) 0);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, .35); opacity: .75;
+}
+#dashBtn span { display: block; font-size: 11px; font-weight: 900; }
+#dashBtn.ready { opacity: 1; }
+#dashBtn:active { transform: translateY(3px); }
+#dashHud {
+  left: 50%; bottom: 58px; transform: translateX(-50%); padding: 4px 12px 8px; border-radius: 10px; font-weight: 800; font-size: 13px;
+  background: rgba(0, 0, 0, .45); color: #ccd; overflow: hidden;
+}
+#dashHud kbd { font-family: inherit; padding: 0 5px; border-radius: 4px; background: rgba(255, 255, 255, .2); font-size: 11px; }
+#dashHud i { position: absolute; left: 0; bottom: 0; height: 4px; width: calc(var(--p, 1) * 100%); background: #7ac8ff; }
+#dashHud.ready { color: #fff; }
+.card.power { flex-wrap: wrap; }
+.card.power input { width: 100%; margin: 6px 0; }
+#powerVal { color: #ffd23f; margin-left: 6px; }
 body.touch #prompt { bottom: 200px; }
 
 #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 40; transition: opacity .35s; }
@@ -283,6 +305,9 @@ body.touch #prompt { bottom: 200px; }
   background: rgba(20, 16, 50, .75); color: #fff; font-weight: 800; font-size: 14px; cursor: pointer;
 }
 .account-btn:hover { border-color: #ff3ea5; }
+a.more-games { text-decoration: none; text-align: center; }
+#title a.more-games { width: fit-content; border-color: #ffd23f; }
+.panel a.btn.more-games { display: block; margin: 0 0 14px; background: #7a5cff; color: #fff; }
 .account-box { margin-bottom: 16px; padding: 12px; border-radius: 12px; border: 2px solid #7a5cff; background: rgba(122, 92, 255, .12); }
 .account-box h3 { margin: 0 0 4px; font-size: 15px; }
 .account-box p { margin: 0 0 8px; font-size: 13px; color: var(--muted); }

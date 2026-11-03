@@ -33,6 +33,8 @@ export function initInput(canvas) {
       e.preventDefault();
       input.onAction?.();
     }
+    // ダッシュ（Shift）
+    if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !e.repeat) input.onDash?.();
   });
   addEventListener('keyup', e => keys.delete(e.code));
   addEventListener('blur', () => keys.clear());
@@ -75,6 +77,10 @@ export function initInput(canvas) {
   }, { passive: true });
 
   initJoystick();
+  document.getElementById('dashBtn').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    input.onDash?.();
+  });
   document.getElementById('actionBtn').addEventListener('pointerdown', e => {
     e.preventDefault();
     input.onAction?.();
