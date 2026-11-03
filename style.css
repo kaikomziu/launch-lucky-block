@@ -236,6 +236,30 @@ body.touch #prompt { bottom: 200px; }
   border: 2px solid #7a5cff; background: rgba(20, 16, 50, .78); color: #fff; font-family: var(--font); font-size: 12px; font-weight: 800; line-height: 1.3; text-decoration: none; cursor: pointer;
 }
 #subMenu a { border-color: #ffd23f; }
+/* チャット */
+#chatPanel { width: min(560px, 96vw); height: min(640px, 86vh); }
+.chat-list { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.chat-msg { padding: 7px 12px 8px; border-radius: 14px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .08); max-width: 92%; align-self: flex-start; }
+.chat-msg.me { align-self: flex-end; background: rgba(125, 255, 138, .14); border-color: rgba(125, 255, 138, .35); }
+.chat-msg.admin { border-color: rgba(255, 210, 63, .6); background: rgba(255, 210, 63, .12); }
+.chat-head { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.chat-head b { color: #ffd23f; }
+.chat-head small { color: var(--muted); margin-left: auto; }
+.chat-tag { font-size: 10px; padding: 0 6px; border-radius: 999px; }
+.chat-tag.ok { background: rgba(125, 255, 138, .25); color: #7dff8a; }
+.chat-tag.adm { background: #ffd23f; color: #3b2a00; font-weight: 900; }
+.chat-msg p { margin: 2px 0 0; font-size: 14px; line-height: 1.45; word-break: break-word; user-select: text; }
+.chat-del { border: none; background: none; cursor: pointer; font-size: 12px; opacity: .7; }
+.chat-form { display: flex; gap: 8px; padding: 10px 16px 4px; border-top: 1px solid rgba(255, 255, 255, .12); }
+.chat-form input {
+  flex: 1; min-width: 0; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .22);
+  background: rgba(0, 0, 0, .3); color: #fff; font: inherit; font-size: 15px; user-select: text;
+}
+.chat-form input:focus { outline: none; border-color: #ffd23f; }
+.chat-form .btn { min-width: 76px; }
+.chat-status { margin: 0 16px 10px; min-height: 16px; font-size: 12px; color: #ff9e80; }
+.chat-dot { position: absolute; top: -3px; right: -3px; width: 12px; height: 12px; border-radius: 50%; background: #ff3b3b; border: 2px solid #fff; }
+#hudChatBtn { position: relative; overflow: visible !important; }
 /* 同時接続 */
 #subMenu .online { cursor: default; border-color: rgba(125, 255, 138, .6); }
 .online i, .online-title i {

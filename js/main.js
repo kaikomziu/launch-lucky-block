@@ -13,6 +13,7 @@ import { input, initInput, pollInput, lockPointer, unlockPointer } from './input
 import { GENRES, submitScore, fetchRanking, fetchMine, ping } from './ranking.js';
 import { fetchEvents, adminCheck, adminPost, adminEnd } from './admin.js';
 import { localBackups, saveLocalBackup, cloudBackupPut, cloudBackupList, cloudBackupGet } from './backup.js';
+import { fetchChat, postChat, deleteChat, ping2 } from './chat.js';
 
 const $ = id => document.getElementById(id);
 
@@ -1231,13 +1232,14 @@ addEventListener('keydown', e => { if (e.code === 'Escape') { closePanels(); if 
 
 // 数字キー 1〜4 でメニューパネルを開閉（PC 用。テンキーにも対応）
 const menuKeyPanels = {
-  Digit1: 'shopPanel', Digit2: 'charPanel', Digit3: 'indexPanel', Digit4: 'settingsPanel', Digit5: 'rankPanel', Digit6: 'skinPanel', Digit7: 'adminPanel',
-  Numpad1: 'shopPanel', Numpad2: 'charPanel', Numpad3: 'indexPanel', Numpad4: 'settingsPanel', Numpad5: 'rankPanel', Numpad6: 'skinPanel', Numpad7: 'adminPanel',
+  Digit1: 'shopPanel', Digit2: 'charPanel', Digit3: 'indexPanel', Digit4: 'settingsPanel', Digit5: 'rankPanel', Digit6: 'skinPanel', Digit7: 'adminPanel', Digit8: 'chatPanel', Slash: 'chatPanel', NumpadDivide: 'chatPanel',
+  Numpad1: 'shopPanel', Numpad2: 'charPanel', Numpad3: 'indexPanel', Numpad4: 'settingsPanel', Numpad5: 'rankPanel', Numpad6: 'skinPanel', Numpad7: 'adminPanel', Numpad8: 'chatPanel',
 };
 addEventListener('keydown', e => {
   const panelId = menuKeyPanels[e.code];
   if (!panelId || e.repeat) return;
   if (panelId === 'adminPanel' && !isAdmin) return;   // 管理者メニューは管理者だけ
+  if (panelId === 'chatPanel' && e.code.includes('Slash') || e.code === 'NumpadDivide') e.preventDefault();   // 「/」が入力欄に入らないように
   // 入力欄にフォーカスがあるときは無視する
   const t = e.target;
   if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
@@ -1259,6 +1261,7 @@ function renderPanels() {
   if (openPanel === 'rankPanel') openRanking();
   if (openPanel === 'skinPanel') renderSkins();
   if (openPanel === 'backupPanel') renderBackups();
+  if (openPanel === 'chatPanel') openChat();
   if (openPanel === 'adminPanel') { renderAdminActive(); renderGiftPicker(); }
   if (openPanel === 'settingsPanel') {
     $('nameInput').value = save.name;
@@ -1766,8 +1769,11 @@ async function pingOnline() {
   if (document.hidden) return;
   lastPing = Date.now();
   try {
-    const n = await ping(save.clientId);
+    const r = await ping2(save.clientId);
+    const n = r?.online;
     if (!Number.isFinite(n)) return;
+    chatLatest = Math.max(chatLatest, r.chat || 0);
+    updateChatBadge();
     $('onlineNum').textContent = n;
     $('onlineChip').classList.remove('hidden');
     $('titleOnline').innerHTML = `<i></i>いま <b>${n}</b> 人が遊んでいます`;
@@ -1777,6 +1783,74 @@ async function pingOnline() {
 setInterval(pingOnline, 120000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lastPing > 60000) pingOnline(); });
 pingOnline();
+
+// ---------- グローバルチャット（開いている間だけ4秒ごとに読み込む） ----------
+let chatLatest = 0, chatLastId = 0, chatTimer = null;
+const chatRead = () => { try { return +localStorage.getItem('llb_chat_read') || 0; } catch (e) { return 0; } };
+const setChatRead = id => { try { localStorage.setItem('llb_chat_read', String(id)); } catch (e) { /* 保存不可 */ } };
+const myChatIds = new Set();
+function updateChatBadge() {
+  const unread = openPanel === 'chatPanel' ? 0 : (chatLatest > chatRead() ? 1 : 0);
+  $('chatBadge').classList.toggle('hidden', !unread);
+}
+function chatRow(m) {
+  const d = new Date(m.created_at);
+  const t = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `<div class="chat-msg ${myChatIds.has(m.id) ? 'me' : ''} ${m.is_admin ? 'admin' : ''}" data-cid="${m.id}">
+    <div class="chat-head"><b>${escHtml(m.name)}</b>${m.is_admin ? '<span class="chat-tag adm">🛠 管理者</span>' : m.verified ? '<span class="chat-tag ok">✔</span>' : ''}
+    <small>${t}</small>${isAdmin ? `<button class="chat-del" data-cdel="${m.id}" title="この発言を消す">🗑</button>` : ''}</div>
+    <p>${escHtml(m.body)}</p></div>`;
+}
+async function loadChat(first = false) {
+  try {
+    const list = await fetchChat(first ? 0 : chatLastId, 50);
+    if (openPanel !== 'chatPanel') return;
+    const box = $('chatList');
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    if (first) box.innerHTML = list.length ? '' : '<p class="dex-sum chat-empty">まだ発言がありません。最初のひとことをどうぞ！</p>';
+    if (list.length) {
+      box.querySelector('.chat-empty')?.remove();
+      box.insertAdjacentHTML('beforeend', list.map(chatRow).join(''));
+      chatLastId = list[list.length - 1].id;
+      chatLatest = Math.max(chatLatest, chatLastId);
+      setChatRead(chatLatest);
+      if (first || atBottom) box.scrollTop = box.scrollHeight;
+    }
+    $('chatStatus').textContent = '';
+  } catch (e) { $('chatStatus').textContent = '⚠ 読み込めませんでした（通信を確認してね）'; }
+}
+function openChat() {
+  chatLastId = 0;
+  $('chatList').innerHTML = '<p class="dex-sum">読み込み中…</p>';
+  $('chatName').textContent = window.KaAccount?.user()?.display_name || save.name || '名無し';
+  loadChat(true);
+  clearInterval(chatTimer);
+  chatTimer = setInterval(() => {
+    if (openPanel !== 'chatPanel') { clearInterval(chatTimer); chatTimer = null; return; }
+    if (!document.hidden) loadChat();
+  }, 4000);
+  updateChatBadge();
+  setTimeout(() => $('chatInput').focus(), 50);
+}
+$('chatForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = $('chatInput').value.trim();
+  if (!body) return;
+  $('chatSend').disabled = true;
+  try {
+    const r = await postChat(save.clientId, save.name, body, window.KaAccount?.token());
+    if (r?.ok) { myChatIds.add(r.id); $('chatInput').value = ''; await loadChat(); $('chatList').scrollTop = $('chatList').scrollHeight; }
+    else $('chatStatus').textContent = { slow: '⚠ 少し待ってから送ってね（3秒に1回・1分に8回まで）', busy: '⚠ いまチャットが混んでいます。少し待ってね', body: '⚠ 1〜100文字で入力してね' }[r?.reason] || '⚠ 送れませんでした';
+  } catch (err) { $('chatStatus').textContent = '⚠ 送れませんでした（通信を確認してね）'; }
+  $('chatSend').disabled = false;
+  $('chatInput').focus();
+});
+$('chatList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-cdel]');
+  if (!b || !isAdmin || !confirm('この発言を消しますか？')) return;
+  try { if (await deleteChat(window.KaAccount?.token(), +b.dataset.cdel)) b.closest('.chat-msg').remove(); } catch (err) { /* 消せなかった */ }
+});
+$('hudChatBtn').addEventListener('click', () => openPanelById('chatPanel'));
 
 // ---------- バックアップ ----------
 const hasProgress = sv => !!sv && (sv.stats?.collected > 0 || sv.rebirths > 0 || (sv.slots || []).some(Boolean));
