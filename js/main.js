@@ -4,7 +4,7 @@ import {
   RARITIES, ZONES, CHARACTERS, CHAR_BY_ID, BASE_LINE, LAUNCH_POS, ZONE_START, ZONE_LENS, ZONE_STARTS, WORLD_END, WORLD_HALF_W,
   MAX_STAR, SLOT_COUNT, charIncome as baseIncome, evolveCost, sellPrice as baseSellPrice, strengthRate as baseStrengthRate,
   dumbbellCost, playerSpeed, speedCost, rebirthMult, rebirthCost, launchDistance, zoneAt, rollCharacter, fmt, rarFx, rarCss, SKINS, SKIN_BY_ID,
-  MUT_BY_ID, mutMult, rollMutation, mutationEvent,
+  MUT_BY_ID, mutMult, rollMutation, mutationEvent, halloweenActive, rainbowPumpkinTime, RAINBOW_PUMPKIN_CHANCE,
   BOSS_ACCEL, BOSS_ACCEL_MAX, BOSS_DASH_EVERY, BOSS_DASH_TIME, BOSS_DASH_MULT,
 } from './data.js';
 import { buildPlayer, buildBoss, buildLuckyBlock, buildCharacter, textTexture, mat } from './models.js';
@@ -112,7 +112,8 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0x556644, 1.4));
+const hemi = new THREE.HemisphereLight(0xffffff, 0x556644, 1.4);
+scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1.6);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -141,6 +142,8 @@ const BASE_THEMES = {
   gold:    { ground: 0xe0b23a, plaza: 0xffe9a8, glow: 0x3a2600 },
   diamond: { ground: 0x7fd6ea, plaza: 0xe6fbff, glow: 0x0a3644 },
   galaxy:  { ground: 0x2b1452, plaza: 0x4a2a8a, glow: 0x2a0f5a },
+  pumpkin: { ground: 0xd9661a, plaza: 0x3a2350, glow: 0x2a0f00 },
+  rainbowpumpkin: { ground: 0xff9f1c, plaza: 0xb388ff, glow: 0x3a1040 },
 };
 function applyBaseTheme() {
   const t = BASE_THEMES[save.baseTheme] || BASE_THEMES[''];
@@ -328,6 +331,56 @@ ZONES.forEach((z, i) => {
 });
 // 拠点の木
 for (let k = 0; k < 10; k++) decorate('tree', (k % 2 ? -1 : 1) * (24 + Math.random() * 5), -6 - k * 4.8);
+
+// ---------- ハロウィンの飾り（期間中だけ） ----------
+const HALLOWEEN = halloweenActive();
+const halloweenSky = new THREE.Color(0x3a1d5c);
+const bats = [];
+function jackOLantern(x, z, s = 1) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), mat(0xff7a1a)); body.scale.set(1.15, 0.85, 1.15); body.position.y = 0.85; body.castShadow = true; g.add(body);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.5, 6), mat(0x3a6b2a)); stem.position.y = 1.75; g.add(stem);
+  const face = glow(0xffd23f);
+  for (const k of [-1, 1]) { const e = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.3, 3), face); e.position.set(k * 0.38, 1.05, 0.95); e.rotation.x = Math.PI / 2; g.add(e); }
+  const m = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.14, 0.1), face); m.position.set(0, 0.6, 0.97); g.add(m);
+  g.rotation.y = Math.atan2(-x, -z) + Math.PI;   // 道のほうを向く
+  scene.add(g);
+}
+if (HALLOWEEN) {
+  // 拠点と発射エリアのまわりにジャック・オ・ランタン
+  for (let k = 0; k < 8; k++) jackOLantern((k % 2 ? -1 : 1) * 19, -4 - k * 6.5, 0.9 + Math.random() * 0.4);
+  for (const x of [-8, 8]) jackOLantern(x, LAUNCH_POS.z + 4, 1.3);
+  // ゾーンの道ばたにも少し
+  ZONES.forEach((z, i) => {
+    for (let k = 0; k < 4; k++) jackOLantern((Math.random() < 0.5 ? -1 : 1) * (10 + Math.random() * 15), ZONE_STARTS[i] + Math.random() * ZONE_LENS[i], 0.8 + Math.random() * 0.6);
+  });
+  // 空を飛ぶコウモリ
+  const batMat = mat(0x1a1024);
+  for (let k = 0; k < 14; k++) {
+    const b = new THREE.Group();
+    const bd = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 6), batMat); b.add(bd);
+    const wings = [-1, 1].map(s => { const w = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.4), batMat); w.position.x = s * 0.55; b.add(w); return w; });
+    b.userData = { wings, r: 14 + Math.random() * 26, h: 10 + Math.random() * 10, sp: 0.2 + Math.random() * 0.3, ph: Math.random() * 6.28, cz: -20 + Math.random() * 60 };
+    scene.add(b); bats.push(b);
+  }
+  // 夕暮れのオレンジの光にして、少し暗くする
+  scene.fog.near = 55; scene.fog.far = 230;
+  hemi.color.set(0xffc08a); hemi.groundColor.set(0x3a2050); hemi.intensity = 1.15;
+  sun.color.set(0xff9a55); sun.intensity = 1.3;
+  // 大きな月（霧の影響を受けないようにする）
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(18, 24, 16), new THREE.MeshBasicMaterial({ color: 0xfff1c4, fog: false }));
+  moon.position.set(-110, 120, 260); scene.add(moon);
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(26, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffb35c, transparent: true, opacity: 0.18, fog: false, depthWrite: false }));
+  halo.position.copy(moon.position); scene.add(halo);
+}
+function updateBats(t) {
+  for (const b of bats) {
+    const u = b.userData, a = t * u.sp + u.ph;
+    b.position.set(Math.cos(a) * u.r, u.h + Math.sin(t * 2 + u.ph) * 1.5, u.cz + Math.sin(a) * u.r);
+    b.rotation.y = -a;
+    u.wings.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * Math.sin(t * 18 + u.ph) * 0.7; });
+  }
+}
 
 // ---------- 拠点の設備 ----------
 // 台座
@@ -676,7 +729,10 @@ function finishOpen() {
   teeBlock.visible = false;   // 持ち帰るまで次は打てない
   // 変異イベント中なら変異する
   const ev = currentEvent();
-  const mut = ev.active ? (ev.mut || rollMutation()) : null;
+  const hw = halloweenActive();
+  let mut = ev.active ? (ev.mut || rollMutation(hw)) : null;
+  // ハロウィン: レインボーかぼちゃタイム中は超低確率でレインボーかぼちゃ
+  if (hw && rainbowPumpkinTime().active && Math.random() < RAINBOW_PUMPKIN_CHANCE) mut = 'rainbowpumpkin';
   $('revealRarity').innerHTML = rarityName(r) + (mut ? ` ${mutTag(mut)}` : '');
   $('revealName').textContent = def.name;
   const special = RARITIES[r].css === 'rainbow' || RARITIES[r].css === 'cosmic';
@@ -922,6 +978,7 @@ function update(dt) {
 
   // --- プレイヤーのアニメーション ---
   for (const a of player.anims) a(elapsed);
+  if (HALLOWEEN) updateBats(elapsed);
   const g = player.group;
   g.position.copy(pState.pos);
   let twist = 0;
@@ -1111,6 +1168,7 @@ let eventOn = currentEvent().active;
 const eventSky = new THREE.Color(0x7a3cff);
 const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 let rankTimer = 0, eventTimer = 0;
+let pumpkinOn = halloweenActive() && rainbowPumpkinTime().active;
 const seenEvents = new Set();
 async function pollEvents() {
   try { adminEvents = await fetchEvents(); } catch (e) { return; }
@@ -1154,6 +1212,22 @@ function updateEvent() {
     } else toast('🧬 変異イベントが終わった', { color: '#c9a7ff', time: 3000 });
   }
   if ((eventTimer -= 0.2) <= 0) { eventTimer = 30; pollEvents(); }
+  // ハロウィン: レインボーかぼちゃタイム
+  if (HALLOWEEN) {
+    const rp = rainbowPumpkinTime();
+    $('pumpkinStat').classList.remove('hidden');
+    $('pumpkinStat').classList.toggle('on', rp.active);
+    $('sPumpkin').textContent = mmss(rp.left);
+    $('sPumpkinLabel').textContent = rp.active ? 'レインボーかぼちゃタイム！' : 'レインボーかぼちゃまで';
+    if (rp.active !== pumpkinOn) {
+      pumpkinOn = rp.active;
+      if (pumpkinOn) {
+        play('evolve');
+        toast('🌈🎃 レインボーかぼちゃタイム！（1分間）', { color: '#ff9f1c', big: true, time: 3200 });
+        setTimeout(() => toast('いま手に入れたキャラは、ごくまれにレインボーかぼちゃ変異（×7）！', { color: '#ffd23f', time: 3500 }), 800);
+      }
+    }
+  }
   // 管理者のお知らせ
   const msg = liveEvents('message')[0];
   $('adminMsg').classList.toggle('hidden', !msg);
@@ -1165,6 +1239,7 @@ function updateSky(dt) {
   const z = focusZ < ZONE_START ? -1 : zoneAt(focusZ);
   tmpCol.set(z < 0 ? 0x8fd3ff : ZONES[z].sky);
   if (eventOn) tmpCol.lerp(eventSky, 0.4);   // 変異イベント中は空が紫がかる
+  if (HALLOWEEN) tmpCol.lerp(halloweenSky, 0.6);   // ハロウィンは夕暮れの紫の空
   scene.background.lerp(tmpCol, Math.min(1, dt * 2));
   scene.fog.color.copy(scene.background);
   if (z !== lastZone) {
@@ -2078,6 +2153,7 @@ new MutationObserver(() => { if (document.querySelector('.ka-overlay')) unlockPo
 // =====================================================================
 if (input.isTouch) document.body.classList.add('touch');
 document.body.classList.add('title-mode');
+if (HALLOWEEN) { $('halloweenBadge').classList.remove('hidden'); document.body.classList.add('halloween'); }
 // 2回目以降はタイトルに記録を出す
 if (save.stats.collected > 0) {
   const got = CHARACTERS.filter(c => save.dex[c.id]).length;

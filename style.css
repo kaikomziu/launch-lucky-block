@@ -40,6 +40,24 @@ b { font-weight: 800; }
 .mut-gold { background: #ffd23f; }
 .mut-diamond { background: #8ff3ff; }
 .mut-galaxy { background: linear-gradient(90deg, #6a3cff, #ff5cf4); color: #fff; }
+.mut-pumpkin { background: linear-gradient(90deg, #ff8c1a, #ffb347); color: #2a1000; }
+.mut-rainbowpumpkin { background: linear-gradient(90deg, #ff5e5e, #ffd23f, #4cd964, #3a8dff, #b05cff); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, .5); }
+.mut-pumpkin-card { border-color: rgba(255, 140, 26, .8) !important; }
+.mut-rainbowpumpkin-card { border-color: rgba(255, 119, 233, .8) !important; }
+/* ハロウィン */
+.stat.pk.on { border-color: #ff9f1c; background: rgba(120, 50, 0, .6); animation: evPulse 1.2s ease-in-out infinite; }
+.stat.pk b { color: #ffb347; }
+.halloween-badge {
+  display: inline-block; margin: 10px 0 0; padding: 5px 14px; border-radius: 999px; font-size: 12px; font-weight: 900; color: #2a1000;
+  background: linear-gradient(90deg, #ff8c1a, #ffd23f); box-shadow: 0 0 18px rgba(255, 140, 26, .6);
+}
+body.halloween #title {
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(255, 140, 26, .32), transparent 55%),
+    linear-gradient(180deg, rgba(40, 10, 60, .65) 0%, rgba(40, 10, 60, .3) 40%, rgba(15, 5, 20, .9) 100%);
+}
+body.halloween .title-bg .fb { background: linear-gradient(135deg, #ffb347, #ff7a1a); border-color: #a34a00; }
+body.halloween .title-bg .fb::after { content: '🎃'; font-size: calc(var(--s) * .5); }
 #reveal .mut { font-size: 18px; vertical-align: middle; }
 .card.rebirth { border-color: #b388ff; }
 .card .warn { color: #ff9e80; font-size: 12px; }

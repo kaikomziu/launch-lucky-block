@@ -7,21 +7,21 @@
 <meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
-<link rel="stylesheet" href="style.css?v=0.35">
+<link rel="stylesheet" href="style.css?v=0.36">
 <!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
 <script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <!-- 更新のたびに ?v= をバージョンに合わせて変える（古いJSがキャッシュされないように） -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "./js/data.js": "./js/data.js?v=0.35",
-  "./js/models.js": "./js/models.js?v=0.35",
-  "./js/input.js": "./js/input.js?v=0.35",
-  "./js/audio.js": "./js/audio.js?v=0.35",
-  "./js/ranking.js": "./js/ranking.js?v=0.35",
-  "./js/admin.js": "./js/admin.js?v=0.35",
-  "./js/backup.js": "./js/backup.js?v=0.35",
-  "./js/chat.js": "./js/chat.js?v=0.35"
+  "./js/data.js": "./js/data.js?v=0.36",
+  "./js/models.js": "./js/models.js?v=0.36",
+  "./js/input.js": "./js/input.js?v=0.36",
+  "./js/audio.js": "./js/audio.js?v=0.36",
+  "./js/ranking.js": "./js/ranking.js?v=0.36",
+  "./js/admin.js": "./js/admin.js?v=0.36",
+  "./js/backup.js": "./js/backup.js?v=0.36",
+  "./js/chat.js": "./js/chat.js?v=0.36"
 } }
 </script>
 </head>
@@ -34,6 +34,7 @@
   <div class="stat money"><span class="ico">💰</span><b id="sMoney">0</b><small id="sIncome">+0/秒</small></div>
   <div class="stat"><span class="ico">💪</span><b id="sStrength">0</b><small id="sRate">+0/秒</small></div>
   <div class="stat"><span class="ico">👟</span><b id="sSpeed">0</b><small>スピード</small></div>
+  <div class="stat ev pk hidden" id="pumpkinStat"><span class="ico">🎃</span><b id="sPumpkin">--:--</b><small id="sPumpkinLabel">レインボーかぼちゃまで</small></div>
   <div class="stat ev" id="eventStat"><span class="ico">🧬</span><b id="sEvent">--:--</b><small id="sEventLabel">次の変異まで</small></div>
   <div class="stat reb hidden" id="rebirthStat"><span class="ico">🔄</span><b id="sRebirth">0</b><small id="sRebirthMult">×1</small></div>
 </div>
@@ -119,6 +120,8 @@
     <button class="tab" data-mut="gold">🟡 ゴールド <b>0%</b></button>
     <button class="tab" data-mut="diamond">💎 ダイヤ <b>0%</b></button>
     <button class="tab" data-mut="galaxy">🌌 ギャラクシー <b>0%</b></button>
+    <button class="tab" data-mut="pumpkin">🎃 かぼちゃ <b>0%</b></button>
+    <button class="tab" data-mut="rainbowpumpkin">🌈 レインボーかぼちゃ <b>0%</b></button>
   </div>
   <div class="panel-body" id="indexBody"></div>
 </div>
@@ -227,6 +230,7 @@
         <li>👹 ゾーンのボスが追ってくる！拠点（緑のライン）まで逃げ切れ。ボスは追いかけるほど速くなり、ときどきダッシュしてくる。</li>
         <li>🎒 持ち帰ったキャラはインベントリに入る。「⭐ 一番いいキャラを装備する」で稼ぎの多いキャラを自動で台座に並べられる。空いている台座で好きなキャラを選んで置こう（台座からしまうこともできる）。</li>
         <li>💰 台座のキャラがお金を稼ぐ。台座に触れて回収しよう。</li>
+        <li>🎃 ハロウィン期間（10/1〜11/10）は、変異にかぼちゃ（×4）が加わる。10分ごとに1分間の「レインボーかぼちゃタイム」中は、ごくまれにレインボーかぼちゃ（×7）になる。</li>
         <li>🧬 15分ごとに3分間の「変異イベント」。その間に手に入れたキャラは全員変異して、稼ぎが ×2〜×5 になる（ゴールド・ダイヤ・ギャラクシー）。</li>
         <li>👕 右上の「スキン」で見た目を着がえられる。遊び進めると新しいスキンが解放される。</li>
         <li>📖 一度持ち帰ったキャラは「インデックス」に登録される。変異ごとのタブもあり、その変異を75%集めると拠点の色を変えられる。</li>
@@ -247,7 +251,7 @@
       <div class="adm-line"><button id="backupBtn" class="btn">バックアップから復元</button><button id="backupNowBtn" class="btn store">今すぐバックアップ</button></div>
     </div>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.35</p>
+    <p class="version">v0.36</p>
   </div>
 </div>
 
@@ -274,6 +278,7 @@
     </div><div class="cube-shadow"></div></div>
     <h1 class="logo"><span class="l1" data-t="ラッキーブロック">ラッキーブロック</span><span class="l2" data-t="を打つ！">を打つ！</span></h1>
     <p class="tag">LAUNCH A LUCKY BLOCK <em>Web</em></p>
+    <p class="halloween-badge hidden" id="halloweenBadge">🎃 ハロウィンイベント開催中！ かぼちゃ変異（×4）・レインボーかぼちゃ変異（×7）</p>
     <ul class="flow">
       <li>💪 鍛える</li><li>🏏 打つ</li><li>👹 逃げる</li><li>💰 稼ぐ</li>
     </ul>
@@ -288,10 +293,10 @@
       </div>
       <p class="ctrl" id="ctrlHint"></p>
     </div>
-    <p class="note">v0.35 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.36 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=0.35"></script>
+<script type="module" src="js/main.js?v=0.36"></script>
 </body>
 </html>

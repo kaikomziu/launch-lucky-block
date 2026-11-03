@@ -248,13 +248,34 @@ export const MUTATIONS = [
   { id: 'gold',    name: 'ゴールド',     mult: 2, weight: 60, css: '#ffd23f', color: 0xffd23f },
   { id: 'diamond', name: 'ダイヤ',       mult: 3, weight: 30, css: '#8ff3ff', color: 0x8ff3ff },
   { id: 'galaxy',  name: 'ギャラクシー', mult: 5, weight: 10, css: '#b388ff', color: 0xb388ff },
+  // ハロウィン限定（weight は通常0。ハロウィン中だけ抽選に入る）
+  { id: 'pumpkin', name: 'かぼちゃ',     mult: 4, weight: 0, halloween: 25, css: '#ff8c1a', color: 0xff8c1a },
+  { id: 'rainbowpumpkin', name: 'レインボーかぼちゃ', mult: 7, weight: 0, css: 'rainbow', color: 0xff77e9 },
 ];
 export const MUT_BY_ID = Object.fromEntries(MUTATIONS.map(m => [m.id, m]));
 export const mutMult = id => (id && MUT_BY_ID[id] ? MUT_BY_ID[id].mult : 1);
-export function rollMutation() {
-  let t = Math.random() * MUTATIONS.reduce((a, m) => a + m.weight, 0);
-  for (const m of MUTATIONS) { t -= m.weight; if (t <= 0) return m.id; }
+export function rollMutation(halloween = false) {
+  const w = m => m.weight + (halloween ? m.halloween || 0 : 0);
+  let t = Math.random() * MUTATIONS.reduce((a, m) => a + w(m), 0);
+  for (const m of MUTATIONS) { t -= w(m); if (t <= 0 && w(m) > 0) return m.id; }
   return MUTATIONS[0].id;
+}
+
+// ---- ハロウィンイベント ----
+// 期間: 10月1日〜11月10日（端末の日付）
+export function halloweenActive(now = Date.now()) {
+  const d = new Date(now), m = d.getMonth() + 1;
+  return m === 10 || (m === 11 && d.getDate() <= 10);
+}
+// レインボーかぼちゃタイム: 10分ごとに1分間（時計で決まるので全員同じ）。その間に手に入れたキャラは超低確率でレインボーかぼちゃ変異
+export const RAINBOW_PUMPKIN_PERIOD = 10 * 60;
+export const RAINBOW_PUMPKIN_LEN = 60;
+export const RAINBOW_PUMPKIN_CHANCE = 0.03;
+export function rainbowPumpkinTime(now = Date.now()) {
+  const t = Math.floor(now / 1000) % RAINBOW_PUMPKIN_PERIOD;
+  return t < RAINBOW_PUMPKIN_LEN
+    ? { active: true, left: RAINBOW_PUMPKIN_LEN - t }
+    : { active: false, left: RAINBOW_PUMPKIN_PERIOD - t };
 }
 
 export const MAX_STAR = 5;

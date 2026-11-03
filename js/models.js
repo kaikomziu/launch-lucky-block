@@ -542,6 +542,35 @@ export function buildCharacter(def, mut = null) {
     if (mut === 'galaxy') anims.push(time => { body.emissive.setHSL(0.72 + Math.sin(time) * 0.08, 1, 0.45); });
   }
 
+  // かぼちゃ変異: 頭の上にジャック・オ・ランタン（レインボーは色が変わってキラキラ）
+  if (mut === 'pumpkin' || mut === 'rainbowpumpkin') {
+    const rainbowP = mut === 'rainbowpumpkin';
+    const pm = rainbowP ? new THREE.MeshLambertMaterial({ color: 0xff8c1a, emissive: 0x331100 }) : mat(0xff8c1a);
+    const pk = new THREE.Group(); pk.position.y = top + 0.42; g.add(pk);
+    for (let i = 0; i < 5; i++) {   // 縦のふくらみ
+      const lobe = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 10), pm);
+      const a = i / 5 * Math.PI * 2;
+      lobe.position.set(Math.cos(a) * 0.22, 0, Math.sin(a) * 0.22); lobe.scale.set(0.75, 0.85, 0.75); pk.add(lobe);
+    }
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 0.3, 6), mat(0x3a6b2a)); stem.position.y = 0.5; stem.rotation.z = 0.25; pk.add(stem);
+    const face = glowMat(0xffd23f, 1);
+    for (const s of [-1, 1]) {
+      const eye = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.14, 3), face); eye.position.set(s * 0.17, 0.08, 0.6); eye.rotation.x = Math.PI / 2; pk.add(eye);
+    }
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.07, 0.04), face); mouth.position.set(0, -0.14, 0.6); pk.add(mouth);
+    anims.push(time => { pk.rotation.z = Math.sin(time * 2.5) * 0.08; });
+    if (rainbowP) {
+      anims.push(time => { pm.color.setHSL((time * 0.25) % 1, 0.85, 0.58); });
+      const holder = new THREE.Group(); holder.position.y = top * 0.5; g.add(holder);
+      for (let i = 0; i < 8; i++) {
+        const s = new THREE.Mesh(new THREE.OctahedronGeometry(0.13), glowMat([0xff5e5e, 0xffd23f, 0x4cd964, 0x3a8dff, 0xb05cff][i % 5], 1));
+        const a = i / 8 * Math.PI * 2;
+        s.position.set(Math.cos(a) * 1.4, Math.sin(a * 2) * 0.5, Math.sin(a) * 1.4); holder.add(s);
+      }
+      anims.push(time => { holder.rotation.y = time * 2.6; });
+    }
+  }
+
   g.traverse(o => { if (o.isMesh && !o.material.transparent) o.castShadow = true; });
   g.userData.anims = anims;
   g.userData.height = top + 0.6;
