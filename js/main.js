@@ -32,7 +32,8 @@ const randomId = () => (crypto.randomUUID ? crypto.randomUUID()
 function defaultSave() {
   return {
     money: 0, strength: 20, dumbbellLv: 1, speedLv: 1, rebirths: 0,
-    launchPower: 1,                              // 飛ばす力（0.1〜1）。強すぎて逃げ切れないとき用
+    launchPower: 1,
+    baseTheme: '',                               // 拠点の色（インデックスの変異を75%集めると選べる）                              // 飛ばす力（0.1〜1）。強すぎて逃げ切れないとき用
     slots: Array(SLOT_COUNT).fill(null),         // { id, star, stored }
     inventory: [],                               // { id, star } 持ち帰ったが台座に置いていないキャラ
     stats: { bestDistance: 0, totalEarned: 0, collected: 0, bestRarity: 0 },
@@ -122,8 +123,23 @@ const plane = (w, d, color, x, z, y = 0) => {
 const W = WORLD_HALF_W * 2 + 4;
 
 // 拠点の地面
-plane(W, 60, 0x9bd770, 0, -30);
-plane(40, 52, 0xd5dde2, 0, -26, 0.01);
+const baseGround = plane(W, 60, 0x9bd770, 0, -30);
+const basePlaza = plane(40, 52, 0xd5dde2, 0, -26, 0.01);
+baseGround.material = new THREE.MeshLambertMaterial({ color: 0x9bd770 });
+basePlaza.material = new THREE.MeshLambertMaterial({ color: 0xd5dde2 });
+// 拠点の色テーマ（'' = いつもの色）
+const BASE_THEMES = {
+  '':      { ground: 0x9bd770, plaza: 0xd5dde2, glow: 0x000000 },
+  gold:    { ground: 0xe0b23a, plaza: 0xffe9a8, glow: 0x3a2600 },
+  diamond: { ground: 0x7fd6ea, plaza: 0xe6fbff, glow: 0x0a3644 },
+  galaxy:  { ground: 0x2b1452, plaza: 0x4a2a8a, glow: 0x2a0f5a },
+};
+function applyBaseTheme() {
+  const t = BASE_THEMES[save.baseTheme] || BASE_THEMES[''];
+  baseGround.material.color.set(t.ground); baseGround.material.emissive.set(t.glow);
+  basePlaza.material.color.set(t.plaza); basePlaza.material.emissive.set(t.glow);
+}
+applyBaseTheme();
 // 発射エリア
 plane(W, ZONE_START, 0x8fcf62, 0, ZONE_START / 2);
 // ゾーンの地面（縞模様）
@@ -1440,18 +1456,63 @@ function charThumb(def, locked, mut = null) {
 }
 
 const fmtDate = t => { const d = new Date(t); return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`; };
+// インデックスのタブ: '' = 通常、ほかは変異の種類
+let idxTab = '';
+const IDX_UNLOCK = 0.75;   // この割合を集めると拠点の色を選べる
+const hasInDex = (c, m) => (m ? !!save.dex[c.id]?.muts?.[m] : !!save.dex[c.id]);
+function dexRate(m) { return CHARACTERS.filter(c => hasInDex(c, m)).length / CHARACTERS.length; }
+document.querySelectorAll('#indexPanel .tab').forEach(t => t.addEventListener('click', () => { idxTab = t.dataset.mut; renderIndex(); $('indexBody').scrollTop = 0; }));
+$('indexBody').addEventListener('click', e => {
+  const b = e.target.closest('[data-theme]');
+  if (!b || b.disabled) return;
+  save.baseTheme = b.dataset.theme;
+  applyBaseTheme(); writeSave(); play('evolve', { vol: 0.6 });
+  toast(save.baseTheme ? `🏠 拠点の色を${MUT_BY_ID[save.baseTheme].name}にした！` : '🏠 拠点の色をいつもの色に戻した', { color: '#ffd23f', big: true });
+  renderIndex();
+});
+
 function renderIndex() {
-  const got = CHARACTERS.filter(c => save.dex[c.id]).length;
-  let html = `<div class="idx-total"><span class="num">${got} / ${CHARACTERS.length}</span>
+  const m = idxTab;
+  document.querySelectorAll('#indexPanel .tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.mut === m);
+    t.querySelector('b').textContent = `${Math.floor(dexRate(t.dataset.mut) * 100)}%`;
+  });
+  const got = CHARACTERS.filter(c => hasInDex(c, m)).length;
+  let html = `<div class="idx-total"><span class="num">${m ? mutTag(m) : ''} ${got} / ${CHARACTERS.length}</span>
     <div class="progress"><div style="width:${got / CHARACTERS.length * 100}%"></div></div>
     <span>${Math.floor(got / CHARACTERS.length * 100)}%</span></div>`;
+  // 変異のタブ: 75%で拠点の色を解放
+  if (m) {
+    const need = Math.ceil(CHARACTERS.length * IDX_UNLOCK);
+    const open = got >= need, using = save.baseTheme === m;
+    html += `<div class="card theme-card mut-${m}-card"><div class="icon">🏠</div><div class="info">
+      <h3>拠点の色: ${MUT_BY_ID[m].name}</h3>
+      <p>${open ? (using ? '使用中！' : '解放済み！ 拠点の地面をこの色にできるよ') : `${MUT_BY_ID[m].name}変異を ${need}体（75%）集めると解放（あと${need - got}体）`}</p></div>
+      <div class="btns">${using
+        ? '<button class="btn store" data-theme="">いつもの色に戻す</button>'
+        : `<button class="btn" data-theme="${m}" ${open ? '' : 'disabled'}>${open ? 'この色にする' : '🔒 未解放'}</button>`}</div></div>`;
+  } else if (save.baseTheme) {
+    html += `<div class="card theme-card"><div class="icon">🏠</div><div class="info"><h3>拠点の色: ${MUT_BY_ID[save.baseTheme].name}</h3><p>変異のタブで集めると、ほかの色も選べるよ</p></div>
+      <div class="btns"><button class="btn store" data-theme="">いつもの色に戻す</button></div></div>`;
+  } else {
+    html += `<p class="dex-sum">💡 変異のタブでその変異のキャラを75%集めると、拠点の色を変えられるよ</p>`;
+  }
   RARITIES.forEach((rar, r) => {
     const pool = CHARACTERS.filter(c => c.r === r);
-    const n = pool.filter(c => save.dex[c.id]).length;
+    const n = pool.filter(c => hasInDex(c, m)).length;
     const rc = rarCss(r);
     html += `<div class="idx-sec"><h3>${rarityName(r)}<span class="cnt ${n === pool.length ? 'done' : ''}">${n === pool.length ? '👑 コンプリート ' : ''}${n} / ${pool.length}</span></h3><div class="idx-grid">`;
     for (const c of pool) {
       const e = save.dex[c.id];
+      if (m) {
+        // 変異のタブ: その変異で手に入れたキャラだけ表示
+        html += hasInDex(c, m)
+          ? `<div class="idx-card" style="--rc:${rc}"><img src="${charThumb(c, false, m)}" alt=""><b>${c.name}</b>
+              <div class="inc">+${fmt(charIncome(c, 1, m))}/秒</div><div class="meta">${mutTag(m)}</div></div>`
+          : `<div class="idx-card locked"><img src="${charThumb(c, true)}" alt=""><b>${e ? c.name : '？？？'}</b>
+              <div class="meta">${e ? `${MUT_BY_ID[m].name}変異はまだ` : `${ZONES[r].name}ゾーン付近で出現`}</div></div>`;
+        continue;
+      }
       html += e
         ? `<div class="idx-card" style="--rc:${rc}">${e.seen ? '' : '<span class="new">NEW</span>'}
             <img src="${charThumb(c, false)}" alt=""><b>${c.name}</b>

@@ -269,7 +269,16 @@ body.touch #prompt { bottom: 200px; }
   position: absolute; top: 6px; left: 6px; padding: 1px 6px; border-radius: 6px; background: #ff3b3b; color: #fff;
   font-size: 11px; font-weight: 900;
 }
+.idx-tabs .tab { font-size: 13px; white-space: nowrap; }
+.idx-total { flex-wrap: wrap; }
+.idx-total .progress { min-width: 120px; }
+.theme-card { margin-bottom: 14px; }
+.mut-gold-card { border-color: rgba(255, 210, 63, .7) !important; }
+.mut-diamond-card { border-color: rgba(143, 243, 255, .7) !important; }
+.mut-galaxy-card { border-color: rgba(179, 136, 255, .8) !important; }
 @media (max-width: 600px) {
+  .idx-tabs { flex-wrap: wrap; }
+  .idx-tabs .tab { flex: 1 1 40%; font-size: 12px; padding: 7px 4px; }
   .idx-grid { grid-template-columns: repeat(2, 1fr); }
   /* 狭い画面ではボタンをカードの下に横並びにする */
   .card { flex-wrap: wrap; }

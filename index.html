@@ -7,18 +7,18 @@
 <meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
-<link rel="stylesheet" href="style.css?v=0.24">
+<link rel="stylesheet" href="style.css?v=0.25">
 <!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
 <script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <!-- 更新のたびに ?v= をバージョンに合わせて変える（古いJSがキャッシュされないように） -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "./js/data.js": "./js/data.js?v=0.24",
-  "./js/models.js": "./js/models.js?v=0.24",
-  "./js/input.js": "./js/input.js?v=0.24",
-  "./js/audio.js": "./js/audio.js?v=0.24",
-  "./js/ranking.js": "./js/ranking.js?v=0.24"
+  "./js/data.js": "./js/data.js?v=0.25",
+  "./js/models.js": "./js/models.js?v=0.25",
+  "./js/input.js": "./js/input.js?v=0.25",
+  "./js/audio.js": "./js/audio.js?v=0.25",
+  "./js/ranking.js": "./js/ranking.js?v=0.25"
 } }
 </script>
 </head>
@@ -105,6 +105,12 @@
 
 <div id="indexPanel" class="panel hidden">
   <div class="panel-head"><h2>📖 インデックス</h2><button class="close">✕</button></div>
+  <div class="tabs idx-tabs">
+    <button class="tab active" data-mut="">📖 通常 <b>0%</b></button>
+    <button class="tab" data-mut="gold">🟡 ゴールド <b>0%</b></button>
+    <button class="tab" data-mut="diamond">💎 ダイヤ <b>0%</b></button>
+    <button class="tab" data-mut="galaxy">🌌 ギャラクシー <b>0%</b></button>
+  </div>
   <div class="panel-body" id="indexBody"></div>
 </div>
 
@@ -132,7 +138,7 @@
         <li>🎒 持ち帰ったキャラはインベントリに入る。「⭐ 一番いいキャラを装備する」で稼ぎの多いキャラを自動で台座に並べられる。空いている台座で好きなキャラを選んで置こう（台座からしまうこともできる）。</li>
         <li>💰 台座のキャラがお金を稼ぐ。台座に触れて回収しよう。</li>
         <li>🧬 15分ごとに3分間の「変異イベント」。その間に手に入れたキャラは全員変異して、稼ぎが ×2〜×5 になる（ゴールド・ダイヤ・ギャラクシー）。</li>
-        <li>📖 一度持ち帰ったキャラは「インデックス」に登録される。</li>
+        <li>📖 一度持ち帰ったキャラは「インデックス」に登録される。変異ごとのタブもあり、その変異を75%集めると拠点の色を変えられる。</li>
         <li>🔄 お金がたまったらショップでリボーン。最初からやり直す代わりに、稼ぎと力の伸びがずっと増える。</li>
       </ol>
       <p>PC: WASD移動 / Shiftでダッシュ / クリックでマウスロック（マウスで視点）/ 左クリック・E・スペースで行動 / Escでロック解除 / ホイールでズーム / 1〜4キーでショップ・インベントリ・インデックス・設定<br>スマホ: 左下スティックで移動 / 右下ボタンで行動 / 💨ボタンでダッシュ / 画面スワイプで視点</p>
@@ -145,7 +151,7 @@
     </div>
     <a class="btn more-games" href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ（かるわかGAMES）</a>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.24</p>
+    <p class="version">v0.25</p>
   </div>
 </div>
 
@@ -184,10 +190,10 @@
       </div>
       <p class="ctrl" id="ctrlHint"></p>
     </div>
-    <p class="note">v0.24 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.25 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=0.24"></script>
+<script type="module" src="js/main.js?v=0.25"></script>
 </body>
 </html>
