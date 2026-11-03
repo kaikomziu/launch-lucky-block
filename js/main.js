@@ -12,6 +12,7 @@ import { initAudio, play, startLoop, stopLoop, setVolume } from './audio.js';
 import { input, initInput, pollInput, lockPointer, unlockPointer } from './input.js';
 import { GENRES, submitScore, fetchRanking, fetchMine } from './ranking.js';
 import { fetchEvents, adminCheck, adminPost, adminEnd } from './admin.js';
+import { localBackups, saveLocalBackup, cloudBackupPut, cloudBackupList, cloudBackupGet } from './backup.js';
 
 const $ = id => document.getElementById(id);
 
@@ -69,7 +70,9 @@ function loadSave() {
   }
 }
 let save = loadSave();
+let noSave = false;   // 復元・リセットで読み直す直前は、今のデータで上書きしない
 function writeSave() {
+  if (noSave) return;
   save.lastTime = Date.now();
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* 保存不可環境 */ }
 }
@@ -1104,7 +1107,7 @@ async function pollEvents() {
 }
 const escHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function updateEvent() {
-  if ((rankTimer -= 0.2) <= 0) { rankTimer = 60; sendScore(); }
+  if ((rankTimer -= 0.2) <= 0) { rankTimer = 60; sendScore(); backupNow(); }
   const ev = currentEvent();
   $('eventStat').classList.toggle('on', ev.active);
   $('sEvent').textContent = mmss(ev.left);
@@ -1222,6 +1225,7 @@ function renderPanels() {
   if (openPanel === 'indexPanel') renderIndex();
   if (openPanel === 'rankPanel') openRanking();
   if (openPanel === 'skinPanel') renderSkins();
+  if (openPanel === 'backupPanel') renderBackups();
   if (openPanel === 'adminPanel') { renderAdminActive(); renderGiftPicker(); }
   if (openPanel === 'settingsPanel') {
     $('nameInput').value = save.name;
@@ -1707,7 +1711,8 @@ function renderIndex() {
 $('nameInput').addEventListener('input', e => { save.name = e.target.value.slice(0, 16); writeSave(); });
 $('volInput').addEventListener('input', e => { save.volume = +e.target.value; setVolume(save.volume); writeSave(); });
 $('resetBtn').addEventListener('click', async () => {
-  if (!confirm('セーブデータをすべて消去します。よろしいですか？' + (window.KaAccount?.isLoggedIn() ? '\n（クラウドのセーブも最初からになります）' : ''))) return;
+  if (!confirm('セーブデータをすべて消去します。よろしいですか？' + (window.KaAccount?.isLoggedIn() ? '\n（クラウドのセーブも最初からになります）' : '') + '\n\n※ 消す前のデータはバックアップに残るので、設定の「バックアップから復元」で戻せます')) return;
+  await backupNow(true);
   removeEventListener('beforeunload', writeSave);
   if (window.KaAccount?.isLoggedIn()) {
     // 消すだけだとクラウドから復元されるので、初期データで上書きしてから送る
@@ -1718,8 +1723,94 @@ $('resetBtn').addEventListener('click', async () => {
   } else {
     localStorage.removeItem(SAVE_KEY);
   }
+  noSave = true;
   location.reload();
 });
+
+// ---------- バックアップ ----------
+const hasProgress = sv => !!sv && (sv.stats?.collected > 0 || sv.rebirths > 0 || (sv.slots || []).some(Boolean));
+function saveSummary() {
+  return {
+    rebirths: save.rebirths, collected: save.stats.collected, income: totalIncome(), money: save.money,
+    dex: CHARACTERS.filter(c => save.dex[c.id]).length, dist: save.stats.bestDistance,
+  };
+}
+let lastCloudBackup = 0;
+// force: 10分待たずにクラウドにも送る（リセット前など）
+async function backupNow(force = false) {
+  if (!hasProgress(save)) return;   // 空っぽのデータでバックアップを埋めない
+  const sum = saveSummary();
+  saveLocalBackup(save, sum);
+  const t = window.KaAccount?.token();
+  if (t && (force || Date.now() - lastCloudBackup > 10 * 60 * 1000)) {
+    lastCloudBackup = Date.now();
+    try { await cloudBackupPut(t, JSON.parse(JSON.stringify(save)), sum); } catch (e) { /* 次の機会に */ }
+  }
+}
+const sumText = s => s ? `🔄 リボーン${s.rebirths ?? 0}回 ・ 🎁 ${s.collected ?? 0}体${s.income ? ` ・ 💰 $${fmt(s.income)}/秒` : ''}${s.note ? ` ・ ${escHtml(s.note)}` : ''}` : '';
+const fmtTime = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+let cloudItems = [];
+async function renderBackups(lostHint = false) {
+  const local = localBackups().filter(b => b.summary && (b.summary.collected > 0 || b.summary.rebirths > 0));
+  const t = window.KaAccount?.token();
+  $('backupLead').innerHTML = lostHint
+    ? '⚠ いまのデータが最初からになっています。前のデータが見つかったので、復元できます。'
+    : 'データが消えたときは、ここから前の状態に戻せます。（自動で10分ごとに保存）';
+  $('backupLocal').innerHTML = local.length
+    ? local.map((b, i) => `<div class="bk-row"><div><b>${fmtTime(b.t)}</b><small>${sumText(b.summary)}</small></div><button class="btn" data-bk-local="${i}">復元</button></div>`).join('')
+    : '<p class="dex-sum">まだありません</p>';
+  if (!t) { $('backupCloud').innerHTML = '<p class="dex-sum">かるわかGAMESアカウントでログインすると、クラウドにもバックアップされ、別の端末からも戻せます。</p>'; return; }
+  $('backupCloud').innerHTML = '<p class="dex-sum">読み込み中…</p>';
+  try {
+    const r = await cloudBackupList(t);
+    cloudItems = r?.ok ? r.items : [];
+  } catch (e) { cloudItems = []; }
+  $('backupCloud').innerHTML = cloudItems.length
+    ? cloudItems.map(b => `<div class="bk-row"><div><b>${fmtTime(b.created_at)}</b><small>${sumText(b.summary)}</small></div><button class="btn" data-bk-cloud="${b.id}">復元</button></div>`).join('')
+    : '<p class="dex-sum">まだありません</p>';
+}
+// 復元: データを書き込んで、クラウドにも送ってから読み直す
+async function restoreSave(data, label) {
+  if (!confirm(`${label} のバックアップに戻しますか？\n\nいまのデータはこのバックアップで置きかわります（いまのデータもバックアップに残します）。`)) return;
+  await backupNow(true);
+  removeEventListener('beforeunload', writeSave);
+  noSave = true;
+  try { localStorage.setItem(SAVE_KEY, typeof data === 'string' ? data : JSON.stringify(data)); } catch (e) { noSave = false; return toast('⚠ 書き込めませんでした', { color: '#ff6b6b' }); }
+  try { await window.KaAccount?.saveNow(); } catch (e) { /* 次の同期で反映 */ }
+  toast('💾 復元しました。読み直します…', { color: '#7dff8a', big: true });
+  setTimeout(() => location.reload(), 600);
+}
+$('backupPanel').addEventListener('click', async e => {
+  const l = e.target.closest('[data-bk-local]'), c = e.target.closest('[data-bk-cloud]');
+  if (l) {
+    const b = localBackups().filter(x => x.summary && (x.summary.collected > 0 || x.summary.rebirths > 0))[+l.dataset.bkLocal];
+    if (b) restoreSave(b.data, fmtTime(b.t));
+  } else if (c) {
+    const t = window.KaAccount?.token();
+    try {
+      const r = await cloudBackupGet(t, +c.dataset.bkCloud);
+      if (!r?.ok) return toast('⚠ バックアップを読み込めませんでした', { color: '#ff6b6b' });
+      const item = cloudItems.find(x => x.id === +c.dataset.bkCloud);
+      restoreSave(r.data, item ? fmtTime(item.created_at) : 'クラウド');
+    } catch (err) { toast('⚠ 通信に失敗しました', { color: '#ff6b6b' }); }
+  }
+});
+$('backupBtn').addEventListener('click', () => openPanelById('backupPanel'));
+$('backupNowBtn').addEventListener('click', async () => { await backupNow(true); toast('💾 バックアップしました', { color: '#7dff8a' }); renderBackups(); });
+// データが最初からになっていて、前のデータが見つかったら復元を勧める（1回だけ）
+let lostChecked = false;
+async function checkLostData() {
+  if (lostChecked || hasProgress(save)) return;
+  let found = localBackups().some(b => b.summary && (b.summary.collected > 0 || b.summary.rebirths > 0));
+  const t = window.KaAccount?.token();
+  if (!found && t) {
+    try { const r = await cloudBackupList(t); found = !!(r?.ok && r.items.some(b => b.summary?.collected > 0 || b.summary?.rebirths > 0)); } catch (e) { /* 通信失敗 */ }
+  }
+  if (!found || hasProgress(save)) return;
+  lostChecked = true;
+  openPanelById('backupPanel');
+  renderBackups(true);
+}
 
 // ---------- かるわかGAMESアカウント ----------
 const ka = window.KaAccount;
@@ -1740,7 +1831,7 @@ function updateAccountUi(user = ka?.user()) {
 $('accountBtn').addEventListener('click', () => ka?.openPanel());
 $('titleAccountBtn').addEventListener('click', () => ka?.openPanel());
 $('hudAccountBtn').addEventListener('click', () => { unlockPointer(); ka?.openPanel(); });
-ka?.onChange(user => { updateAccountUi(user); checkAdmin(); });
+ka?.onChange(user => { updateAccountUi(user); checkAdmin(); if (user && !$('title').classList.contains('hidden')) return; if (user) checkLostData(); });
 
 // ---------- 管理者メニュー（かるわかGAMESの管理者アカウントだけ） ----------
 let isAdmin = false;
@@ -1881,6 +1972,7 @@ $('startBtn').addEventListener('click', () => {
   lockPointer();
   if (offlineMoney > 0) toast(`おかえり！ 放置中に $${fmt(offlineMoney)} 貯まったよ`, { color: '#7dff8a', time: 3500 });
   else if (save.stats.collected === 0) toast('黄色い発射台へ行ってブロックを打とう！', { color: '#ffd23f', time: 4000 });
+  setTimeout(checkLostData, 800);
 });
 addEventListener('beforeunload', writeSave);
 document.addEventListener('visibilitychange', () => { if (document.hidden) writeSave(); });

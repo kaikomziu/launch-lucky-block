@@ -708,6 +708,14 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .adm-row b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adm-row small { color: var(--muted); white-space: nowrap; }
 .adm-row .btn { min-width: 0; padding: 4px 10px; }
+/* バックアップ */
+.backup-box { border-color: rgba(125, 255, 138, .5); background: linear-gradient(135deg, rgba(125, 255, 138, .16), rgba(125, 255, 138, .03)); }
+.backup-box .btn { flex: 1; }
+.bk-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; border-radius: 14px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1); }
+.bk-row > div { flex: 1; min-width: 0; }
+.bk-row b { display: block; font-size: 15px; }
+.bk-row small { display: block; color: var(--muted); font-size: 12px; }
+.bk-row .btn { min-width: 0; padding: 6px 14px; }
 .adm-row.sched { border: 1px dashed rgba(122, 200, 255, .6); }
 .adm-row.sched small { color: #9ad0ff; font-weight: 800; }
 .adm-when span { font-size: 13px; color: var(--muted); }
