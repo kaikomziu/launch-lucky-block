@@ -420,3 +420,182 @@ a.more-games { text-decoration: none; text-align: center; }
 /* メニューボタンのキー表示（PC のみ。1〜4 キーでパネルを開く） */
 #menu button kbd { position: absolute; left: 4px; top: 2px; font-size: 10px; font-weight: 900; opacity: .7; font-family: inherit; }
 body.touch #menu button kbd { display: none; }
+
+/* =====================================================================
+   デザイン v0.24: タイトル画面に合わせた「すりガラス × ゴールド」の見た目
+   （上の基本ルールを、ここでまとめて上書きする）
+   ===================================================================== */
+:root {
+  --panel: rgba(26, 16, 58, .82);
+  --line: rgba(255, 255, 255, .16);
+  --muted: #c3bfe0;
+  --glass: rgba(20, 12, 48, .55);
+  --gold: linear-gradient(180deg, #fff1a8 0%, #ffd23f 45%, #ffa51c 100%);
+}
+
+/* ---------- 画面上のHUD ---------- */
+.stat {
+  padding: 4px 14px 4px 4px; border-radius: 999px; min-width: 160px; align-items: center;
+  background: var(--glass); border: 1px solid rgba(255, 255, 255, .2);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 4px 14px rgba(0, 0, 0, .3);
+}
+.stat .ico {
+  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font-size: 16px;
+  background: rgba(255, 255, 255, .14); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2);
+}
+.stat.money { border-color: rgba(125, 255, 138, .45); }
+.stat.money b { color: #8dff99; text-shadow: 0 0 10px rgba(125, 255, 138, .5), 0 2px 0 rgba(0, 0, 0, .5); }
+.stat.ev.on { border-color: #b388ff; }
+
+#menu button {
+  border: 2px solid rgba(255, 255, 255, .55); border-radius: 18px; background: var(--gold);
+  box-shadow: 0 5px 0 #a8620a, 0 8px 18px rgba(0, 0, 0, .35), inset 0 2px 0 rgba(255, 255, 255, .7);
+  transition: transform .12s;
+}
+#menu button:hover { transform: translateY(-2px); }
+#menu button:active { transform: translateY(4px); box-shadow: 0 1px 0 #a8620a; }
+#subMenu > * { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+#zoneLabel {
+  padding: 6px 20px; background: var(--glass); border: 1px solid rgba(255, 255, 255, .25);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 6px 18px rgba(0, 0, 0, .3);
+}
+#prompt {
+  border-radius: 999px; padding: 10px 22px; background: var(--glass); border: 1px solid rgba(255, 210, 63, .6);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 0 22px rgba(255, 210, 63, .25);
+}
+#prompt kbd { background: var(--gold); color: #3b2a00; box-shadow: 0 3px 0 #a8620a; }
+#lockHint, #dashHud { background: var(--glass); border: 1px solid rgba(255, 255, 255, .18); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+
+/* お知らせ */
+.toast {
+  border-radius: 16px; background: rgba(20, 12, 48, .72); border: 1px solid rgba(255, 255, 255, .25);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+}
+.toast.big { border-color: rgba(255, 210, 63, .7); box-shadow: 0 0 30px rgba(255, 210, 63, .35), 0 8px 24px rgba(0, 0, 0, .35); }
+
+/* 飛行・追跡 */
+#flightHud b {
+  font-size: 64px; background: var(--gold); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .55)); text-shadow: none;
+}
+#flightHud span { display: inline-block; padding: 3px 14px; border-radius: 999px; background: var(--glass); backdrop-filter: blur(6px); }
+#chaseHud {
+  border-radius: 18px; background: rgba(60, 8, 20, .62); border: 1px solid rgba(255, 90, 90, .7);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 0 24px rgba(255, 40, 40, .3);
+}
+
+/* タイミングゲージ */
+#timing .bar {
+  height: 32px; border-radius: 999px; border: 3px solid rgba(255, 255, 255, .9);
+  background: linear-gradient(180deg, #ff8a8a, #e84545); box-shadow: 0 6px 20px rgba(0, 0, 0, .4);
+}
+#timing .good { background: linear-gradient(180deg, #ffe680, #ffc21a); }
+#timing .perfect { background: linear-gradient(180deg, #a6ffb0, #2fbf4a); box-shadow: 0 0 14px #4cd964; }
+#timing .cursor { width: 8px; margin-left: -4px; border-radius: 4px; box-shadow: 0 0 10px #fff, 0 0 4px #000; }
+#timing .label { text-shadow: 0 3px 0 #000, 0 0 12px rgba(255, 210, 63, .6); }
+
+/* キャラが出たときの演出（後ろで光が回る） */
+#reveal::before {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 520px; height: 520px; margin: -260px 0 0 -260px; z-index: -1;
+  background: repeating-conic-gradient(rgba(255, 230, 128, .28) 0 10deg, transparent 10deg 20deg);
+  -webkit-mask: radial-gradient(circle, #000 0%, transparent 65%); mask: radial-gradient(circle, #000 0%, transparent 65%);
+  animation: rays 6s linear infinite;
+}
+@keyframes rays { to { transform: rotate(360deg); } }
+#reveal .income { display: inline-block; margin-top: 6px; padding: 4px 16px; border-radius: 999px; background: var(--glass); }
+
+/* 3D空間のラベル */
+.wlabel .n, .wlabel .m { text-shadow: 0 2px 0 rgba(0, 0, 0, .85), 0 0 6px rgba(0, 0, 0, .7); }
+
+/* ---------- パネル ---------- */
+.panel {
+  border: 1px solid rgba(255, 255, 255, .22); border-radius: 26px; overflow: hidden;
+  background: linear-gradient(160deg, rgba(48, 28, 102, .9), rgba(20, 12, 48, .92));
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .6), inset 0 1px 0 rgba(255, 255, 255, .25);
+  animation: panelIn .22s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+@keyframes panelIn { from { opacity: 0; transform: translate(-50%, -46%) scale(.94); } }
+.panel-head {
+  padding: 14px 18px; border-bottom: 1px solid rgba(255, 255, 255, .14);
+  background: linear-gradient(90deg, rgba(255, 210, 63, .18), rgba(122, 92, 255, .12) 60%, transparent);
+}
+.panel-head h2 {
+  font-size: 24px; letter-spacing: .02em; background: var(--gold); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .45));
+}
+.close {
+  border-radius: 50%; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .3);
+  font-size: 18px; transition: background .15s, transform .15s;
+}
+.close:hover { background: #ff5e5e; transform: rotate(90deg); }
+.panel-body { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .3) transparent; }
+
+/* カード */
+.card {
+  border-radius: 18px; border: 1px solid rgba(255, 255, 255, .14);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12); transition: transform .15s, border-color .15s;
+}
+.card:hover { border-color: rgba(255, 210, 63, .5); }
+.card .icon {
+  display: grid; place-items: center; width: 52px; height: 52px; font-size: 28px; border-radius: 16px;
+  background: rgba(255, 255, 255, .1); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15);
+}
+.card .thumb { border-radius: 14px; background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, .18), rgba(255, 255, 255, .03)); }
+.card.rebirth { border-color: rgba(179, 136, 255, .7); background: linear-gradient(135deg, rgba(179, 136, 255, .22), rgba(255, 255, 255, .03)); }
+.card.power { border-color: rgba(255, 210, 63, .5); }
+
+/* ボタン */
+.btn {
+  position: relative; overflow: hidden; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .45);
+  background: linear-gradient(180deg, #8dff99, #22b544); color: #053b10;
+  box-shadow: 0 4px 0 #0f6b25, inset 0 1px 0 rgba(255, 255, 255, .6); transition: transform .1s, filter .15s;
+}
+.btn:not(:disabled):hover { filter: brightness(1.08); }
+.btn:not(:disabled):active { transform: translateY(3px); box-shadow: 0 1px 0 #0f6b25; }
+.btn:disabled { background: rgba(255, 255, 255, .1); color: rgba(255, 255, 255, .45); border-color: rgba(255, 255, 255, .12); box-shadow: none; }
+.btn.sell { background: linear-gradient(180deg, #ffb199, #ff6b4a); color: #3a1000; box-shadow: 0 4px 0 #a33a1e, inset 0 1px 0 rgba(255, 255, 255, .6); }
+.btn.store { background: linear-gradient(180deg, #c7e8ff, #6fb8ff); color: #0b2540; box-shadow: 0 4px 0 #2f6fae, inset 0 1px 0 rgba(255, 255, 255, .6); }
+.btn.reb { background: linear-gradient(180deg, #dcc8ff, #9d6bff); color: #1e0b48; box-shadow: 0 4px 0 #5a32b3, inset 0 1px 0 rgba(255, 255, 255, .6); }
+.btn.best { background: var(--gold); color: #3b2a00; box-shadow: 0 4px 0 #a8620a, inset 0 1px 0 rgba(255, 255, 255, .7); }
+.btn.best::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 30%; left: -40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .7), transparent); animation: shine 3s ease-in-out infinite;
+}
+.panel a.btn.more-games { background: linear-gradient(180deg, #a48bff, #6a3cff); box-shadow: 0 4px 0 #3d1f9e, inset 0 1px 0 rgba(255, 255, 255, .5); }
+.danger-btn { border-radius: 14px; border: 1px solid rgba(255, 90, 90, .7); background: rgba(255, 60, 60, .1); }
+
+/* タブ（セグメント切り替え） */
+.tabs { margin: 12px 16px 0; padding: 4px; gap: 4px; border-radius: 16px; background: rgba(0, 0, 0, .3); }
+.tab { border: none; border-radius: 12px; padding: 9px; transition: background .15s, color .15s; }
+.tab.active { background: var(--gold); color: #3b2a00; box-shadow: 0 3px 0 #a8620a; }
+
+/* スライダー */
+input[type=range] { -webkit-appearance: none; appearance: none; height: 10px; border-radius: 999px; background: rgba(255, 255, 255, .15); outline: none; }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: var(--gold);
+  border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .45); cursor: pointer;
+}
+input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #ffd23f; border: 2px solid #fff; cursor: pointer; }
+
+/* 入力欄・設定 */
+.field input:not([type=range]) { border-radius: 14px; border: 1px solid rgba(255, 255, 255, .22); background: rgba(0, 0, 0, .3); }
+.field input:not([type=range]):focus { outline: none; border-color: #ffd23f; box-shadow: 0 0 0 3px rgba(255, 210, 63, .25); }
+.account-box { border-radius: 18px; border: 1px solid rgba(122, 92, 255, .6); background: linear-gradient(135deg, rgba(122, 92, 255, .25), rgba(122, 92, 255, .06)); }
+.howto, .credits { padding: 4px 14px 8px; margin-top: 12px; border-radius: 18px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .1); }
+.howto ol li { margin: 2px 0; }
+
+/* インデックス */
+.progress { height: 14px; background: rgba(0, 0, 0, .35); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .5); }
+.progress > div { background: linear-gradient(90deg, #4cd964, #ffd23f, #ff9f1c); box-shadow: 0 0 10px rgba(255, 210, 63, .6); }
+.idx-sec h3 { padding: 6px 12px; border-radius: 12px; background: rgba(255, 255, 255, .06); }
+.idx-card {
+  border-radius: 18px; border: 1px solid var(--rc, var(--line));
+  background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--rc, #fff) 22%, transparent), rgba(255, 255, 255, .03) 70%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12); transition: transform .15s;
+}
+.idx-card:hover { transform: translateY(-3px); }
+.idx-card.locked { background: rgba(0, 0, 0, .2); border-style: dashed; }
+.badge { background: linear-gradient(180deg, #ff6b6b, #e02424); }
