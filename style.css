@@ -737,7 +737,9 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .gift-pick .lbl { display: block; font-size: 11px; color: var(--muted); }
 .gift-pick b { display: block; font-size: 18px; }
 .gift-pick small { color: #7dff8a; font-weight: 800; }
-.gift-muts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.gift-muts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.gift-muts button[data-gmut="pumpkin"].active { background: linear-gradient(180deg, #ffc27a, #ff8c1a); color: #2a1000; box-shadow: 0 3px 0 #a34a00; }
+.gift-muts button[data-gmut="rainbowpumpkin"].active { background: linear-gradient(90deg, #ff5e5e, #ffd23f, #4cd964, #3a8dff, #b05cff); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, .5); box-shadow: 0 3px 0 #5a32b3; }
 .gift-muts button {
   padding: 7px 4px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .07);
   color: var(--muted); font-weight: 800; font-size: 12px; white-space: nowrap;
