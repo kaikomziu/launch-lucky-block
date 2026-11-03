@@ -1481,7 +1481,7 @@ const ka = window.KaAccount;
 function updateAccountUi(user = ka?.user()) {
   if (!ka) {
     $('accountStatus').textContent = 'アカウント機能を読み込めませんでした（オフラインかもしれません）。';
-    $('accountBtn').classList.add('hidden'); $('titleAccountBtn').classList.add('hidden');
+    $('accountBtn').classList.add('hidden'); $('titleAccountBtn').classList.add('hidden'); $('hudAccountBtn').classList.add('hidden');
     return;
   }
   $('accountStatus').textContent = user
@@ -1489,10 +1489,12 @@ function updateAccountUi(user = ka?.user()) {
     : 'ログインすると、セーブがクラウドに保存されて別の端末でも続きから遊べます。';
   $('accountBtn').textContent = user ? 'アカウント・同期の状態' : 'ログイン / アカウントを作る';
   $('titleAccountBtn').textContent = user ? `${user.avatar} ${user.display_name} でログイン中` : '👤 かるわかGAMESアカウントでログイン';
+  $('hudAccountBtn').textContent = user ? `${user.avatar} ${user.display_name}` : '👤 ログイン';
   $('nameInput').placeholder = user ? user.display_name : '名無し';
 }
 $('accountBtn').addEventListener('click', () => ka?.openPanel());
 $('titleAccountBtn').addEventListener('click', () => ka?.openPanel());
+$('hudAccountBtn').addEventListener('click', () => { unlockPointer(); ka?.openPanel(); });
 ka?.onChange(user => updateAccountUi(user));
 updateAccountUi();
 // アカウントの画面（同期の確認など）が出たらマウスロックを外して操作できるようにする

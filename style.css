@@ -227,6 +227,19 @@ body.touch #prompt { bottom: 200px; }
 
 /* インデックス */
 #menu button { position: relative; }
+#subMenu {
+  top: calc(max(10px, env(safe-area-inset-top)) + 78px); right: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+  pointer-events: auto;
+}
+#subMenu > * {
+  max-width: 62vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 5px 12px; border-radius: 999px;
+  border: 2px solid #7a5cff; background: rgba(20, 16, 50, .78); color: #fff; font-family: var(--font); font-size: 12px; font-weight: 800; line-height: 1.3; text-decoration: none; cursor: pointer;
+}
+#subMenu a { border-color: #ffd23f; }
+@media (max-width: 600px) {
+  #subMenu { top: calc(max(10px, env(safe-area-inset-top)) + 62px); }
+  #subMenu > * { font-size: 11px; padding: 4px 10px; }
+}
 .badge {
   position: absolute; top: -6px; right: -6px; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px;
   background: #ff3b3b; color: #fff; font-size: 12px; font-weight: 900; font-style: normal; line-height: 18px;

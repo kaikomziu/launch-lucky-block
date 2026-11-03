@@ -1,4 +1,4 @@
-# ラッキーブロックを打つ Web（非公式ファンメイド） v0.21
+# ラッキーブロックを打つ Web（非公式ファンメイド） v0.22
 
 Roblox「Launch a Lucky Block（Lucky Bear Studio）」を題材にした、ブラウザで遊べる 3D ゲームです。
 HTML / CSS / JavaScript と [three.js](https://threejs.org/) で作っています。
@@ -28,7 +28,7 @@ HTML / CSS / JavaScript と [three.js](https://threejs.org/) で作っていま�
 
 ## 作者のほかのゲーム
 
-[かるわかGAMES](https://kaikomziu.github.io/game-links/) で、ほかの自作ゲームも遊べます（タイトル画面と設定にもリンクがあります）。
+[かるわかGAMES](https://kaikomziu.github.io/game-links/) で、ほかの自作ゲームも遊べます（タイトル画面・設定・プレイ中の右上にもリンクがあります）。
 
 ## ローカルで動かす
 
