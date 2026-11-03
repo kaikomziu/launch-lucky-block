@@ -11,6 +11,7 @@ import { buildPlayer, buildBoss, buildLuckyBlock, buildCharacter, textTexture, m
 import { initAudio, play, startLoop, stopLoop, setVolume } from './audio.js';
 import { input, initInput, pollInput, lockPointer, unlockPointer } from './input.js';
 import { GENRES, submitScore, fetchRanking, fetchMine } from './ranking.js';
+import { fetchEvents, adminCheck, adminPost, adminEnd } from './admin.js';
 
 const $ = id => document.getElementById(id);
 
@@ -34,7 +35,8 @@ function defaultSave() {
   return {
     money: 0, strength: 20, dumbbellLv: 1, speedLv: 1, rebirths: 0,
     launchPower: 1,
-    baseTheme: '',                               // 拠点の色（インデックスの変異を75%集めると選べる）                              // 飛ばす力（0.1〜1）。強すぎて逃げ切れないとき用
+    baseTheme: '',
+    claimedGifts: [],                            // 受け取った管理者のプレゼントのID                               // 拠点の色（インデックスの変異を75%集めると選べる）                              // 飛ばす力（0.1〜1）。強すぎて逃げ切れないとき用
     slots: Array(SLOT_COUNT).fill(null),         // { id, star, stored }
     inventory: [],                               // { id, star } 持ち帰ったが台座に置いていないキャラ
     stats: { bestDistance: 0, totalEarned: 0, collected: 0, bestRarity: 0 },
@@ -636,7 +638,8 @@ function finishOpen() {
   removeFlightBlock();
   teeBlock.visible = false;   // 持ち帰るまで次は打てない
   // 変異イベント中なら変異する
-  const mut = mutationEvent().active ? rollMutation() : null;
+  const ev = currentEvent();
+  const mut = ev.active ? (ev.mut || rollMutation()) : null;
   $('revealRarity').innerHTML = rarityName(r) + (mut ? ` ${mutTag(mut)}` : '');
   $('revealName').textContent = def.name;
   const special = RARITIES[r].css === 'rainbow' || RARITIES[r].css === 'cosmic';
@@ -1054,24 +1057,65 @@ function updateCamera(dt) {
 
 const tmpCol = new THREE.Color();
 // ---------- 変異イベント ----------
-let eventOn = mutationEvent().active;
+// いつもの15分ごとのイベントに加えて、管理者が始めた変異イベントも見る
+let adminEvents = [];
+const liveEvents = kind => adminEvents.filter(e => e.kind === kind && Date.parse(e.starts_at) <= Date.now() && Date.parse(e.ends_at) > Date.now());
+function currentEvent() {
+  const a = liveEvents('mutation')[0];
+  if (a) return { active: true, left: Math.max(0, Math.ceil((Date.parse(a.ends_at) - Date.now()) / 1000)), mut: a.payload.mut || null, admin: true };
+  return mutationEvent();
+}
+let eventOn = currentEvent().active;
 const eventSky = new THREE.Color(0x7a3cff);
 const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-let rankTimer = 0;
+let rankTimer = 0, eventTimer = 0;
+const seenEvents = new Set();
+async function pollEvents() {
+  try { adminEvents = await fetchEvents(); } catch (e) { return; }
+  for (const e of liveEvents('message')) {
+    if (seenEvents.has(e.id)) continue;
+    seenEvents.add(e.id);
+    play('reveal', { vol: 0.5 });
+    toast(`📢 ${escHtml(e.payload.text)}`, { color: '#ffd23f', big: true, time: 5000 });
+  }
+  // プレゼントは1人1回（セーブに記録）
+  for (const e of liveEvents('gift')) {
+    if (save.claimedGifts.includes(e.id)) continue;
+    const def = CHAR_BY_ID[e.payload.char];
+    save.claimedGifts = [...save.claimedGifts, e.id].slice(-100);
+    if (!def) continue;
+    const mut = MUT_BY_ID[e.payload.mut] ? e.payload.mut : null;
+    save.inventory.push(mut ? { id: def.id, star: 1, mut } : { id: def.id, star: 1 });
+    const entry = save.dex[def.id] ||= { count: 0, first: Date.now(), seen: false };
+    entry.count++;
+    if (mut) (entry.muts ||= {})[mut] = true;
+    newItems++;
+    play('evolve');
+    toast(`🎁 管理者からのプレゼント！ ${mut ? MUT_BY_ID[mut].name + '変異の' : ''}${def.name} をインベントリに入れた${e.payload.note ? `<br><small>${escHtml(e.payload.note)}</small>` : ''}`, { color: '#7dff8a', big: true, time: 5000 });
+    writeSave(); renderPanels();
+  }
+  if (openPanel === 'adminPanel') renderAdminActive();
+}
+const escHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function updateEvent() {
   if ((rankTimer -= 0.2) <= 0) { rankTimer = 60; sendScore(); }
-  const ev = mutationEvent();
+  const ev = currentEvent();
   $('eventStat').classList.toggle('on', ev.active);
   $('sEvent').textContent = mmss(ev.left);
-  $('sEventLabel').textContent = ev.active ? '変異イベント中！' : '次の変異まで';
+  $('sEventLabel').textContent = ev.active ? (ev.mut ? `${MUT_BY_ID[ev.mut].name}変異イベント中！` : '変異イベント中！') : '次の変異まで';
   if (ev.active !== eventOn) {
     eventOn = ev.active;
     if (eventOn) {
       play('evolve');
-      toast('🧬 変異イベント開始！', { color: '#c9a7ff', big: true, time: 3000 });
-      setTimeout(() => toast('3分間、手に入れたキャラが全員変異する！', { color: '#c9a7ff', time: 3500 }), 800);
-    } else toast('🧬 変異イベントが終わった（次は15分後）', { color: '#c9a7ff', time: 3000 });
+      toast(ev.admin ? '🧬 管理者の変異イベント開始！' : '🧬 変異イベント開始！', { color: '#c9a7ff', big: true, time: 3000 });
+      setTimeout(() => toast(ev.mut ? `いま手に入れたキャラは全員${MUT_BY_ID[ev.mut].name}変異！` : '3分間、手に入れたキャラが全員変異する！', { color: '#c9a7ff', time: 3500 }), 800);
+    } else toast('🧬 変異イベントが終わった', { color: '#c9a7ff', time: 3000 });
   }
+  if ((eventTimer -= 0.2) <= 0) { eventTimer = 30; pollEvents(); }
+  // 管理者のお知らせ
+  const msg = liveEvents('message')[0];
+  $('adminMsg').classList.toggle('hidden', !msg);
+  if (msg) $('adminMsgText').textContent = msg.payload.text;
 }
 
 function updateSky(dt) {
@@ -1171,6 +1215,7 @@ function renderPanels() {
   if (openPanel === 'charPanel') renderChars();
   if (openPanel === 'indexPanel') renderIndex();
   if (openPanel === 'rankPanel') openRanking();
+  if (openPanel === 'adminPanel') renderAdminActive();
   if (openPanel === 'settingsPanel') {
     $('nameInput').value = save.name;
     $('volInput').value = save.volume;
@@ -1629,7 +1674,68 @@ function updateAccountUi(user = ka?.user()) {
 $('accountBtn').addEventListener('click', () => ka?.openPanel());
 $('titleAccountBtn').addEventListener('click', () => ka?.openPanel());
 $('hudAccountBtn').addEventListener('click', () => { unlockPointer(); ka?.openPanel(); });
-ka?.onChange(user => updateAccountUi(user));
+ka?.onChange(user => { updateAccountUi(user); checkAdmin(); });
+
+// ---------- 管理者メニュー（かるわかGAMESの管理者アカウントだけ） ----------
+let isAdmin = false;
+async function checkAdmin() {
+  isAdmin = false;
+  const t = ka?.token();
+  if (t) { try { isAdmin = await adminCheck(t) === true; } catch (e) { isAdmin = false; } }
+  $('hudAdminBtn').classList.toggle('hidden', !isAdmin);
+  if (!isAdmin && openPanel === 'adminPanel') closePanels();
+}
+$('hudAdminBtn').addEventListener('click', () => openPanelById('adminPanel'));
+// キャラの選択肢（レア度ごと）
+$('admChar').innerHTML = RARITIES.map((rar, r) => `<optgroup label="${rar.name}">${CHARACTERS.filter(c => c.r === r).map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</optgroup>`).join('');
+const KIND_LABEL = { message: '📢 お知らせ', gift: '🎁 配布', mutation: '🧬 変異イベント' };
+function renderAdminActive() {
+  const list = adminEvents.filter(e => Date.parse(e.ends_at) > Date.now());
+  $('admActive').innerHTML = list.length ? list.map(e => {
+    const left = Math.max(0, Math.round((Date.parse(e.ends_at) - Date.now()) / 60000));
+    const what = e.kind === 'message' ? escHtml(e.payload.text)
+      : e.kind === 'gift' ? `${e.payload.mut ? MUT_BY_ID[e.payload.mut].name + '変異の' : ''}${CHAR_BY_ID[e.payload.char]?.name || e.payload.char}`
+      : (e.payload.mut ? MUT_BY_ID[e.payload.mut].name : 'ランダム');
+    return `<div class="adm-row"><span>${KIND_LABEL[e.kind]}</span><b>${what}</b><small>あと${left}分</small><button class="btn sell" data-end="${e.id}">終了</button></div>`;
+  }).join('') : '<p class="dex-sum">いま出しているものはありません</p>';
+}
+async function postAdmin(kind, payload, minutes) {
+  try {
+    const r = await adminPost(ka?.token(), kind, payload, minutes);
+    if (!r?.ok) {
+      const why = { auth: '管理者として確認できませんでした', rate: '短い時間に出しすぎです（1時間に30回まで）', text: 'メッセージは1〜120文字です', char: 'キャラが正しくありません' }[r?.reason] || 'うまく出せませんでした';
+      toast(`⚠ ${why}`, { color: '#ff6b6b' }); return;
+    }
+    toast('✅ 全員に出しました', { color: '#7dff8a' });
+    await pollEvents(); renderAdminActive();
+  } catch (e) { toast('⚠ 通信に失敗しました', { color: '#ff6b6b' }); }
+}
+$('adminPanel').addEventListener('click', async e => {
+  const b = e.target.closest('[data-adm],[data-end]');
+  if (!b) return;
+  if (b.dataset.end) {
+    try { await adminEnd(ka?.token(), +b.dataset.end); } catch (err) { /* 次の更新で反映 */ }
+    await pollEvents(); renderAdminActive(); return;
+  }
+  const k = b.dataset.adm;
+  if (k === 'message') {
+    const text = $('admMsg').value.trim();
+    if (!text) return toast('メッセージを入れてください', { color: '#ff6b6b' });
+    if (!confirm(`全員にこのメッセージを出しますか？\n\n${text}`)) return;
+    await postAdmin('message', { text }, +$('admMsgMin').value);
+    $('admMsg').value = '';
+  } else if (k === 'gift') {
+    const def = CHAR_BY_ID[$('admChar').value], mut = $('admGiftMut').value;
+    if (!confirm(`全員に「${mut ? MUT_BY_ID[mut].name + '変異の' : ''}${def.name}」を1体ずつ配りますか？`)) return;
+    await postAdmin('gift', { char: def.id, mut, note: $('admGiftNote').value.trim() }, +$('admGiftMin').value);
+  } else if (k === 'mutation') {
+    const mut = $('admMut').value;
+    if (!confirm(`変異イベント（${mut ? MUT_BY_ID[mut].name : 'ランダム'}・${$('admMutMin').value}分）を今すぐ始めますか？`)) return;
+    await postAdmin('mutation', { mut }, +$('admMutMin').value);
+  }
+});
+checkAdmin();
+pollEvents();
 updateAccountUi();
 // アカウントの画面（同期の確認など）が出たらマウスロックを外して操作できるようにする
 new MutationObserver(() => { if (document.querySelector('.ka-overlay')) unlockPointer(); })

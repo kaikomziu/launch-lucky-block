@@ -27,7 +27,7 @@ export function unlockPointer() {
 export function initInput(canvas) {
   lockTarget = canvas;
   addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT') return;
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
     keys.add(e.code);
     if ((e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter') && !e.repeat) {
       e.preventDefault();
