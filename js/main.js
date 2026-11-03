@@ -1353,7 +1353,7 @@ function updatePowerText() {
   $('powerHint').innerHTML = `PERFECTで約${d}m → ${d + TEE_POS.z < ZONE_START ? '発射エリア' : `${ZONES[z].name}（${rarityName(z)}）`}まで`;
 }
 $('powerInput').addEventListener('input', e => {
-  save.launchPower = Math.min(1, Math.max(0.1, +e.target.value / 100));
+  save.launchPower = Math.min(1, Math.max(0.01, +e.target.value / 100));
   updatePowerText(); writeSave();
 });
 
