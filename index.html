@@ -26,6 +26,7 @@
 <div id="menu" class="hud">
   <button data-panel="shopPanel">🛒<span>ショップ</span></button>
   <button data-panel="charPanel">🧸<span>キャラ</span></button>
+  <button data-panel="indexPanel">📖<span>インデックス</span><i id="indexBadge" class="badge hidden"></i></button>
   <button data-panel="settingsPanel">⚙️<span>設定</span></button>
 </div>
 
@@ -68,8 +69,12 @@
 
 <div id="charPanel" class="panel hidden">
   <div class="panel-head"><h2>🧸 キャラクター</h2><button class="close">✕</button></div>
-  <div class="tabs"><button class="tab active" data-tab="slots">拠点</button><button class="tab" data-tab="dex">図鑑</button></div>
   <div class="panel-body" id="charBody"></div>
+</div>
+
+<div id="indexPanel" class="panel hidden">
+  <div class="panel-head"><h2>📖 インデックス</h2><button class="close">✕</button></div>
+  <div class="panel-body" id="indexBody"></div>
 </div>
 
 <div id="settingsPanel" class="panel hidden">
@@ -89,6 +94,7 @@
         <li>📦 落ちた場所でブロックを開けるとキャラが出てくる。</li>
         <li>👹 ゾーンのボスが追ってくる！拠点（緑のライン）まで逃げ切れ。</li>
         <li>💰 台座のキャラがお金を稼ぐ。台座に触れて回収しよう。</li>
+        <li>📖 一度持ち帰ったキャラは「インデックス」に登録される。</li>
       </ol>
       <p>PC: WASD移動 / クリックでマウスロック（マウスで視点）/ 左クリック・E・スペースで行動 / Escでロック解除 / ホイールでズーム<br>スマホ: 左下スティックで移動 / 右下ボタンで行動 / 画面スワイプで視点</p>
     </div>
@@ -99,7 +105,7 @@
       <p class="note">本作は Roblox「Launch a Lucky Block（Lucky Bear Studio）」を題材にした非公式のファンメイド作品です。Roblox Corporation および Lucky Bear Studio とは関係ありません。</p>
     </div>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.12</p>
+    <p class="version">v0.13</p>
   </div>
 </div>
 
@@ -111,7 +117,7 @@
     <p class="sub">力を鍛えて、ブロックをかっ飛ばせ！<br>遠くに飛ぶほどレアなキャラが出る。ボスから逃げて拠点に持ち帰ろう。</p>
     <button id="startBtn">▶ スタート</button>
     <p class="ctrl" id="ctrlHint"></p>
-    <p class="note">v0.12 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.13 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 

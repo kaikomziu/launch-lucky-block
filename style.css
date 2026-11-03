@@ -38,7 +38,7 @@ b { font-weight: 800; }
   background: linear-gradient(#ffe066, #ffb703); font-size: 24px; display: flex; flex-direction: column;
   align-items: center; justify-content: center; box-shadow: 0 4px 0 rgba(0, 0, 0, .35); color: #3b2a00;
 }
-#menu button span { font-size: 11px; font-weight: 800; }
+#menu button span { font-size: 10px; font-weight: 800; white-space: nowrap; letter-spacing: -.04em; }
 #menu button:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0, 0, 0, .35); }
 
 #zoneLabel {
@@ -153,9 +153,6 @@ body.touch #prompt { bottom: 200px; }
 .panel-head h2 { margin: 0; font-size: 22px; }
 .close { width: 40px; height: 40px; border-radius: 12px; border: none; background: #ff5e5e; color: #fff; font-size: 20px; font-weight: 900; }
 .panel-body { padding: 14px 16px; overflow-y: auto; touch-action: pan-y; }
-.tabs { display: flex; gap: 6px; padding: 10px 16px 0; }
-.tab { flex: 1; padding: 8px; border-radius: 10px; border: 2px solid var(--line); background: transparent; color: var(--muted); font-weight: 800; }
-.tab.active { background: var(--accent); color: #3b2a00; border-color: var(--accent); }
 
 .card {
   display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: rgba(255, 255, 255, .06);
@@ -177,11 +174,42 @@ body.touch #prompt { bottom: 200px; }
 .rar { font-weight: 900; }
 .empty-slot { color: var(--muted); font-size: 14px; }
 
-.dex { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
-.dex .d { padding: 10px 6px; border-radius: 12px; background: rgba(255, 255, 255, .06); border: 2px solid var(--line); text-align: center; font-size: 13px; }
-.dex .d b { display: block; font-size: 14px; margin-top: 2px; }
-.dex .d.locked { opacity: .45; }
 .dex-sum { margin: 0 0 10px; color: var(--muted); }
+
+/* インデックス */
+#menu button { position: relative; }
+.badge {
+  position: absolute; top: -6px; right: -6px; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px;
+  background: #ff3b3b; color: #fff; font-size: 12px; font-weight: 900; font-style: normal; line-height: 18px;
+  border: 2px solid #fff; box-shadow: 0 2px 0 rgba(0, 0, 0, .35);
+}
+#indexPanel { width: min(720px, 96vw); }
+.idx-total { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; font-weight: 900; }
+.idx-total .num { font-size: 22px; white-space: nowrap; }
+.progress { flex: 1; height: 12px; border-radius: 6px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.progress > div { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #4cd964, #ffd23f); }
+.idx-sec { margin-bottom: 16px; }
+.idx-sec h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-size: 17px; }
+.idx-sec h3 .cnt { margin-left: auto; font-size: 14px; color: var(--muted); }
+.idx-sec h3 .done { color: #ffd23f; }
+.idx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.idx-card {
+  position: relative; padding: 8px 6px 10px; border-radius: 14px; text-align: center; font-size: 12px;
+  background: rgba(255, 255, 255, .06); border: 2px solid var(--rc, var(--line));
+}
+.idx-card img { display: block; width: 96px; height: 96px; margin: 0 auto 4px; }
+.idx-card b { display: block; font-size: 15px; margin-bottom: 2px; }
+.idx-card .inc { color: #7dff8a; font-weight: 800; }
+.idx-card .meta { color: var(--muted); margin-top: 2px; }
+.idx-card.locked { border-color: var(--line); }
+.idx-card.locked b { color: var(--muted); }
+.idx-card .new {
+  position: absolute; top: 6px; left: 6px; padding: 1px 6px; border-radius: 6px; background: #ff3b3b; color: #fff;
+  font-size: 11px; font-weight: 900;
+}
+@media (max-width: 600px) {
+  .idx-grid { grid-template-columns: repeat(2, 1fr); }
+}
 
 .field { display: block; margin-bottom: 14px; font-weight: 800; }
 .field input:not([type=range]) {
@@ -225,7 +253,7 @@ body.touch #prompt { bottom: 200px; }
   .stat b { font-size: 16px; }
   .stat small { font-size: 11px; }
   #menu button { width: 52px; height: 52px; font-size: 20px; border-radius: 13px; }
-  #menu button span { font-size: 10px; }
+  #menu button span { font-size: 9px; }
   #zoneLabel { top: 128px; font-size: 14px; }
   #reveal .name { font-size: 32px; }
   #flightHud b { font-size: 40px; }

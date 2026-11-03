@@ -41,6 +41,11 @@ function loadSave() {
     s.stats = Object.assign(defaultSave().stats, s.stats);
     while (s.slots.length < SLOT_COUNT) s.slots.push(null);
     s.slots = s.slots.map(x => (x && CHAR_BY_ID[x.id] ? x : null));
+    // 旧形式（id: true）のインデックスを移行
+    for (const k of Object.keys(s.dex)) {
+      if (!CHAR_BY_ID[k]) delete s.dex[k];
+      else if (s.dex[k] === true) s.dex[k] = { count: 1, first: null, seen: true };
+    }
     return s;
   } catch (e) {
     return defaultSave();
@@ -605,7 +610,9 @@ function reachedBase() {
   play('safe');
   save.stats.collected++;
   const isNew = !save.dex[def.id];
-  save.dex[def.id] = true;
+  const entry = save.dex[def.id] ||= { count: 0, first: Date.now(), seen: false };
+  entry.count++;
+  if (isNew) setTimeout(() => toast(`📖 インデックスに ${def.name} を登録！`, { color: '#ffd23f', time: 2600 }), 700);
   const idx = save.slots.findIndex(s => !s);
   if (idx >= 0) {
     save.slots[idx] = { id: def.id, star: 1, stored: 0 };
@@ -955,13 +962,15 @@ function updateHud() {
   $('sStrength').textContent = fmt(save.strength);
   $('sRate').textContent = `+${fmt(strengthRate(save.dumbbellLv) * (trainBoost ? 3 : 1))}/秒${trainBoost ? ' ×3' : ''}`;
   $('sSpeed').textContent = playerSpeed(save.speedLv).toFixed(1);
+  const unseen = Object.values(save.dex).filter(e => !e.seen).length;
+  $('indexBadge').textContent = unseen;
+  $('indexBadge').classList.toggle('hidden', unseen === 0 || openPanel === 'indexPanel');
 }
 
 // =====================================================================
 // パネル（ショップ・キャラ・設定）
 // =====================================================================
 let openPanel = null;
-let charTab = 'slots';
 let highlightSlot = -1;
 
 function openPanelById(id, slot = -1) {
@@ -969,7 +978,6 @@ function openPanelById(id, slot = -1) {
   unlockPointer();
   openPanel = id;
   highlightSlot = slot;
-  if (id === 'charPanel' && slot >= 0) setCharTab('slots');
   $(id).classList.remove('hidden');
   renderPanels();
 }
@@ -983,15 +991,11 @@ document.querySelectorAll('#menu button').forEach(b => b.addEventListener('click
 }));
 document.querySelectorAll('.panel .close').forEach(b => b.addEventListener('click', () => { closePanels(); lockPointer(); }));
 addEventListener('keydown', e => { if (e.code === 'Escape') { closePanels(); if (state === 'aim') { $('timing').classList.add('hidden'); setState('free'); } } });
-function setCharTab(t) {
-  charTab = t;
-  document.querySelectorAll('#charPanel .tab').forEach(x => x.classList.toggle('active', x.dataset.tab === t));
-}
-document.querySelectorAll('#charPanel .tab').forEach(b => b.addEventListener('click', () => { setCharTab(b.dataset.tab); renderChars(); }));
 
 function renderPanels() {
   if (openPanel === 'shopPanel') renderShop();
   if (openPanel === 'charPanel') renderChars();
+  if (openPanel === 'indexPanel') renderIndex();
   if (openPanel === 'settingsPanel') {
     $('nameInput').value = save.name;
     $('volInput').value = save.volume;
@@ -1036,14 +1040,6 @@ $('shopBody').addEventListener('click', e => {
 
 function renderChars() {
   const body = $('charBody');
-  if (charTab === 'dex') {
-    const got = CHARACTERS.filter(c => save.dex[c.id]).length;
-    body.innerHTML = `<p class="dex-sum">図鑑 ${got} / ${CHARACTERS.length} ・ 最高飛距離 ${save.stats.bestDistance}m ・ 持ち帰った数 ${save.stats.collected}</p>
-      <div class="dex">${CHARACTERS.map(c => save.dex[c.id]
-        ? `<div class="d">${rarityName(c.r)}<b>${c.name}</b>+${fmt(charIncome(c))}/秒</div>`
-        : `<div class="d locked">${rarityName(c.r)}<b>？？？</b>&nbsp;</div>`).join('')}</div>`;
-    return;
-  }
   body.innerHTML = save.slots.map((s, i) => {
     if (!s) return `<div class="card"><div class="icon">⬜</div><div class="info"><h3>台座 ${i + 1}</h3><p class="empty-slot">空き — ブロックからキャラを持ち帰ろう</p></div></div>`;
     const def = CHAR_BY_ID[s.id];
@@ -1083,6 +1079,64 @@ $('charBody').addEventListener('click', e => {
   highlightSlot = -1;
   renderChars(); updateHud(); writeSave();
 });
+
+// ---------- インデックス（一度持ち帰ったキャラの図鑑） ----------
+let thumb = null;
+const thumbCache = {};
+function charThumb(def, locked) {
+  const key = def.id + (locked ? ':l' : '');
+  if (thumbCache[key]) return thumbCache[key];
+  if (!thumb) {
+    const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    r.setPixelRatio(1); r.setSize(192, 192);
+    const sc = new THREE.Scene();
+    sc.add(new THREE.HemisphereLight(0xffffff, 0x667788, 1.6));
+    const d = new THREE.DirectionalLight(0xffffff, 1.4); d.position.set(3, 6, 5); sc.add(d);
+    thumb = { r, sc, cam: new THREE.PerspectiveCamera(35, 1, 0.1, 50), black: new THREE.MeshBasicMaterial({ color: 0x0c0c16 }) };
+  }
+  const m = buildCharacter(def);
+  for (const a of m.userData.anims) a(1.3);
+  if (locked) m.traverse(o => { if (o.isMesh && o.material.transparent) o.visible = false; });
+  thumb.sc.add(m);
+  thumb.sc.overrideMaterial = locked ? thumb.black : null;
+  const h = m.userData.height;
+  thumb.cam.position.set(2.4, h * 0.6 + 1.1, 6.2);
+  thumb.cam.lookAt(0, h * 0.45, 0);
+  thumb.r.render(thumb.sc, thumb.cam);
+  thumbCache[key] = thumb.r.domElement.toDataURL();
+  thumb.sc.remove(m);
+  return thumbCache[key];
+}
+
+const fmtDate = t => { const d = new Date(t); return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`; };
+function renderIndex() {
+  const got = CHARACTERS.filter(c => save.dex[c.id]).length;
+  let html = `<div class="idx-total"><span class="num">${got} / ${CHARACTERS.length}</span>
+    <div class="progress"><div style="width:${got / CHARACTERS.length * 100}%"></div></div>
+    <span>${Math.floor(got / CHARACTERS.length * 100)}%</span></div>`;
+  RARITIES.forEach((rar, r) => {
+    const pool = CHARACTERS.filter(c => c.r === r);
+    const n = pool.filter(c => save.dex[c.id]).length;
+    const rc = rar.css === 'rainbow' ? '#ff77e9' : rar.css;
+    html += `<div class="idx-sec"><h3>${rarityName(r)}<span class="cnt ${n === pool.length ? 'done' : ''}">${n === pool.length ? '👑 コンプリート ' : ''}${n} / ${pool.length}</span></h3><div class="idx-grid">`;
+    for (const c of pool) {
+      const e = save.dex[c.id];
+      html += e
+        ? `<div class="idx-card" style="--rc:${rc}">${e.seen ? '' : '<span class="new">NEW</span>'}
+            <img src="${charThumb(c, false)}" alt=""><b>${c.name}</b>
+            <div class="inc">+${fmt(charIncome(c))}/秒</div>
+            <div class="meta">獲得 ${e.count}回${e.first ? ` ・ ${fmtDate(e.first)}` : ''}</div></div>`
+        : `<div class="idx-card locked"><img src="${charThumb(c, true)}" alt=""><b>？？？</b>
+            <div class="meta">${ZONES[r].name}ゾーン付近で出現</div></div>`;
+    }
+    html += '</div></div>';
+  });
+  $('indexBody').innerHTML = html;
+  // 開いたら既読にする
+  let changed = false;
+  for (const e of Object.values(save.dex)) if (!e.seen) { e.seen = true; changed = true; }
+  if (changed) writeSave();
+}
 
 $('nameInput').addEventListener('input', e => { save.name = e.target.value.slice(0, 16); writeSave(); });
 $('volInput').addEventListener('input', e => { save.volume = +e.target.value; setVolume(save.volume); writeSave(); });
