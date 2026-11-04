@@ -902,3 +902,21 @@ body.title-mode #toasts { display: none; }   /* タイトルの上にお知ら�
 @media (max-width: 600px) {
   #subMenu > button, #subMenu .hud-links a { background: rgba(60, 44, 130, .62); border-color: rgba(255, 255, 255, .35); }
 }
+
+/* ---- デイリークエスト ---- */
+#dailyPanel { width: min(560px, 96vw); }
+.daily-top { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--muted); }
+.daily-top b { color: #ffd23f; }
+.card.daily { align-items: center; }
+.card.daily .dq-ico { flex: 0 0 48px; height: 48px; display: grid; place-items: center; font-size: 26px; border-radius: 14px; background: rgba(255, 255, 255, .1); }
+.card.daily h3 { margin: 0 0 6px; font-size: 15px; }
+.card.daily small { color: var(--muted); font-size: 12px; }
+.dq-bar { position: relative; height: 18px; border-radius: 999px; background: rgba(0, 0, 0, .35); overflow: hidden; margin-bottom: 4px; }
+.dq-bar i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #7a5cff, #b388ff); transition: width .3s; }
+.dq-bar span { position: relative; display: block; text-align: center; font-size: 11px; font-weight: 900; line-height: 18px; text-shadow: 0 1px 0 rgba(0, 0, 0, .6); }
+.card.daily.done { border-color: rgba(125, 255, 138, .6); }
+.card.daily.done .dq-bar i { background: linear-gradient(90deg, #22b544, #8dff99); }
+.card.daily.claimed { opacity: .6; }
+.card.daily.bonus { border-color: rgba(255, 210, 63, .55); background: linear-gradient(135deg, rgba(255, 210, 63, .14), rgba(255, 255, 255, .03)); }
+.dq-ok { font-size: 12px; font-weight: 800; color: #7dff8a; white-space: nowrap; }
+#hudDailyBtn { position: relative; }

@@ -852,6 +852,7 @@ input.onDash = () => {
   if (!$('title').classList.contains('hidden') || openPanel || dashCd > 0) return;
   if (!['free', 'atBlock', 'chase'].includes(state)) return;
   dashT = DASH_TIME; dashCd = DASH_CD;
+  questAdd('dash', 1);
   play('whoosh', { vol: 0.6, rate: 1.3 });
   burst(pState.pos.clone().add(new THREE.Vector3(0, 0.5, 0)), 0xffffff, 12, 6);
 };
@@ -884,7 +885,7 @@ function doSwing() {
   $('timing').classList.add('hidden');
   const p = timingPos;
   let mult, label, color;
-  if (p > 0.45 && p < 0.55) { mult = 1.3; label = 'PERFECT!!'; color = '#4cd964'; }
+  if (p > 0.45 && p < 0.55) { mult = 1.3; label = 'PERFECT!!'; color = '#4cd964'; questAdd('perfect', 1); }
   else if (p > 0.3 && p < 0.7) { mult = 1.1; label = 'GOOD!'; color = '#ffd23f'; }
   else { mult = 0.85; label = 'MISS…'; color = '#ff6b6b'; }
   flight.timing = mult;
@@ -900,6 +901,7 @@ const estDistance = (mult = 1) => Math.round(18 + 5.5 * Math.sqrt(usedStrength()
 function launchBlock() {
   const d = launchDistance(usedStrength(), flight.timing);
   const toZ = Math.min(TEE_POS.z + d, WORLD_END - 8);
+  questAdd('launch', 1);
   flight.from.copy(teeBlock.position);
   flight.to.set((Math.random() - 0.5) * 20, 0.8, toZ);
   // ゾーンが長くなったので、遠くまで飛ぶときも待ち時間と高さは上限を設ける
@@ -938,6 +940,7 @@ function landBlock() {
   scene.add(flight.pillar);
   const dist = Math.round(flight.to.z - TEE_POS.z);
   save.stats.bestDistance = Math.max(save.stats.bestDistance, dist);
+  questMax('distance', dist);
   toast(`${dist}m！ ${rarityName(r)} ゾーン`, { big: true, time: 1800 });
 }
 
@@ -1049,6 +1052,7 @@ function reachedBase() {
   setState('free');
   play('safe');
   save.stats.collected++;
+  questAdd('collect', 1);
   const isNew = !save.dex[def.id];
   const entry = save.dex[def.id] ||= { count: 0, first: Date.now(), seen: false };
   entry.count++;
@@ -1067,6 +1071,7 @@ function reachedBase() {
 function addMoney(v) {
   save.money += v;
   save.stats.totalEarned += v;
+  questAdd('earn', v);
 }
 
 // =====================================================================
@@ -1569,7 +1574,7 @@ addEventListener('keydown', e => { if (e.code === 'Escape') { closePanels(); if 
 
 // 数字キー 1〜4 でメニューパネルを開閉（PC 用。テンキーにも対応）
 const menuKeyPanels = {
-  Digit1: 'shopPanel', Digit2: 'charPanel', Digit3: 'indexPanel', Digit4: 'settingsPanel', Digit5: 'rankPanel', Digit6: 'skinPanel', Digit7: 'adminPanel', Digit8: 'chatPanel', Slash: 'chatPanel', NumpadDivide: 'chatPanel', Digit9: 'friendPanel',
+  Digit1: 'shopPanel', Digit2: 'charPanel', Digit3: 'indexPanel', Digit4: 'settingsPanel', Digit5: 'rankPanel', Digit6: 'skinPanel', Digit7: 'adminPanel', Digit8: 'chatPanel', Slash: 'chatPanel', NumpadDivide: 'chatPanel', Digit9: 'friendPanel', Digit0: 'dailyPanel', Numpad0: 'dailyPanel', KeyQ: 'dailyPanel',
   Numpad1: 'shopPanel', Numpad2: 'charPanel', Numpad3: 'indexPanel', Numpad4: 'settingsPanel', Numpad5: 'rankPanel', Numpad6: 'skinPanel', Numpad7: 'adminPanel', Numpad8: 'chatPanel', Numpad9: 'friendPanel',
 };
 addEventListener('keydown', e => {
@@ -1597,6 +1602,7 @@ function renderPanels() {
   if (openPanel === 'indexPanel') renderIndex();
   if (openPanel === 'rankPanel') openRanking();
   if (openPanel === 'skinPanel') renderSkins();
+  if (openPanel === 'dailyPanel') renderDaily();
   if (openPanel === 'backupPanel') renderBackups();
   if (openPanel === 'chatPanel') openChat();
   if (openPanel === 'friendPanel') renderFriends(true);
@@ -1651,12 +1657,12 @@ $('shopBody').addEventListener('click', e => {
   if (b.dataset.buy === 'dumbbell') {
     const c = dumbbellCost(save.dumbbellLv + 1);
     if (save.money < c) return;
-    save.money -= c; save.dumbbellLv++;
+    save.money -= c; save.dumbbellLv++; questAdd('upgrade', 1);
     toast(`🏋️ ダンベル Lv.${save.dumbbellLv}！`, { color: '#ffd23f' });
   } else {
     const c = speedCost(save.speedLv + 1);
     if (save.money < c) return;
-    save.money -= c; save.speedLv++;
+    save.money -= c; save.speedLv++; questAdd('upgrade', 1);
     toast(`👟 スピード Lv.${save.speedLv}！`, { color: '#ffd23f' });
   }
   play('buy');
@@ -1845,6 +1851,7 @@ $('charBody').addEventListener('click', e => {
     const cost = evolveCost(def, s.star);
     if (save.money < cost || s.star >= MAX_STAR) return;
     save.money -= cost; s.star++;
+    questAdd('evolve', 1);
     refreshSlot(i);
     play('evolve');
     burst(SLOT_POS[i].clone().add(new THREE.Vector3(0, 2, 0)), 0xffd23f, 40, 12);
@@ -1982,6 +1989,125 @@ $('skinBody').addEventListener('click', e => {
   toast(`👕 ${k.name} に着がえた！`, { color: '#ffd23f' });
 });
 $('hudSkinBtn').addEventListener('click', () => openPanelById('skinPanel'));
+
+// ---------- デイリークエスト ----------
+// 毎日（端末の日付で0時に切りかわる）3つのクエストが出る。達成すると報酬、3つ全部で変異キャラ1体のボーナス
+const QUESTS = {
+  launch:   { icon: '🏏', text: n => `ブロックを ${n} 回打つ`,        goal: () => 6 },
+  perfect:  { icon: '🎯', text: n => `PERFECT を ${n} 回出す`,       goal: () => 3 },
+  collect:  { icon: '🎒', text: n => `キャラを ${n} 体持ち帰る`,      goal: () => 4 },
+  distance: { icon: '📏', text: n => `1回で ${n}m 以上飛ばす`,        goal: () => Math.max(60, Math.floor(save.stats.bestDistance * 0.8 / 10) * 10) },
+  earn:     { icon: '💰', text: n => `$${fmt(n)} 稼ぐ`,               goal: () => Math.max(500, Math.round(totalIncome() * 300)) },
+  dash:     { icon: '💨', text: n => `ダッシュを ${n} 回使う`,        goal: () => 15 },
+  evolve:   { icon: '✨', text: n => `キャラを ${n} 回進化させる`,     goal: () => 2 },
+  upgrade:  { icon: '🏋️', text: n => `ショップで ${n} 回強化する`,    goal: () => 3 },
+};
+const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+// 日付とプレイヤーで決まる乱数（同じ日は同じクエスト）
+function seeded(seed) { let h = 2166136261; for (const c of seed) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => ((h = Math.imul(h ^ (h >>> 15), 2246822519) ^ Math.imul(h ^ (h >>> 13), 3266489917)) >>> 0) / 4294967296; }
+function ensureDaily() {
+  const day = todayKey();
+  const d = save.daily;
+  if (d && d.day === day && Array.isArray(d.quests) && d.quests.length === 3 && d.quests.every(q => QUESTS[q.id])) return d;
+  // 新しい日: 昨日ぜんぶクリアしていれば連続日数を伸ばす
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const yKey = `${y.getFullYear()}-${y.getMonth() + 1}-${y.getDate()}`;
+  const streak = d && d.lastAll === yKey ? (d.streak || 0) : d && d.lastAll === day ? (d.streak || 0) : 0;
+  const rnd = seeded(day + save.clientId);
+  const ids = Object.keys(QUESTS).sort(() => rnd() - 0.5).slice(0, 3);
+  save.daily = { day, quests: ids.map(id => ({ id, goal: QUESTS[id].goal(), prog: 0, claimed: false })), bonus: false, streak, lastAll: d?.lastAll || '' };
+  return save.daily;
+}
+const questDone = q => q.prog >= q.goal;
+function questAdd(id, v) {
+  const d = ensureDaily();
+  for (const q of d.quests) {
+    if (q.id !== id || questDone(q)) continue;
+    q.prog = Math.min(q.goal, q.prog + v);
+    if (questDone(q)) questCleared(q);
+  }
+  updateDailyBadge();
+}
+function questMax(id, v) {
+  const d = ensureDaily();
+  for (const q of d.quests) {
+    if (q.id !== id || questDone(q)) continue;
+    q.prog = Math.min(q.goal, Math.max(q.prog, v));
+    if (questDone(q)) questCleared(q);
+  }
+  updateDailyBadge();
+}
+function questCleared(q) {
+  setTimeout(() => toast(`📅 デイリー達成！「${QUESTS[q.id].text(q.goal)}」 報酬を受け取ろう（Qキー）`, { color: '#7dff8a', time: 3200 }), 900);
+  play('safe', { vol: 0.5 });
+  if (openPanel === 'dailyPanel') renderDaily();
+}
+const questReward = () => Math.max(300, Math.round(totalIncome() * 600));   // 1つにつき「いまの稼ぎの10分ぶん」
+function updateDailyBadge() {
+  const d = save.daily;
+  const n = d ? d.quests.filter(q => questDone(q) && !q.claimed).length + (d.quests.every(q => q.claimed) && !d.bonus ? 1 : 0) : 0;
+  const b = $('dailyBadge');
+  b.classList.toggle('hidden', !n); b.textContent = n ? String(n) : '';
+}
+function untilReset() {
+  const t = new Date(); t.setHours(24, 0, 0, 0);
+  const m = Math.max(0, Math.round((t - Date.now()) / 60000));
+  return `${Math.floor(m / 60)}時間${m % 60}分`;
+}
+function renderDaily() {
+  const d = ensureDaily();
+  const allClaimed = d.quests.every(q => q.claimed);
+  $('dailyBody').innerHTML = `
+    <div class="daily-top"><span>🔄 あと <b>${untilReset()}</b> で新しいクエスト</span><span>🔥 連続 <b>${d.streak || 0}</b> 日</span></div>
+    ${d.quests.map((q, i) => {
+      const Q = QUESTS[q.id], done = questDone(q), pct = Math.round(q.prog / q.goal * 100);
+      return `<div class="card daily ${done ? 'done' : ''} ${q.claimed ? 'claimed' : ''}">
+        <div class="dq-ico">${Q.icon}</div>
+        <div class="info"><h3>${Q.text(q.goal)}</h3>
+          <div class="dq-bar"><i style="width:${pct}%"></i><span>${q.id === 'earn' ? '$' + fmt(q.prog) + ' / $' + fmt(q.goal) : `${Math.floor(q.prog)} / ${q.goal}`}</span></div>
+          <small>報酬: 💰 $${fmt(questReward())}（いまの稼ぎの10分ぶん）</small></div>
+        <div class="btns">${q.claimed ? '<span class="dq-ok">✅ 受け取り済み</span>' : `<button class="btn" data-dq="${i}" ${done ? '' : 'disabled'}>${done ? '受け取る' : '挑戦中'}</button>`}</div>
+      </div>`;
+    }).join('')}
+    <div class="card daily bonus ${allClaimed ? 'done' : ''} ${d.bonus ? 'claimed' : ''}">
+      <div class="dq-ico">🎁</div>
+      <div class="info"><h3>3つ全部クリアのボーナス</h3><small>いちばん遠くまで行ったゾーンのキャラ1体（かならず変異つき）がもらえる！ 毎日つづけると連続日数がのびます</small></div>
+      <div class="btns">${d.bonus ? '<span class="dq-ok">✅ 受け取り済み</span>' : `<button class="btn" data-dq="bonus" ${allClaimed ? '' : 'disabled'}>${allClaimed ? '受け取る' : `${d.quests.filter(q => q.claimed).length}/3`}</button>`}</div>
+    </div>`;
+  updateDailyBadge();
+}
+$('dailyBody').addEventListener('click', e => {
+  const b = e.target.closest('[data-dq]');
+  if (!b || b.disabled) return;
+  const d = ensureDaily();
+  if (b.dataset.dq === 'bonus') {
+    if (d.bonus || !d.quests.every(q => q.claimed)) return;
+    d.bonus = true;
+    d.streak = (d.lastAll === todayKey() ? d.streak : (d.streak || 0) + 1); d.lastAll = todayKey();
+    const zone = zoneAt(TEE_POS.z + save.stats.bestDistance);
+    const def = rollCharacter(zone);
+    const mut = rollMutation(halloweenActive());
+    save.inventory.push({ id: def.id, star: 1, mut });
+    const entry = save.dex[def.id] ||= { count: 0, first: Date.now(), seen: false };
+    entry.count++; (entry.muts ||= {})[mut] = true;
+    newItems++;
+    play('evolve');
+    toast(`🎁 ボーナス！ ${MUT_BY_ID[mut].name}変異の ${def.name}（${RARITIES[def.r].name}）をインベントリに入れた！ 🔥連続${d.streak}日`, { color: '#ffd23f', big: true, time: 4000 });
+  } else {
+    const q = d.quests[+b.dataset.dq];
+    if (!q || q.claimed || !questDone(q)) return;
+    q.claimed = true;
+    const v = questReward();
+    save.money += v; save.stats.totalEarned += v;   // 報酬は「稼ぐ」クエストには数えない
+    play('buy');
+    toast(`📅 報酬 +$${fmt(v)}`, { color: '#7dff8a', big: true });
+  }
+  renderDaily(); updateHud(); writeSave();
+});
+$('hudDailyBtn').addEventListener('click', () => openPanelById('dailyPanel'));
+ensureDaily(); updateDailyBadge();
+// 日付が変わったら新しいクエストに
+setInterval(() => { if (save.daily?.day !== todayKey()) { ensureDaily(); updateDailyBadge(); if (openPanel === 'dailyPanel') renderDaily(); } }, 60000);
 
 // ---------- インデックス（一度持ち帰ったキャラの図鑑） ----------
 let thumb = null;
