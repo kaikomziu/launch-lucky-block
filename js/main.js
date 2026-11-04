@@ -734,6 +734,7 @@ function finishOpen() {
   // ハロウィン: レインボーかぼちゃタイム中は超低確率でレインボーかぼちゃ
   if (hw && rainbowPumpkinTime().active && Math.random() < RAINBOW_PUMPKIN_CHANCE) mut = 'rainbowpumpkin';
   $('revealRarity').innerHTML = rarityName(r) + (mut ? ` ${mutTag(mut)}` : '');
+  if (def.lowRate) $('revealRarity').innerHTML += ' <span class="mut mut-rainbowpumpkin">✨激レア</span>';
   $('revealName').textContent = def.name;
   const special = RARITIES[r].css === 'rainbow' || RARITIES[r].css === 'cosmic';
   $('revealName').className = 'name' + (special ? ` ${RARITIES[r].css}-text` : '');
@@ -1053,6 +1054,7 @@ function update(dt) {
 
 function updateBoss(b, dt) {
   b.t += dt;
+  for (const f of b.anims || []) f(b.t, b.walk);   // 羽ばたき・しっぽ・触手など
   const g = b.group;
   if (b.state === 'idle') {
     g.position.y = Math.abs(Math.sin(b.t * 2)) * 0.15;
@@ -1798,7 +1800,7 @@ function renderIndex() {
           ? `<div class="idx-card" style="--rc:${rc}"><img src="${charThumb(c, false, m)}" alt=""><b>${c.name}</b>
               <div class="inc">+${fmt(charIncome(c, 1, m))}/秒</div><div class="meta">${mutTag(m)}</div></div>`
           : `<div class="idx-card locked"><img src="${charThumb(c, true)}" alt=""><b>${e ? c.name : '？？？'}</b>
-              <div class="meta">${e ? `${MUT_BY_ID[m].name}変異はまだ` : `${ZONES[r].name}ゾーン付近で出現`}</div></div>`;
+              <div class="meta">${e ? `${MUT_BY_ID[m].name}変異はまだ` : c.lowRate ? `${ZONES[r].name}ゾーンで ごくまれに出現（1%）` : `${ZONES[r].name}ゾーン付近で出現`}</div></div>`;
         continue;
       }
       html += e
@@ -1808,7 +1810,7 @@ function renderIndex() {
             <div class="meta">獲得 ${e.count}回${e.first ? ` ・ ${fmtDate(e.first)}` : ''}</div>
             ${e.muts ? `<div class="meta muts">${Object.keys(e.muts).map(mutTag).join('')}</div>` : ''}</div>`
         : `<div class="idx-card locked"><img src="${charThumb(c, true)}" alt=""><b>？？？</b>
-            <div class="meta">${ZONES[r].name}ゾーン付近で出現</div></div>`;
+            <div class="meta">${c.lowRate ? `${ZONES[r].name}ゾーンで ごくまれに出現（1%）` : `${ZONES[r].name}ゾーン付近で出現`}</div></div>`;
     }
     html += '</div></div>';
   });

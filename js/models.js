@@ -95,36 +95,285 @@ export function buildPlayer(sk = {}) {
   return { group: g, armL, armR, legL, legR, bat, carry, anims };
 }
 
-// ---------- ボス ----------
+// ---------- ボス（ゾーンごとに違う姿） ----------
+// どのボスも armL / armR / legL / legR の回転軸（Group）を返す。追いかけるときの手足の動きは main.js が回す。
+// それ以外の動き（羽ばたき・しっぽ・触手など）は anims に入れ、(t, walk) で呼ばれる。
 export function buildBoss(def) {
   const g = new THREE.Group();
+  const inner = new THREE.Group(); g.add(inner);
+  const anims = [];
   const body = mat(def.color);
   const dark = mat(new THREE.Color(def.color).multiplyScalar(0.55).getHex());
+  const light = mat(new THREE.Color(def.color).lerp(new THREE.Color(0xffffff), 0.45).getHex());
+  const black = mat(0x111111), white = mat(0xffffff);
   const eye = glowMat(0xff2020, 1.2);
-
-  const inner = new THREE.Group(); g.add(inner);
-  const torso = box(3, 3, 2.2, body); torso.position.y = 4; inner.add(torso);
-  const head = box(2.4, 2, 2.2, body); head.position.y = 6.5; inner.add(head);
-  const eL = box(0.5, 0.35, 0.1, eye); eL.position.set(-0.55, 6.7, 1.12); inner.add(eL);
-  const eR = eL.clone(); eR.position.x = 0.55; inner.add(eR);
-  const jaw = box(1.6, 0.3, 0.1, mat(0x111111)); jaw.position.set(0, 6.0, 1.12); inner.add(jaw);
-  for (const s of [-1, 1]) {
-    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.2, 6), dark);
-    horn.position.set(s * 0.9, 8, 0); horn.rotation.z = -s * 0.4; inner.add(horn);
-  }
-  const limb = (x, y, w, len, material) => {
-    const p = new THREE.Group(); p.position.set(x, y, 0);
-    const m = box(w, len, w, material); m.position.y = -len / 2; p.add(m);
-    inner.add(p); return p;
+  const add = (geo, m, x, y, z, parent = inner) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); parent.add(o); return o; };
+  const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+  const S = (r, w = 16, h = 12) => new THREE.SphereGeometry(r, w, h);
+  const C = (rt, rb, h, n = 12) => new THREE.CylinderGeometry(rt, rb, h, n);
+  const K = (r, h, n = 8) => new THREE.ConeGeometry(r, h, n);
+  // 手足の回転軸（中に見た目を入れる）
+  const pivot = (x, y, z = 0, parent = inner) => { const p = new THREE.Group(); p.position.set(x, y, z); parent.add(p); return p; };
+  const limb = (x, y, w, len, m, z = 0) => { const p = pivot(x, y, z); add(B(w, len, w), m, 0, -len / 2, 0, p); return p; };
+  const eyes = (y, z, gap = 0.55, w = 0.5, h = 0.35, m = eye) => {
+    for (const s of [-1, 1]) add(B(w, h, 0.1), m, s * gap, y, z);
   };
-  const armL = limb(-2, 5.2, 1, 3, dark);
-  const armR = limb(2, 5.2, 1, 3, dark);
-  const legL = limb(-0.8, 2.5, 1.2, 2.5, dark);
-  const legR = limb(0.8, 2.5, 1.2, 2.5, dark);
+  const crown = (y, r = 0.9, m = glowMat(0xffd23f, 0.4)) => {
+    add(C(r, r, 0.5, 12, true), m, 0, y, 0);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; add(K(0.18, 0.55, 4), m, Math.cos(a) * r * 0.9, y + 0.5, Math.sin(a) * r * 0.9); }
+  };
+  const wings = (y, z, span, m, flap = 6) => {
+    for (const s of [-1, 1]) {
+      const p = pivot(s * 0.8, y, z);
+      add(B(span, 0.15, 1.6), m, s * span / 2, 0, 0, p);
+      add(B(span * 0.6, 0.12, 1.1), m, s * span * 0.8, -0.1, -0.5, p);
+      anims.push(t => { p.rotation.z = s * (0.25 + Math.sin(t * flap) * 0.45); });
+    }
+  };
+  const tail = (y, z, len, m, segs = 5) => {
+    let parent = pivot(0, y, z), first = parent;
+    for (let i = 0; i < segs; i++) {
+      const r = 0.55 - i * 0.08;
+      add(B(r * 2, r * 2, len / segs), m, 0, 0, -len / segs / 2, parent);
+      const next = pivot(0, 0, -len / segs, parent); parent = next;
+    }
+    anims.push(t => { let p = first, i = 0; while (p) { p.rotation.y = Math.sin(t * 3 - i * 0.6) * 0.18; p = p.children.find(c => c.isGroup); i++; } });
+  };
+  let armL, armR, legL, legR;
+
+  switch (def.kind) {
+    case 'slime': {   // ぷるぷるの大きなスライムに王冠
+      const sl = new THREE.MeshLambertMaterial({ color: def.color, transparent: true, opacity: 0.85 });
+      const d = add(S(3, 20, 14), sl, 0, 2.6, 0); d.scale.set(1.15, 0.9, 1.1);
+      add(S(1.3), light, 0.9, 4.2, 1.2).scale.set(0.6, 0.4, 0.3);   // つや
+      eyes(3.6, 3.05, 0.9, 0.7, 0.9, black);
+      add(B(1.4, 0.25, 0.1), black, 0, 2.6, 3.1);
+      crown(5.1, 1.1);
+      anims.push(t => { d.scale.set(1.15 + Math.sin(t * 4) * 0.06, 0.9 - Math.sin(t * 4) * 0.06, 1.1); });
+      armL = limb(-3.1, 3, 0.9, 1.4, sl); armR = limb(3.1, 3, 0.9, 1.4, sl);
+      legL = pivot(-1, 0.3); legR = pivot(1, 0.3);
+      break;
+    }
+    case 'worm': {   // 砂から出てきた大きなワーム。口に歯
+      const segs = [];
+      for (let i = 0; i < 6; i++) {
+        const r = 1.6 - i * 0.12;
+        const s = add(S(r, 14, 10), i % 2 ? dark : body, 0, 1.2 + i * 1.25, -i * 0.55);
+        segs.push(s);
+      }
+      const head = segs[5];
+      add(C(1.2, 1.4, 0.6, 14), mat(0x3a1a10), 0, 8.0, -2.2).rotation.x = 0.9;   // 口
+      for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; const tth = add(K(0.15, 0.5, 4), white, Math.cos(a) * 1.0, 8.2 + Math.sin(a) * 0.5, -1.9 + Math.sin(a) * 0.4); tth.rotation.x = -0.8; }
+      eyes(7.4, -0.95, 0.9, 0.35, 0.35);
+      anims.push(t => segs.forEach((s, i) => { s.position.x = Math.sin(t * 3 - i * 0.7) * 0.4; }));
+      armL = pivot(-1.5, 3); armR = pivot(1.5, 3);
+      legL = pivot(-1, 1); legR = pivot(1, 1);
+      void head;
+      break;
+    }
+    case 'golem': {   // 氷のかたまりのゴーレム
+      const ice = new THREE.MeshLambertMaterial({ color: def.color, emissive: 0x1a4a66, emissiveIntensity: 0.4 });
+      add(B(3.6, 3.2, 2.4), ice, 0, 4.2, 0);
+      add(B(2.2, 1.8, 2.0), ice, 0, 6.6, 0);
+      eyes(6.7, 1.02, 0.5, 0.45, 0.3, glowMat(0x7df9ff, 1.2));
+      for (const s of [-1, 1]) for (let i = 0; i < 3; i++) { const c = add(K(0.35, 1.4, 5), light, s * (1.9 + i * 0.2), 5.9 + i * 0.3, -0.3 + i * 0.3); c.rotation.z = -s * 0.5; }
+      for (let i = 0; i < 4; i++) add(K(0.3, 1.1, 5), light, -0.75 + i * 0.5, 7.9, 0);
+      armL = limb(-2.4, 5.6, 1.3, 3.4, ice); armR = limb(2.4, 5.6, 1.3, 3.4, ice);
+      legL = limb(-0.9, 2.6, 1.4, 2.6, dark); legR = limb(0.9, 2.6, 1.4, 2.6, dark);
+      break;
+    }
+    case 'mushroom': {   // 毒キノコの王さま
+      add(C(1.3, 1.6, 3.4, 14), mat(0xeadff5), 0, 3.2, 0);
+      const cap = add(S(3, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), body, 0, 4.8, 0); cap.scale.y = 0.75;
+      cap.geometry = new THREE.SphereGeometry(3, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+      for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; add(S(0.4, 8, 6), glowMat(0xc8ff3a, 0.6), Math.cos(a) * 2, 6.0, Math.sin(a) * 2); }
+      eyes(3.8, 1.35, 0.5, 0.4, 0.35, glowMat(0xc8ff3a, 1.2));
+      crown(6.95, 0.8);
+      armL = limb(-1.8, 4.2, 0.6, 2.4, mat(0xeadff5)); armR = limb(1.8, 4.2, 0.6, 2.4, mat(0xeadff5));
+      add(C(0.08, 0.08, 3.2, 6), mat(0x5a3a1a), 0, -1.6, 0.4, armR);   // つえ
+      add(S(0.4, 10, 8), glowMat(0xc8ff3a, 1), 0, -3.2, 0.4, armR);
+      legL = limb(-0.7, 1.6, 0.8, 1.6, dark); legR = limb(0.7, 1.6, 0.8, 1.6, dark);
+      break;
+    }
+    case 'knight': {   // 金の鎧の騎士。剣と盾
+      const gold = new THREE.MeshLambertMaterial({ color: def.color, emissive: 0x4a3200, emissiveIntensity: 0.4 });
+      add(B(3, 3, 2.2), gold, 0, 4, 0);
+      add(B(2.2, 2.1, 2.2), gold, 0, 6.5, 0);
+      add(B(1.8, 0.3, 0.1), black, 0, 6.6, 1.12);   // のぞき穴
+      eyes(6.6, 1.15, 0.45, 0.35, 0.2);
+      const plume = add(B(0.35, 1.4, 1.8), mat(0xe63946), 0, 8.1, -0.2);
+      anims.push(t => { plume.rotation.x = Math.sin(t * 4) * 0.12; });
+      armL = limb(-2, 5.2, 1, 3, dark); armR = limb(2, 5.2, 1, 3, dark);
+      add(B(0.25, 2.8, 2.2), gold, -0.6, -2.2, 0.3, armL);   // 盾
+      add(B(0.3, 0.9, 1.0), mat(0xe63946), -0.75, -2.2, 0.3, armL);
+      add(B(0.2, 4.2, 0.45), mat(0xe8eef5), 0, -4.4, 0.4, armR);   // 剣
+      add(B(1.2, 0.25, 0.4), gold, 0, -2.4, 0.4, armR);
+      legL = limb(-0.8, 2.5, 1.2, 2.5, dark); legR = limb(0.8, 2.5, 1.2, 2.5, dark);
+      break;
+    }
+    case 'dragon': {   // 溶岩のドラゴン（四つ足・羽・しっぽ）
+      const lava = glowMat(0xffb020, 0.9);
+      add(B(3, 2.6, 5.5), body, 0, 3.6, 0);
+      for (let i = 0; i < 4; i++) add(K(0.4, 1.2, 4), lava, 0, 5.2, 2 - i * 1.3);
+      const neck = add(B(1.6, 1.6, 2), body, 0, 5, 3.2); neck.rotation.x = -0.6;
+      add(B(2.2, 1.8, 2.6), body, 0, 6.3, 4.4);
+      add(B(1.6, 0.8, 1.6), dark, 0, 5.8, 5.9);   // 口先
+      eyes(6.7, 5.72, 0.55, 0.4, 0.3, glowMat(0xffe600, 1.3));
+      for (const s of [-1, 1]) { const h = add(K(0.3, 1.5, 6), mat(0x2b1a17), s * 0.8, 7.6, 3.9); h.rotation.x = -0.6; }
+      wings(5, 0, 4.5, dark, 3);
+      tail(3.6, -2.7, 5, body);
+      legL = limb(-1.2, 2.5, 1, 2.5, dark, 2); legR = limb(1.2, 2.5, 1, 2.5, dark, 2);
+      armL = pivot(0, 0); armR = pivot(0, 0);
+      const bl = limb(-1.2, 2.5, 1, 2.5, dark, -2), br = limb(1.2, 2.5, 1, 2.5, dark, -2);
+      anims.push((t, w) => { bl.rotation.x = -legL.rotation.x; br.rotation.x = -legR.rotation.x; void w; });
+      break;
+    }
+    case 'void': {   // フードをかぶった虚空の王（浮いている）
+      const robe = mat(0x1b1030);
+      add(K(2.6, 6, 16), robe, 0, 3.5, 0);
+      add(S(1.3, 16, 12), robe, 0, 7.1, 0);
+      const hood = add(S(1.5, 16, 12, 0, Math.PI * 2, 0, Math.PI / 1.6), body, 0, 7.3, -0.1);
+      hood.geometry = new THREE.SphereGeometry(1.5, 16, 12, 0, Math.PI * 2, 0, Math.PI / 1.6);
+      add(B(1.4, 1.0, 0.2), black, 0, 7.0, 1.1);
+      eyes(7.1, 1.25, 0.35, 0.3, 0.2, glowMat(0xb388ff, 1.5));
+      const orb = new THREE.Group(); orb.position.y = 5; inner.add(orb);
+      for (let i = 0; i < 4; i++) { const a = i / 4 * Math.PI * 2; add(new THREE.OctahedronGeometry(0.5), glowMat(def.color, 1), Math.cos(a) * 3.4, Math.sin(a * 2) * 0.6, Math.sin(a) * 3.4, orb); }
+      anims.push(t => { orb.rotation.y = t * 1.5; inner.position.y = 0.6 + Math.sin(t * 2) * 0.3; });
+      armL = limb(-1.8, 5.6, 0.8, 2.6, body); armR = limb(1.8, 5.6, 0.8, 2.6, body);
+      legL = pivot(-0.6, 0.5); legR = pivot(0.6, 0.5);
+      break;
+    }
+    case 'griffon': {   // ワシの頭と大きな羽のグリフォン
+      add(B(2.8, 2.6, 4.4), body, 0, 3.8, 0);
+      add(B(2, 2, 2), light, 0, 6.2, 2.2);
+      const beak = add(K(0.5, 1.4, 4), mat(0xffc21a), 0, 6.0, 3.8); beak.rotation.x = Math.PI / 2;
+      eyes(6.6, 3.22, 0.6, 0.35, 0.3, glowMat(0x00bcd4, 1.3));
+      for (const s of [-1, 1]) { const f = add(K(0.25, 1.2, 4), light, s * 0.5, 7.6, 1.6); f.rotation.x = -0.7; }
+      wings(5.2, -0.2, 5.5, light, 4);
+      tail(3.6, -2.2, 3, dark, 3);
+      legL = limb(-1, 2.6, 0.8, 2.6, mat(0xffc21a), 1.5); legR = limb(1, 2.6, 0.8, 2.6, mat(0xffc21a), 1.5);
+      armL = pivot(0, 0); armR = pivot(0, 0);
+      const bl = limb(-1, 2.6, 1, 2.6, dark, -1.6), br = limb(1, 2.6, 1, 2.6, dark, -1.6);
+      anims.push(() => { bl.rotation.x = -legL.rotation.x; br.rotation.x = -legR.rotation.x; });
+      break;
+    }
+    case 'kraken': {   // 大きな頭と何本もの触手
+      const head = add(S(2.6, 20, 14), body, 0, 5.8, 0); head.scale.set(1, 1.25, 1);
+      for (let i = 0; i < 5; i++) add(S(0.35, 8, 6), light, -1.2 + i * 0.6, 7.4 + Math.sin(i) * 0.4, 2.1);
+      eyes(4.9, 2.45, 0.85, 0.6, 0.6, glowMat(0xffe600, 1.2));
+      const tent = [];
+      for (let i = 0; i < 8; i++) {
+        const a = i / 8 * Math.PI * 2;
+        const p = pivot(Math.cos(a) * 1.6, 3.2, Math.sin(a) * 1.6);
+        add(C(0.45, 0.15, 3.2, 8), dark, 0, -1.6, 0, p);
+        p.rotation.z = Math.cos(a) * 0.4; p.rotation.x = -Math.sin(a) * 0.4;
+        tent.push([p, a, i]);
+      }
+      anims.push(t => tent.forEach(([p, a, i]) => { p.rotation.z = Math.cos(a) * (0.4 + Math.sin(t * 3 + i) * 0.25); }));
+      armL = pivot(-2, 4); armR = pivot(2, 4); legL = pivot(-1, 2); legR = pivot(1, 2);
+      break;
+    }
+    case 'robot': {   // 巨大ロボ
+      const metal = mat(def.color);
+      add(B(4, 3.4, 2.6), metal, 0, 4.4, 0);
+      add(S(0.6, 14, 10), glowMat(0x00e5ff, 1.2), 0, 4.6, 1.35);
+      add(B(2.4, 1.8, 2.2), metal, 0, 6.9, 0);
+      add(B(2.0, 0.5, 0.15), glowMat(0xff1744, 1.3), 0, 7.0, 1.12);
+      add(C(0.08, 0.08, 1.4, 6), black, 0.7, 8.4, 0);
+      const ant = add(S(0.25, 8, 6), glowMat(0xff1744, 1), 0.7, 9.2, 0);
+      anims.push(t => { ant.material.emissiveIntensity = 0.5 + Math.abs(Math.sin(t * 5)); });
+      for (const s of [-1, 1]) add(B(1.4, 1.2, 1.8), dark, s * 2.6, 5.9, 0);
+      armL = limb(-2.6, 5.4, 1.2, 3.2, dark); armR = limb(2.6, 5.4, 1.2, 3.2, dark);
+      add(B(1.6, 1.4, 1.6), metal, 0, -3.4, 0, armL); add(B(1.6, 1.4, 1.6), metal, 0, -3.4, 0, armR);
+      legL = limb(-1, 2.7, 1.5, 2.7, dark); legR = limb(1, 2.7, 1.5, 2.7, dark);
+      add(B(1.9, 0.6, 2.4), black, 0, -2.6, 0.3, legL); add(B(1.9, 0.6, 2.4), black, 0, -2.6, 0.3, legR);
+      break;
+    }
+    case 'chronos': {   // 時の神。胸に時計、背中に回る輪
+      add(B(3, 3.4, 2), mat(0xf4ecd6), 0, 4.1, 0);
+      add(C(1.1, 1.1, 0.15, 24), mat(0xffffff), 0, 4.3, 1.08).rotation.x = Math.PI / 2;
+      const hand = add(B(0.12, 0.9, 0.05), black, 0, 4.3, 1.2);
+      anims.push(t => { hand.rotation.z = -t * 2; });
+      add(B(2.2, 2, 2), mat(0xffd29c), 0, 6.8, 0);
+      add(B(2.2, 1.6, 0.6), white, 0, 5.8, 1.1);   // ひげ
+      eyes(7.0, 1.02, 0.5, 0.4, 0.25, glowMat(0x3a8dff, 1.3));
+      const ring = add(new THREE.TorusGeometry(3, 0.18, 8, 40), glowMat(def.color, 0.9), 0, 5.6, -1.6);
+      anims.push(t => { ring.rotation.z = t; });
+      armL = limb(-2, 5.4, 0.9, 3, mat(0xf4ecd6)); armR = limb(2, 5.4, 0.9, 3, mat(0xf4ecd6));
+      add(C(0.12, 0.12, 4.6, 6), glowMat(def.color, 0.5), 0, -2, 0.4, armR);   // 杖
+      legL = limb(-0.8, 2.5, 1.1, 2.5, mat(0xd8cfb6)); legR = limb(0.8, 2.5, 1.1, 2.5, mat(0xd8cfb6));
+      break;
+    }
+    case 'wolf': {   // 光る毛並みのオオカミ（四つ足）
+      add(B(2.6, 2.4, 5), body, 0, 3.8, 0);
+      add(B(2.2, 2, 2.2), body, 0, 5.4, 3.2);
+      add(B(1.2, 0.9, 1.6), light, 0, 4.9, 4.7);
+      add(B(0.5, 0.35, 0.3), black, 0, 5.2, 5.5);
+      eyes(5.8, 4.32, 0.55, 0.4, 0.25, glowMat(0x7df9ff, 1.4));
+      for (const s of [-1, 1]) add(K(0.4, 1.1, 4), body, s * 0.7, 6.9, 2.9);
+      tail(4.4, -2.5, 3, light, 4);
+      const aura = add(S(4.6, 16, 12), new THREE.MeshBasicMaterial({ color: def.color, transparent: true, opacity: 0.12, depthWrite: false }), 0, 4, 0);
+      anims.push(t => aura.scale.setScalar(1 + Math.sin(t * 3) * 0.06));
+      legL = limb(-0.9, 2.6, 0.8, 2.6, dark, 1.8); legR = limb(0.9, 2.6, 0.8, 2.6, dark, 1.8);
+      armL = pivot(0, 0); armR = pivot(0, 0);
+      const bl = limb(-0.9, 2.6, 0.9, 2.6, dark, -1.8), br = limb(0.9, 2.6, 0.9, 2.6, dark, -1.8);
+      anims.push(() => { bl.rotation.x = -legL.rotation.x; br.rotation.x = -legR.rotation.x; });
+      break;
+    }
+    case 'queen': {   // 星雲の女王。広がるドレスと星
+      add(K(3, 5.5, 18), body, 0, 2.75, 0);
+      add(B(1.8, 1.8, 1.4), light, 0, 5.8, 0);
+      add(S(1.1, 16, 12), mat(0xffe0f0), 0, 7.3, 0);
+      eyes(7.4, 1.05, 0.38, 0.3, 0.25, glowMat(0xff7ae0, 1.5));
+      crown(8.3, 0.8);
+      const orb = new THREE.Group(); orb.position.y = 4.5; inner.add(orb);
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; add(new THREE.OctahedronGeometry(0.35), glowMat([0xff7ae0, 0x7df9ff, 0xfff27a][i % 3], 1), Math.cos(a) * 3.6, Math.sin(a * 3) * 0.8, Math.sin(a) * 3.6, orb); }
+      anims.push(t => { orb.rotation.y = -t * 1.2; });
+      armL = limb(-1.4, 6.2, 0.6, 2.6, mat(0xffe0f0)); armR = limb(1.4, 6.2, 0.6, 2.6, mat(0xffe0f0));
+      legL = pivot(-0.6, 0.3); legR = pivot(0.6, 0.3);
+      break;
+    }
+    case 'titan': {   // 赤くひび割れた混沌の巨人
+      const rock = mat(0x241010);
+      add(B(3.8, 3.6, 2.6), rock, 0, 4.4, 0);
+      add(B(2.4, 2.2, 2.2), rock, 0, 7.2, 0);
+      eyes(7.3, 1.12, 0.55, 0.55, 0.3, glowMat(0xff2a2a, 1.6));
+      for (let i = 0; i < 8; i++) { const c = add(B(0.12, 1.2, 0.05), glowMat(0xff2a2a, 1.2), -1.4 + (i % 4) * 0.9, 3.4 + Math.floor(i / 4) * 1.6, 1.32); c.rotation.z = (i % 3 - 1) * 0.6; }
+      for (const s of [-1, 1]) {
+        for (let i = 0; i < 3; i++) { const sp = add(K(0.35, 1.5, 5), dark, s * (2.3 + i * 0.1), 6.3 + i * 0.25, -0.5 + i * 0.5); sp.rotation.z = -s * 0.6; }
+        const h = add(K(0.35, 1.8, 6), dark, s * 1.0, 8.9, 0); h.rotation.z = -s * 0.4;
+      }
+      armL = limb(-2.6, 5.8, 1.4, 3.6, rock); armR = limb(2.6, 5.8, 1.4, 3.6, rock);
+      legL = limb(-1, 2.7, 1.5, 2.7, rock); legR = limb(1, 2.7, 1.5, 2.7, rock);
+      break;
+    }
+    case 'luckyking': {   // ラッキーブロックの王さま
+      const tex = luckyTexture();
+      const blk = add(B(4.2, 4.2, 4.2), new THREE.MeshLambertMaterial({ map: tex, color: 0xffd23f, emissive: 0x332200 }), 0, 4.6, 0);
+      add(B(3.2, 0.3, 0.1), black, 0, 3.4, 2.12);
+      eyes(5.6, 2.14, 0.9, 0.7, 0.45);
+      crown(7.1, 1.4);
+      const pv = pivot(0, 6.5, -2.15);
+      add(B(4, 5.5, 0.12), mat(0xe63946), 0, -2.75, 0, pv);
+      anims.push(t => { pv.rotation.x = -0.1 - Math.abs(Math.sin(t * 3)) * 0.2; blk.rotation.y = Math.sin(t * 1.5) * 0.08; });
+      armL = limb(-2.7, 5.6, 1, 3, body); armR = limb(2.7, 5.6, 1, 3, body);
+      legL = limb(-1, 2.5, 1.2, 2.5, dark); legR = limb(1, 2.5, 1.2, 2.5, dark);
+      break;
+    }
+    default: {   // いつものブロックの怪物
+      add(B(3, 3, 2.2), body, 0, 4, 0);
+      add(B(2.4, 2, 2.2), body, 0, 6.5, 0);
+      eyes(6.7, 1.12);
+      add(B(1.6, 0.3, 0.1), black, 0, 6.0, 1.12);
+      for (const s of [-1, 1]) { const h = add(K(0.3, 1.2, 6), dark, s * 0.9, 8, 0); h.rotation.z = -s * 0.4; }
+      armL = limb(-2, 5.2, 1, 3, dark); armR = limb(2, 5.2, 1, 3, dark);
+      legL = limb(-0.8, 2.5, 1.2, 2.5, dark); legR = limb(0.8, 2.5, 1.2, 2.5, dark);
+    }
+  }
 
   g.scale.setScalar(def.scale / 2);
-  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-  return { group: g, armL, armR, legL, legR };
+  g.traverse(o => { if (o.isMesh && !o.material.transparent) o.castShadow = true; });
+  return { group: g, armL, armR, legL, legR, anims };
 }
 
 // ---------- ラッキーブロック ----------

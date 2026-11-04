@@ -40,35 +40,35 @@ export const WORLD_HALF_W = 30;
 
 export const ZONES = [
   { name: '草原',   ground: 0x7ec850, alt: 0x6fb944, sky: 0x8fd3ff, deco: 'tree',
-    boss: { name: 'スライム大将',   color: 0x5ad16a, speed: 13, scale: 2.0 } },
+    boss: { name: 'スライム大将', kind: 'slime',   color: 0x5ad16a, speed: 13, scale: 2.0 } },
   { name: '砂漠',   ground: 0xe9cf86, alt: 0xdcc077, sky: 0xffd9a0, deco: 'cactus',
-    boss: { name: 'サンドワーム',   color: 0xc9a25a, speed: 17, scale: 2.3 } },
+    boss: { name: 'サンドワーム', kind: 'worm',   color: 0xc9a25a, speed: 17, scale: 2.3 } },
   { name: '氷河',   ground: 0xd8f1ff, alt: 0xc2e6fb, sky: 0xbfe6ff, deco: 'ice',
-    boss: { name: 'アイスゴーレム', color: 0x8fd6ff, speed: 21, scale: 2.6 } },
+    boss: { name: 'アイスゴーレム', kind: 'golem', color: 0x8fd6ff, speed: 21, scale: 2.6 } },
   { name: '毒沼',   ground: 0x7a4f9a, alt: 0x6b4189, sky: 0xb48ad6, deco: 'mushroom',
-    boss: { name: 'ポイズンキング', color: 0xa64dff, speed: 25, scale: 2.9 } },
+    boss: { name: 'ポイズンキング', kind: 'mushroom', color: 0xa64dff, speed: 25, scale: 2.9 } },
   { name: '黄金郷', ground: 0xf3c94b, alt: 0xe5b934, sky: 0xfff0b0, deco: 'gold',
-    boss: { name: 'ゴールドナイト', color: 0xffd23f, speed: 29, scale: 3.2 } },
+    boss: { name: 'ゴールドナイト', kind: 'knight', color: 0xffd23f, speed: 29, scale: 3.2 } },
   { name: '溶岩',   ground: 0x4a2a24, alt: 0x5a2f26, sky: 0xff8a5c, deco: 'lava',
-    boss: { name: 'マグマドラゴン', color: 0xff4a1c, speed: 33, scale: 3.6 } },
+    boss: { name: 'マグマドラゴン', kind: 'dragon', color: 0xff4a1c, speed: 33, scale: 3.6 } },
   { name: '虚空',   ground: 0x1b1530, alt: 0x251c40, sky: 0x2a1f4f, deco: 'crystal',
-    boss: { name: 'ヴォイドロード', color: 0x9b6bff, speed: 37, scale: 4.0 } },
+    boss: { name: 'ヴォイドロード', kind: 'void', color: 0x9b6bff, speed: 37, scale: 4.0 } },
   { name: '天空',     ground: 0xf4f9ff, alt: 0xe2efff, sky: 0xc9e8ff, deco: 'cloud',
-    boss: { name: 'テンペストグリフォン', color: 0xe0f4ff, speed: 41, scale: 4.4 } },
+    boss: { name: 'テンペストグリフォン', kind: 'griffon', color: 0xe0f4ff, speed: 41, scale: 4.4 } },
   { name: '深海',     ground: 0x0e3b5c, alt: 0x12476d, sky: 0x1d5f8a, deco: 'coral',
-    boss: { name: 'クラーケン',     color: 0xd81b60, speed: 45, scale: 4.8 } },
+    boss: { name: 'クラーケン', kind: 'kraken',     color: 0xd81b60, speed: 45, scale: 4.8 } },
   { name: '機械都市', ground: 0x3a3f47, alt: 0x454b55, sky: 0x8e9aab, deco: 'tower',
-    boss: { name: 'ギガロボ',       color: 0x8d99ae, speed: 49, scale: 5.2 } },
+    boss: { name: 'ギガロボ', kind: 'robot',       color: 0x8d99ae, speed: 49, scale: 5.2 } },
   { name: '時空の果て', ground: 0x0a0a16, alt: 0x15152c, sky: 0x0b0820, deco: 'clock',
-    boss: { name: 'クロノス',       color: 0xffe066, speed: 53, scale: 5.6 } },
+    boss: { name: 'クロノス', kind: 'chronos',       color: 0xffe066, speed: 53, scale: 5.6 } },
   { name: 'オーロラ平原', ground: 0x0f2238, alt: 0x13304d, sky: 0x1b3b5f, deco: 'aurora',
-    boss: { name: 'オーロラフェンリル', color: 0x7dffd8, speed: 57, scale: 6.0 } },
+    boss: { name: 'オーロラフェンリル', kind: 'wolf', color: 0x7dffd8, speed: 57, scale: 6.0 } },
   { name: '星雲の海', ground: 0x2a0f3a, alt: 0x3a1452, sky: 0x3d1a5c, deco: 'nebula',
-    boss: { name: 'ネビュラクイーン', color: 0xff7ae0, speed: 61, scale: 6.4 } },
+    boss: { name: 'ネビュラクイーン', kind: 'queen', color: 0xff7ae0, speed: 61, scale: 6.4 } },
   { name: '混沌の大地', ground: 0x2b0a0a, alt: 0x3a0f0f, sky: 0x4a0d0d, deco: 'chaos',
-    boss: { name: 'カオスタイタン',   color: 0xff2a2a, speed: 65, scale: 6.8 } },
+    boss: { name: 'カオスタイタン', kind: 'titan',   color: 0xff2a2a, speed: 65, scale: 6.8 } },
   { name: 'ラッキーの頂', ground: 0xfff3c4, alt: 0xffe58a, sky: 0xfff6d5, deco: 'luckyblock',
-    boss: { name: 'ラッキーキング',   color: 0xffd23f, speed: 69, scale: 7.2 } },
+    boss: { name: 'ラッキーキング', kind: 'luckyking',   color: 0xffd23f, speed: 69, scale: 7.2 } },
 ];
 
 // キャラクター（形状パラメータは models.js の buildCharacter で使う）
@@ -211,6 +211,22 @@ export const CHARACTERS = [
   { id: 'tenchi',    r: 14, name: '天地創造',        mult: 1.2, shape: 'sphere', color: 0xfff3c4, accent: 0x7df9ff, extras: ['halo', 'wings', 'ring', 'glow'] },
   { id: 'omegaryu',  r: 14, name: 'オメガドラゴン',  mult: 1.4, shape: 'egg',    color: 0xffd23f, accent: 0xff3b3b, extras: ['horns', 'wings', 'tail', 'orbit', 'glow'] },
   { id: 'luckyking', r: 14, name: 'ラッキーキング',  mult: 1.5, shape: 'box',    color: 0xffd23f, accent: 0xff7ae0, extras: ['crown', 'cape', 'wings', 'rainbow'] },
+  // ---- 激レア（各ゾーンに1体・1%抽選のみ・稼ぎ ×3） ----
+  { id: 'goldmochi',  r: 0,  name: 'きらめくまるもち', mult: 3, shape: 'sphere', color: 0xffd23f, accent: 0xffffff, extras: ['glow', 'halo', 'blush', 'stars'], lowRate: true },
+  { id: 'royalkaeru', r: 1,  name: 'ロイヤルカエル卿', mult: 3, shape: 'sphere', color: 0xffd700, accent: 0x8b0000, extras: ['crown', 'tophat', 'glow'], lowRate: true },
+  { id: 'ginpen',     r: 2,  name: 'ぎんぴん王',       mult: 3, shape: 'sphere', color: 0xdfe9f5, accent: 0x3a86ff, extras: ['crown', 'belly', 'orbit', 'glow'], lowRate: true },
+  { id: 'stardragon', r: 3,  name: '星光ドラゴン',     mult: 3, shape: 'egg',    color: 0x7b2cbf, accent: 0xfff27a, extras: ['horns', 'wings', 'halo', 'glow'], lowRate: true },
+  { id: 'goldhoo',    r: 4,  name: '黄金の不死鳥',     mult: 3, shape: 'sphere', color: 0xffb300, accent: 0xff3b3b, extras: ['wings', 'flame', 'halo', 'orbit'], lowRate: true },
+  { id: 'thunderneko', r: 5, name: '雷光ネコ',         mult: 3, shape: 'box',    color: 0x2b2d42, accent: 0xffe600, extras: ['ears', 'bolt', 'crown', 'glow'], lowRate: true },
+  { id: 'rainbowkame', r: 6, name: '虹のカメ仙人',     mult: 3, shape: 'dome',   color: 0xfff0f5, accent: 0xff77e9, extras: ['shell', 'rainbow', 'halo', 'glow'], lowRate: true },
+  { id: 'tenkaiusa',  r: 7,  name: '天界の王冠ウサギ', mult: 3, shape: 'egg',    color: 0xffffff, accent: 0xffd23f, extras: ['ears', 'crown', 'wings', 'orbit'], lowRate: true },
+  { id: 'pearlking',  r: 8,  name: '真珠の王様',       mult: 3, shape: 'dome',   color: 0xfff5e1, accent: 0x00bcd4, extras: ['shell', 'crown', 'gem', 'glow'], lowRate: true },
+  { id: 'goldrobo',   r: 9,  name: '黄金メカ王',       mult: 3, shape: 'box',    color: 0xffd23f, accent: 0x00e5ff, extras: ['antenna', 'visor', 'crown', 'glow'], lowRate: true },
+  { id: 'eternaleye', r: 10, name: '永久の瞳',         mult: 3, shape: 'sphere', color: 0x111111, accent: 0xffd23f, extras: ['ring', 'orbit', 'halo', 'glow'], lowRate: true },
+  { id: 'aurorahalo', r: 11, name: 'オーロラの妖精',   mult: 3, shape: 'cone',   color: 0xe0fff7, accent: 0x7dffd8, extras: ['wings', 'halo', 'stars', 'glow'], lowRate: true },
+  { id: 'stardust',   r: 12, name: '星くずの精霊',     mult: 3, shape: 'sphere', color: 0x5a189a, accent: 0xffd23f, extras: ['sprout', 'stars', 'halo', 'orbit'], lowRate: true },
+  { id: 'shikkoku',   r: 13, name: '漆黒の天使',       mult: 3, shape: 'box',    color: 0x0b0b12, accent: 0xff2a2a, extras: ['wings', 'halo', 'horns', 'glow'], lowRate: true },
+  { id: 'prismgod',   r: 14, name: '虹の創造神',       mult: 3, shape: 'sphere', color: 0xffffff, accent: 0xffd23f, extras: ['halo', 'crown', 'wings', 'rainbow', 'glow'], lowRate: true },
 ];
 
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));
@@ -307,13 +323,22 @@ export function zoneAt(z) {
   return i;
 }
 
+// 激レアキャラが出る確率（レア度が決まったあとに判定）
+export const LOW_RATE_CHANCE = 0.01;
+
 // ゾーンのレア度を中心に、前後のレア度も少し出る
 export function rollCharacter(zone) {
   const roll = Math.random();
   let r = zone;
   if (roll < 0.08 && zone < RARITIES.length - 1) r = zone + 1;
   else if (roll < 0.3 && zone > 0) r = zone - 1;
-  const pool = CHARACTERS.filter(c => c.r === r);
+  // 1% で、そのレア度の激レアキャラを返す
+  if (Math.random() < LOW_RATE_CHANCE) {
+    const low = CHARACTERS.find(c => c.r === r && c.lowRate);
+    if (low) return low;
+  }
+  // 通常の抽選では激レアキャラを除外する
+  const pool = CHARACTERS.filter(c => c.r === r && !c.lowRate);
   // 倍率の高いキャラほど少し出にくい
   const weights = pool.map(c => 1.6 - c.mult * 0.7);
   let t = Math.random() * weights.reduce((a, b) => a + b, 0);
