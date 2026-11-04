@@ -1460,6 +1460,47 @@ function boostMult(type) {
   return m;
 }
 const seenBoosts = new Set();
+// ---------- 管理者のイベント（日付つき）: 開始まで／残り時間をみんなに出す ----------
+const seenPeriod = new Set();
+let bannerSig = '';
+function updateEventBanner() {
+  const now = Date.now();
+  const evs = adminEvents.filter(e => e.kind === 'event' && Date.parse(e.ends_at) > now);
+  const live = evs.filter(e => Date.parse(e.starts_at) <= now).sort((a, b) => Date.parse(a.ends_at) - Date.parse(b.ends_at));
+  const next = evs.filter(e => Date.parse(e.starts_at) > now).sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+  for (const e of live) {
+    if (seenPeriod.has(e.id)) continue;
+    seenPeriod.add(e.id);
+    if (now - Date.parse(e.starts_at) < 10 * 60000 || !$('title').classList.contains('hidden')) {
+      play('reveal', { vol: 0.5 });
+      toast(`🎉 イベント「${escHtml(e.payload.title)}」開催中！${e.payload.desc ? `<br><small>${escHtml(e.payload.desc)}</small>` : ''}`, { color: '#ffd23f', big: true, time: 5000 });
+    }
+  }
+  // もうすぐ始まるブースト・変異イベント（24時間以内）も小さく出す
+  const soon = adminEvents.filter(e => (e.kind === 'boost' || e.kind === 'mutation') && Date.parse(e.starts_at) > now && Date.parse(e.starts_at) - now < 86400000)
+    .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at)).slice(0, 2);
+  const main = live[0] ? { e: live[0], on: true } : next[0] ? { e: next[0], on: false } : null;
+  let html = '';
+  if (main) {
+    const e = main.e, left = ((main.on ? Date.parse(e.ends_at) : Date.parse(e.starts_at)) - now) / 1000;
+    html += `<div class="eb-main ${main.on ? 'on' : ''}" title="${escHtml(e.payload.desc || '')}"><b>🎉 ${escHtml(e.payload.title)}</b><span>${main.on ? '開催中！ のこり' : '開始まで あと'} <em>${fmtLeft(left)}</em></span></div>`;
+  }
+  for (const e of soon) {
+    const b = e.kind === 'boost' ? BOOSTS[e.payload.type] : null;
+    const name = b ? `${b.icon} ${b.name} ×${e.payload.mult}` : `🧬 ${e.payload.mut ? MUT_BY_ID[e.payload.mut]?.name : ''}変異イベント`;
+    html += `<div class="eb-sub">${name} まで あと <em>${fmtLeft((Date.parse(e.starts_at) - now) / 1000)}</em></div>`;
+  }
+  if (html !== bannerSig) {
+    bannerSig = html;
+    $('eventBanner').innerHTML = html; $('eventBanner').classList.toggle('hidden', !html);
+    $('titleEvent').innerHTML = main ? html.replace(/eb-sub/g, 'eb-sub t') : '';
+    $('titleEvent').classList.toggle('hidden', !main);
+  }
+}
+$('eventBanner').addEventListener('click', () => {
+  const e = adminEvents.find(x => x.kind === 'event' && Date.parse(x.ends_at) > Date.now() && x.payload.desc);
+  if (e) toast(`🎉 ${escHtml(e.payload.title)}<br><small>${escHtml(e.payload.desc)}<br>${fmtWhen(e.starts_at)} 〜 ${fmtWhen(e.ends_at)}</small>`, { color: '#ffd23f', time: 5000 });
+});
 let boostSig = '';
 function updateBoosts() {
   const live = liveEvents('boost').filter(e => BOOSTS[e.payload.type]);
@@ -1479,6 +1520,13 @@ function updateBoosts() {
 }
 const eventSky = new THREE.Color(0x7a3cff);
 const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+// 長い残り時間: 「2日 03:12:45」「1:05:09」「12:30」
+function fmtLeft(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  const p = n => String(n).padStart(2, '0');
+  return d ? `${d}日 ${p(h)}:${p(m)}:${p(s)}` : h ? `${h}:${p(m)}:${p(s)}` : `${m}:${p(s)}`;
+}
 let rankTimer = 0, eventTimer = 0;
 let pumpkinOn = halloweenActive() && rainbowPumpkinTime().active;
 const seenEvents = new Set();
@@ -1515,6 +1563,7 @@ function updateEvent() {
   $('eventStat').classList.toggle('on', ev.active);
   $('sEvent').textContent = mmss(ev.left);
   updateBoosts();
+  updateEventBanner();
   $('sEventLabel').textContent = ev.active ? (ev.mut ? `${MUT_BY_ID[ev.mut].name}変異イベント中！` : '変異イベント中！') : '次の変異まで';
   if (ev.active !== eventOn) {
     eventOn = ev.active;
@@ -2967,18 +3016,18 @@ function renderBoostPick() {
 }
 $('boostPick').addEventListener('click', e => { const b = e.target.closest('[data-btype]'); if (!b) return; boostType = b.dataset.btype; renderBoostPick(); });
 renderBoostPick();
-const KIND_LABEL = { message: '📢 お知らせ', gift: '🎁 配布', mutation: '🧬 変異イベント', boost: '⚡ ブースト' };
+const KIND_LABEL = { message: '📢 お知らせ', gift: '🎁 配布', mutation: '🧬 変異イベント', boost: '⚡ ブースト', event: '🎉 イベント' };
 function renderAdminActive() {
   const list = adminEvents.filter(e => Date.parse(e.ends_at) > Date.now());
   $('admActive').innerHTML = list.length ? list.map(e => {
-    const left = Math.max(0, Math.round((Date.parse(e.ends_at) - Date.now()) / 60000));
     const future = Date.parse(e.starts_at) > Date.now();
-    const what = e.kind === 'message' ? escHtml(e.payload.text)
+    const what = e.kind === 'event' ? escHtml(e.payload.title)
+      : e.kind === 'message' ? escHtml(e.payload.text)
       : e.kind === 'gift' ? `${e.payload.mut ? MUT_BY_ID[e.payload.mut].name + '変異の' : ''}${CHAR_BY_ID[e.payload.char]?.name || e.payload.char}`
       : e.kind === 'boost' ? `${BOOSTS[e.payload.type]?.icon || ''} ${BOOSTS[e.payload.type]?.name || e.payload.type} ×${e.payload.mult}`
       : (e.payload.mut ? MUT_BY_ID[e.payload.mut].name : 'ランダム');
     return `<div class="adm-row ${future ? 'sched' : ''}"><span>${KIND_LABEL[e.kind]}</span><b>${what}</b>
-      <small>${future ? `⏰ ${fmtWhen(e.starts_at)} から` : `あと${left}分`}</small>
+      <small>${fmtWhen(e.starts_at)} 〜 ${fmtWhen(e.ends_at)}<br>${future ? `開始まで あと ${fmtLeft((Date.parse(e.starts_at) - Date.now()) / 1000)}` : `のこり ${fmtLeft((Date.parse(e.ends_at) - Date.now()) / 1000)}`}</small>
       <button class="btn sell" data-end="${e.id}">${future ? '取り消し' : '終了'}</button></div>`;
   }).join('') : '<p class="dex-sum">いま出しているものはありません</p>';
 }
@@ -2989,6 +3038,12 @@ function defaultAt() {
   if (d <= new Date()) d.setDate(d.getDate() + 1);
   const p = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+{
+  $('admEvStart').value = defaultAt();
+  const e = new Date(defaultAt()); e.setDate(e.getDate() + 1);
+  const p = n => String(n).padStart(2, '0');
+  $('admEvEnd').value = `${e.getFullYear()}-${p(e.getMonth() + 1)}-${p(e.getDate())}T${p(e.getHours())}:${p(e.getMinutes())}`;
 }
 document.querySelectorAll('#adminPanel .adm-when').forEach(w => {
   w.querySelector('.at').value = defaultAt();
@@ -3006,7 +3061,7 @@ async function postAdmin(kind, payload, minutes, start = null) {
   try {
     const r = await adminPost(ka?.token(), kind, payload, minutes, start);
     if (!r?.ok) {
-      const why = { auth: '管理者として確認できませんでした', rate: '短い時間に出しすぎです（1時間に30回まで）', text: 'メッセージは1〜120文字です', char: 'キャラが正しくありません', start: '予約は30日先までです' }[r?.reason] || 'うまく出せませんでした';
+      const why = { title: 'イベント名は1〜30文字です', type: 'ブーストの種類が正しくありません', mult: '倍率が正しくありません', auth: '管理者として確認できませんでした', rate: '短い時間に出しすぎです（1時間に30回まで）', text: 'メッセージは1〜120文字です', char: 'キャラが正しくありません', start: '予約は30日先までです' }[r?.reason] || 'うまく出せませんでした';
       toast(`⚠ ${why}`, { color: '#ff6b6b' }); return;
     }
     toast(start ? `⏰ ${fmtWhen(start)} に予約しました` : '✅ 全員に出しました', { color: '#7dff8a' });
@@ -3033,6 +3088,22 @@ $('adminPanel').addEventListener('click', async e => {
     const def = CHAR_BY_ID[gift.char], mut = gift.mut;
     if (!confirm(`${when.label}全員に「${mut ? MUT_BY_ID[mut].name + '変異の' : ''}${def.name}」を1体ずつ配りますか？`)) return;
     await postAdmin('gift', { char: def.id, mut, note: $('admGiftNote').value.trim() }, +$('admGiftMin').value, when.start);
+  } else if (k === 'event') {
+    const title = $('admEvTitle').value.trim(), desc = $('admEvDesc').value.trim();
+    const st = new Date($('admEvStart').value), en = new Date($('admEvEnd').value);
+    if (!title) return toast('イベント名を入れてください', { color: '#ff6b6b' });
+    if (isNaN(st) || isNaN(en) || en <= st) return toast('開始と終了の日時を正しく入れてください（終了は開始より後）', { color: '#ff6b6b' });
+    if (en <= new Date()) return toast('終了がもう過ぎています', { color: '#ff6b6b' });
+    const start = st > new Date() ? st : new Date();
+    const min = Math.round((en - start) / 60000);
+    if (min > 43200) return toast('イベントは最長30日までです', { color: '#ff6b6b' });
+    const boost = $('admEvBoost').value;
+    if (boost && min > 4320) return toast('ブーストをつけるときは最長3日までです', { color: '#ff6b6b' });
+    if (!confirm(`イベント「${title}」を作りますか？\n\n${fmtWhen(start.toISOString())} 〜 ${fmtWhen(en.toISOString())}${boost ? `\nブースト: ${$('admEvBoost').selectedOptions[0].text}` : ''}`)) return;
+    const s = st > new Date() ? st.toISOString() : null;
+    await postAdmin('event', { title, desc }, min, s);
+    if (boost) { const [type, mult] = boost.split(':'); await postAdmin('boost', { type, mult: +mult }, min, s); }
+    $('admEvTitle').value = ''; $('admEvDesc').value = '';
   } else if (k === 'boost') {
     const b = BOOSTS[boostType], mult = +$('admBoostMult').value, min = +$('admBoostMin').value;
     if (!confirm(`${when.label}全員に「${b.icon} ${b.name} ×${mult}」を${min >= 60 ? min / 60 + '時間' : min + '分'}かけますか？`)) return;

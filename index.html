@@ -7,22 +7,22 @@
 <meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
-<link rel="stylesheet" href="style.css?v=0.55">
+<link rel="stylesheet" href="style.css?v=0.56">
 <!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
 <script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <!-- 更新のたびに ?v= をバージョンに合わせて変える（古いJSがキャッシュされないように） -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "./js/data.js": "./js/data.js?v=0.55",
-  "./js/models.js": "./js/models.js?v=0.55",
-  "./js/input.js": "./js/input.js?v=0.55",
-  "./js/audio.js": "./js/audio.js?v=0.55",
-  "./js/ranking.js": "./js/ranking.js?v=0.55",
-  "./js/admin.js": "./js/admin.js?v=0.55",
-  "./js/backup.js": "./js/backup.js?v=0.55",
-  "./js/chat.js": "./js/chat.js?v=0.55",
-  "./js/friends.js": "./js/friends.js?v=0.55"
+  "./js/data.js": "./js/data.js?v=0.56",
+  "./js/models.js": "./js/models.js?v=0.56",
+  "./js/input.js": "./js/input.js?v=0.56",
+  "./js/audio.js": "./js/audio.js?v=0.56",
+  "./js/ranking.js": "./js/ranking.js?v=0.56",
+  "./js/admin.js": "./js/admin.js?v=0.56",
+  "./js/backup.js": "./js/backup.js?v=0.56",
+  "./js/chat.js": "./js/chat.js?v=0.56",
+  "./js/friends.js": "./js/friends.js?v=0.56"
 } }
 </script>
 </head>
@@ -66,6 +66,8 @@
   </div>
 </div>
 <div id="zoneLabel" class="hud"></div>
+<!-- 管理者のイベント（開催中の残り時間・開始までの時間） -->
+<div id="eventBanner" class="hud hidden"></div>
 <div id="adminMsg" class="hud hidden"><span>📢 管理者より</span><b id="adminMsgText"></b></div>
 <div id="toasts"></div>
 <div id="prompt" class="hud hidden"></div>
@@ -186,6 +188,18 @@
       <div class="adm-line adm-when"><span>いつ</span><select class="when"><option value="">今すぐ</option><option value="at">⏰ 予約する</option></select><input type="datetime-local" class="at hidden"></div>
       <button class="btn" data-adm="mutation">開始</button></div></div></div>
     <div class="card adm"><div class="info">
+      <h3>🎉 イベント（日付を指定）</h3>
+      <p class="dex-sum adm-note">開始前は「開始まで あと〇日」、開催中は「残り時間」がみんなの画面に出ます（最長30日）。ブーストを同じ期間でかけることもできます。</p>
+      <input id="admEvTitle" maxlength="30" placeholder="イベント名（例: 週末ラッキー祭り）">
+      <input id="admEvDesc" maxlength="100" placeholder="説明（なくてもOK・例: 運アップ×2！ みんなでレアキャラを集めよう）">
+      <div class="adm-line adm-dates"><label>開始 <input type="datetime-local" id="admEvStart"></label><label>終了 <input type="datetime-local" id="admEvEnd"></label></div>
+      <div class="adm-line"><label>同じ期間のブースト <select id="admEvBoost"><option value="">なし</option>
+        <option value="luck:2">🍀 運アップ ×2</option><option value="luck:3">🍀 運アップ ×3</option>
+        <option value="strength:2">💪 力アップ ×2</option><option value="strength:3">💪 力アップ ×3</option>
+        <option value="income:2">💰 稼ぎアップ ×2</option><option value="income:3">💰 稼ぎアップ ×3</option>
+        <option value="speed:1.3">👟 スピードアップ ×1.3</option><option value="speed:1.5">👟 スピードアップ ×1.5</option></select></label></div>
+      <button class="btn" data-adm="event">イベントを作る</button></div></div></div>
+    <div class="card adm"><div class="info">
       <h3>⚡ ブーストイベント（全員）</h3>
       <div class="boost-pick" id="boostPick">
         <button data-btype="luck" class="active">🍀 運アップ<small>レアなキャラが出やすい</small></button>
@@ -194,7 +208,7 @@
         <button data-btype="speed">👟 スピードアップ<small>走るのが速くなる</small></button>
       </div>
       <div class="adm-line"><label>倍率 <select id="admBoostMult"></select></label>
-        <label>時間 <select id="admBoostMin"><option value="10">10分</option><option value="15">15分</option><option value="30" selected>30分</option><option value="60">1時間</option><option value="120">2時間</option><option value="180">3時間</option></select></label>
+        <label>時間 <select id="admBoostMin"><option value="10">10分</option><option value="15">15分</option><option value="30" selected>30分</option><option value="60">1時間</option><option value="120">2時間</option><option value="180">3時間</option><option value="360">6時間</option><option value="720">12時間</option><option value="1440">1日</option><option value="2880">2日</option><option value="4320">3日</option></select></label>
       <div class="adm-line adm-when"><span>いつ</span><select class="when"><option value="">今すぐ</option><option value="at">⏰ 予約する</option></select><input type="datetime-local" class="at hidden"></div>
       <button class="btn" data-adm="boost">開始</button></div></div></div>
     <h3 class="adm-h">いま出しているもの・予約</h3>
@@ -202,7 +216,7 @@
     <h3 class="adm-h">🚫 不正チェック（ランキング保留中）</h3>
     <div id="admFlagged"></div>
     <p class="dex-sum">ありえない数字や増え方はサーバーが自動で保留にします。ランキングの 🚫 から手動で保留にもできます。</p>
-    <p class="dex-sum">※ 配布はキャラ1体を1人1回まで、変異イベントは最長10分まで、ブーストは×3（スピードは×1.5）・最長3時間まで（ゲームが壊れないよう、お金や力は配れません）</p>
+    <p class="dex-sum">※ 配布はキャラ1体を1人1回まで、変異イベントは最長10分まで、ブーストは×3（スピードは×1.5）・最長3日まで、イベントは最長30日まで（ゲームが壊れないよう、お金や力は配れません）</p>
   </div>
 </div>
 
@@ -303,7 +317,7 @@
       <div class="adm-line"><button id="backupBtn" class="btn">バックアップから復元</button><button id="backupNowBtn" class="btn store">今すぐバックアップ</button></div>
     </div>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.55</p>
+    <p class="version">v0.56</p>
   </div>
 </div>
 
@@ -335,6 +349,7 @@
       <li>💪 鍛える</li><li>🏏 打つ</li><li>👹 逃げる</li><li>💰 稼ぐ</li>
     </ul>
     <p class="online-title hidden" id="titleOnline"></p>
+    <div class="title-event hidden" id="titleEvent"></div>
     <p class="welcome hidden" id="titleWelcome"></p>
     <div class="title-card">
       <button id="startBtn"><span>▶ スタート</span></button>
@@ -350,10 +365,10 @@
       </a>
       <p class="ctrl" id="ctrlHint"></p>
     </div>
-    <p class="note">v0.55 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.56 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=0.55"></script>
+<script type="module" src="js/main.js?v=0.56"></script>
 </body>
 </html>
