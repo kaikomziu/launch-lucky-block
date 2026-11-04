@@ -2297,6 +2297,7 @@ const net = new Net({
   },
   onMessage: msg => onNetMessage(msg),
   onStatus: text => { netStatus = text; if (openPanel === 'friendPanel') renderFriends(); },
+  onHostLost: u => autoRejoin(u, 60000),   // ホストが再読み込みしたときなど → しばらくつなぎ直しを試す
 });
 let netStatus = '';
 let myFriendName = '';
@@ -2495,6 +2496,7 @@ $('friendBody').addEventListener('click', async e => {
   if (!b || b.disabled) return;
   const k = b.dataset.fr, u = b.dataset.u, t = kaToken();
   if (k === 'login') { unlockPointer(); window.KaAccount?.openPanel(); return; }
+  if (k === 'host' || k === 'close' || k === 'join') stopRejoin();   // 自分で操作したら自動のつなぎ直しはやめる
   if (k === 'host') { await net.host(); await loadFriends(true); }
   else if (k === 'close') { const wasHost = net.hosting; net.leave(); for (const r of [...remotes.keys()]) net.cb.onLeave(r); if (wasHost) await loadFriends(false); }
   else if (k === 'join') { await net.join(u); }
@@ -2505,9 +2507,48 @@ $('friendBody').addEventListener('click', async e => {
 $('hudFriendBtn').addEventListener('click', () => openPanelById('friendPanel'));
 // ログイン中は90秒ごとにフレンドの様子を確認（申請・部屋のバッジ用）。部屋を開いている間は「開いている」を更新し続ける
 setInterval(() => { if (!document.hidden && kaToken()) loadFriends(net.hosting ? true : null); }, 90000);
-setTimeout(() => { if (kaToken()) loadFriends(false); }, 3000);
-// ページを閉じるときは部屋も閉じる
-addEventListener('pagehide', () => { if (net.hosting && kaToken()) friendList(kaToken(), false, true).catch(() => {}); net.leave(); });
+// ---- 再読み込みしても一緒に遊び続ける ----
+// ページを離れるときに「ホストだった／だれの部屋にいた」をこのタブ（sessionStorage）に覚えておき、
+// 読み直したらすぐ部屋を開き直す・同じホストにつなぎ直す（タブを閉じたら忘れる）
+const MP_KEY = 'llb_mp_resume';
+let resumeMp = null;
+try { const r = JSON.parse(sessionStorage.getItem(MP_KEY) || 'null'); sessionStorage.removeItem(MP_KEY); if (r && Date.now() - r.at < 120000) resumeMp = r; } catch (e) { /* 使えない環境 */ }
+let rejoin = null;   // { host, until, timer }
+function stopRejoin() { if (rejoin) { clearInterval(rejoin.timer); rejoin = null; } }
+function autoRejoin(host, ms) {
+  stopRejoin();
+  if (!host) return;
+  toast(`🔄 ${escHtml(host)} の部屋につなぎ直しています…`, { color: '#9ad0ff' });
+  const r = rejoin = { host, until: Date.now() + ms, timer: 0 };
+  const tick = () => {
+    if (rejoin !== r) return;
+    if (net.connected && net.hostName === host) { stopRejoin(); return; }
+    if (Date.now() > r.until) { stopRejoin(); netStatus = 'つなぎ直せませんでした。フレンド画面からもう一度参加してね'; toast('⚠ つなぎ直せませんでした', { color: '#ff6b6b' }); if (openPanel === 'friendPanel') renderFriends(); return; }
+    if (kaToken() && !net.busy) net.join(host, 12000);
+  };
+  r.timer = setInterval(tick, 3000);
+  setTimeout(tick, 300);
+}
+async function resumeMultiplayer() {
+  const r = resumeMp; resumeMp = null;
+  // ログインの読み込みを少し待つ
+  for (let i = 0; i < 20 && !kaToken(); i++) await new Promise(res => setTimeout(res, 500));
+  if (!kaToken()) return loadFriends(false);
+  await loadFriends(null);
+  if (r.role === 'host') { await net.host(); await loadFriends(true); toast('🎮 部屋を開き直しました。フレンドが自動で戻ってきます', { color: '#7dff8a' }); }
+  else if (r.role === 'guest') autoRejoin(r.host, 60000);
+}
+if (resumeMp) setTimeout(resumeMultiplayer, 800);
+else setTimeout(() => { if (kaToken()) loadFriends(false); }, 3000);
+// ページを閉じるときは部屋も閉じる（再読み込みなら、読み直したあとすぐ開き直す）
+addEventListener('pagehide', () => {
+  try {
+    const role = net.hosting ? 'host' : (net.hostName || rejoin) ? 'guest' : '';
+    if (role) sessionStorage.setItem(MP_KEY, JSON.stringify({ role, host: net.hostName || rejoin?.host || '', at: Date.now() }));
+  } catch (e) { /* 使えない環境 */ }
+  if (net.hosting && kaToken()) friendList(kaToken(), false, true).catch(() => {});
+  net.leave();
+});
 
 // ---------- バックアップ ----------
 const hasProgress = sv => !!sv && (sv.stats?.collected > 0 || sv.rebirths > 0 || (sv.slots || []).some(Boolean));

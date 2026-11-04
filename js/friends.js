@@ -36,7 +36,7 @@ function waitIce(pc, ms = 4000) {
 }
 
 export class Net {
-  // cb: { getToken, onPeer(username, name), onLeave(username, name), onMessage(msg), onStatus(text) }
+  // cb: { getToken, onPeer(username, name), onLeave(username, name), onMessage(msg), onStatus(text), onHostLost(username) }
   constructor(cb) {
     this.cb = cb;
     this.peers = new Map();   // username -> { pc, dc, name }
@@ -57,11 +57,12 @@ export class Net {
   }
 
   // ---- フレンドの部屋に参加する ----
-  async join(username) {
+  // timeout: つながるまで待つ時間（自動でつなぎ直すときは短め）
+  async join(username, timeout = 30000) {
     if (this.busy) return;
     const pc = new RTCPeerConnection({ iceServers: ICE });
     const dc = pc.createDataChannel('game');
-    this.pending = { username, pc, dc, until: Date.now() + 30000 };
+    this.pending = { username, pc, dc, until: Date.now() + timeout };
     this.setupChannel(username, '', pc, dc);
     this.cb.onStatus?.('つないでいます…');
     try {
@@ -151,6 +152,7 @@ export class Net {
     if (this.hostName === username) {
       this.hostName = null;
       this.cb.onStatus?.('ホストとの接続が切れました');
+      this.cb.onHostLost?.(username);   // 自分から抜けたときは呼ばれない（leave で先に hostName を消すため）
     }
     this.cb.onLeave?.(username, p.name);
   }
