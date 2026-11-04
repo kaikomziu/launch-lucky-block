@@ -33,6 +33,7 @@ export const RARITIES = [
   { name: 'フェアリー',     color: 0xb6ff8a, css: '#b6ff8a', income: 8.54e23 },
   { name: 'ミラー',         color: 0xdfe8f5, css: '#dfe8f5', income: 5.98e24 },
   { name: 'ゴッドラック',   color: 0xffffff, css: 'rainbow', income: 4.19e25, fx: 0xffd23f },
+  { name: 'ネイチャー',     color: 0x6bdc4e, css: '#6bdc4e', income: 2.93e26 },
 ];
 // 3D演出・枠線に使う色（白いレア度は代わりの色）
 export const rarFx = r => RARITIES[r].fx ?? RARITIES[r].color;
@@ -120,6 +121,8 @@ export const ZONES = [
     boss: { name: '鏡の騎士', kind: 'mirrorknight', color: 0xdfe8f5, speed: 133, scale: 12.9 } },
   { name: 'ラッキー神殿', ground: 0xffe58a, alt: 0xffd966, sky: 0xfff2c4, deco: 'goldtemple',
     boss: { name: 'ラッキー大魔王', kind: 'demonlord', color: 0x3a0a4a, speed: 137, scale: 13.2 } },
+  { name: '自然', ground: 0x7ddc5a, alt: 0x6fcf4e, sky: 0xeefff2, deco: 'nature',
+    boss: { name: '自然の精霊王', kind: 'nature', color: 0x3fbf5a, speed: 141, scale: 13.5 } },
 ];
 
 // キャラクター（形状パラメータは models.js の buildCharacter で使う）
@@ -418,6 +421,15 @@ export const CHARACTERS = [
   { id: 'fukugami',  r: 31, name: '福の神さま',      mult: 1.4, shape: 'sphere', color: 0xffe082, accent: 0xd62828, extras: ['crown', 'mustache', 'belly'] },
   { id: 'kouunogami', r: 31, name: '幸運の神',       mult: 1.5, shape: 'cone',   color: 0xffd700, accent: 0xffffff, extras: ['halo', 'wings', 'tiara', 'glow'] },
   { id: 'luckyblockgod', r: 31, name: 'ラッキーブロックの神', mult: 3, shape: 'box', color: 0xffd23f, accent: 0xff3b3b, extras: ['crown', 'halo', 'orbit', 'rainbow', 'glow'], lowRate: true },
+
+  // ---- v0.45 で追加（自然） ----
+  { id: 'kusa',      r: 32, name: '草',   mult: 0.7, shape: 'dome',   color: 0x7ddc5a, accent: 0x3a9d23, extras: ['grassblades', 'blush'] },
+  { id: 'happa',     r: 32, name: '葉',   mult: 0.9, shape: 'egg',    color: 0x2fbf5a, accent: 0x111111, extras: ['veins'] },
+  { id: 'ki',        r: 32, name: '木',   mult: 1.1, shape: 'cyl',    color: 0xf0a860, accent: 0x2fbf5a, extras: ['canopy'] },
+  { id: 'mizu',      r: 32, name: '水',   mult: 1.2, shape: 'sphere', color: 0x2ec8d8, accent: 0x8a8a8a, extras: ['droptop', 'raincloud', 'blush'] },
+  { id: 'kaminari',  r: 32, name: '雷',   mult: 1.4, shape: 'box',    color: 0xffc21a, accent: 0xfff27a, extras: ['bigbolt', 'glow'] },
+  { id: 'honoo',     r: 32, name: '炎',   mult: 1.5, shape: 'egg',    color: 0xff7a2a, accent: 0xffc21a, extras: ['fireball', 'flame', 'glow'] },
+  { id: 'raien',     r: 32, name: '雷炎', mult: 3,   shape: 'egg',    color: 0xff7a2a, accent: 0xffc21a, extras: ['fireball', 'bigbolt', 'halo', 'glow'], lowRate: true },
 ];
 
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));

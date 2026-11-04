@@ -391,6 +391,31 @@ function decorate(type, x, z) {
       }
       break;
     }
+    case 'nature': {   // 自然: 大きな葉・稲妻・水の玉と雲・木・炎の玉
+      const pick = Math.floor(Math.random() * 5);
+      if (pick === 0) {   // 葉（黒い葉脈つき）
+        const lf = add(new THREE.SphereGeometry(1.4, 14, 10), mat(0x1fbf5a), 0, 2.4, 0); lf.scale.set(0.7, 1.4, 0.18); lf.rotation.z = (Math.random() - 0.5) * 0.6;
+        const v = mat(0x111111);
+        add(new THREE.BoxGeometry(0.1, 2.8, 0.06), v, 0, 2.4, 0.27).rotation.z = lf.rotation.z;
+        for (const y of [1.9, 2.8]) for (const s of [-1, 1]) { const l = add(new THREE.BoxGeometry(0.7, 0.1, 0.06), v, s * 0.3, y, 0.25); l.rotation.z = s * 0.5; }
+        add(new THREE.CylinderGeometry(0.06, 0.08, 1.2, 6), mat(0x1f8a3a), 0, 0.6, 0);
+      } else if (pick === 1) {   // 浮かぶ稲妻
+        const bt = new THREE.Group(); bt.position.y = 5 + Math.random() * 2; bt.scale.setScalar(1.7); g.add(bt);
+        [[0, 1.1, 0.5], [0.35, 0, -0.5], [0, -1.1, 0.5]].forEach(([x, y, r]) => { const s = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.6, 0.45), glow(0xffc21a)); s.position.set(x, y, 0); s.rotation.z = r; bt.add(s); });
+        spinners.push(bt);
+      } else if (pick === 2) {   // 水の玉と灰色の雲
+        add(new THREE.SphereGeometry(1.6, 16, 12), new THREE.MeshLambertMaterial({ color: 0x2ec8d8, emissive: 0x0a4a55 }), 0, 2.2, 0);
+        for (let k = 0; k < 6; k++) add(decoGeo.puff, mat(0x8a8a8a), -1.2 + (k % 3) * 0.9, 3.4 - Math.floor(k / 3) * 1.6, 0.9).scale.setScalar(0.45);
+      } else if (pick === 3) {   // 木（オレンジの幹と緑の葉）
+        add(new THREE.CylinderGeometry(0.35, 0.55, 3, 8), mat(0xf0a860), 0, 1.5, 0);
+        for (let k = 0; k < 3; k++) add(decoGeo.leaves, mat(k % 2 ? 0x1fbf5a : 0x2fd36a), (k - 1) * 0.9, 3.6 + (k % 2) * 0.6, 0).scale.setScalar(0.7);
+      } else {   // 炎の玉（オレンジに黄色い芯）
+        add(new THREE.SphereGeometry(1.6, 16, 12), new THREE.MeshLambertMaterial({ color: 0xff7a2a, emissive: 0xff5a00, emissiveIntensity: 0.6, transparent: true, opacity: 0.6 }), 0, 1.7, 0);   // 外側はすけて、中の黄色い芯が見える
+        add(new THREE.SphereGeometry(0.95, 14, 10), glow(0xffe066), 0, 1.6, 0);
+        for (let k = 0; k < 3; k++) add(new THREE.ConeGeometry(0.5, 1.4, 6), glow(0xff7a2a), (k - 1) * 0.7, 3.4, 0);
+      }
+      break;
+    }
     case 'icecastle': {   // 氷の塔と雪だるま
       if (Math.random() < 0.6) {
         const h = 5 + Math.random() * 5;

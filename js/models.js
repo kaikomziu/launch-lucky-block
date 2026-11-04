@@ -606,6 +606,26 @@ export function buildBoss(def) {
       legL = limb(-0.8, 2.6, 1.2, 2.6, chrome); legR = limb(0.8, 2.6, 1.2, 2.6, chrome);
       break;
     }
+    case 'nature': {   // 自然の精霊王（葉の体・稲妻の冠・水と炎の玉・まわる大きな葉）
+      const leaf = mat(def.color), leaf2 = mat(0x7ddc5a), bark = mat(0xf0a860);
+      add(B(3.2, 3.4, 2.2), leaf, 0, 4.4, 0);
+      for (let i = 0; i < 6; i++) add(new THREE.IcosahedronGeometry(0.7, 0), leaf2, -1.4 + (i % 3) * 1.4, 3.4 + Math.floor(i / 3) * 1.8, 1.0);
+      add(B(2.4, 2.2, 2.2), leaf2, 0, 7.1, 0);
+      eyes(7.2, 1.12, 0.5, 0.45, 0.3, glowMat(0xfff27a, 1.6));
+      const bolt = new THREE.Group(); bolt.position.set(0, 9.4, 0); inner.add(bolt);   // 稲妻の冠
+      const yl = glowMat(0xffc21a, 1.3);
+      [[0, 0.8, 0.5], [0.25, 0, -0.5], [0, -0.8, 0.5]].forEach(([x, y, r]) => { const s = add(B(0.35, 1.2, 0.35), yl, x, y, 0, bolt); s.rotation.z = r; });
+      const orbit = new THREE.Group(); orbit.position.y = 5.5; inner.add(orbit);   // まわりを回る大きな葉
+      for (let i = 0; i < 4; i++) { const a = i / 4 * Math.PI * 2; const l = add(S(0.9, 12, 8), leaf, Math.cos(a) * 4.2, Math.sin(a * 2) * 0.5, Math.sin(a) * 4.2, orbit); l.scale.set(1, 0.25, 1.8); }
+      anims.push(t => { orbit.rotation.y = t * 1.2; bolt.rotation.y = Math.sin(t * 2) * 0.5; yl.emissiveIntensity = 0.9 + Math.abs(Math.sin(t * 8)) * 0.8; });
+      armL = limb(-2.2, 5.6, 1, 3.2, bark); armR = limb(2.2, 5.6, 1, 3.2, bark);
+      const water = add(S(0.9, 14, 10), new THREE.MeshLambertMaterial({ color: 0x2ec8d8, emissive: 0x0a4a55, transparent: true, opacity: 0.9 }), 0, -3.8, 0, armL);   // 水の玉
+      const fire = add(S(0.9, 14, 10), glowMat(0xff7a2a, 1.1), 0, -3.8, 0, armR);   // 炎の玉
+      add(S(0.5, 10, 8), glowMat(0xffc21a, 1.4), 0, -3.8, 0.45, armR);
+      anims.push(t => { water.scale.setScalar(1 + Math.sin(t * 4) * 0.08); fire.scale.setScalar(1 + Math.abs(Math.sin(t * 7)) * 0.15); });
+      legL = limb(-0.9, 2.6, 1.2, 2.6, bark); legR = limb(0.9, 2.6, 1.2, 2.6, bark);
+      break;
+    }
     case 'demonlord': {   // ラッキー大魔王（角・羽・王冠・幸運の宝石）
       const robe = mat(def.color), gold = glowMat(0xffd23f, 0.6);
       add(B(3.6, 3.6, 2.4), robe, 0, 4.6, 0);
@@ -766,6 +786,7 @@ export function buildCharacter(def, mut = null) {
 
   const top = S.top;
   const add = (m, x, y, z) => { m.position.set(x, y, z); g.add(m); return m; };
+  const am = (geo, m, x, y, z) => add(new THREE.Mesh(geo, m), x, y, z);   // 形と色からパーツを作って置く
 
   for (const ex of def.extras) {
     switch (ex) {
@@ -1044,6 +1065,46 @@ export function buildCharacter(def, mut = null) {
           add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 10), body), Math.cos(a) * 0.95, 0.8 + (i % 2) * 0.25, Math.sin(a) * 0.55 - 0.15);
         }
         break;
+      case 'canopy': {   // 木: 頭の上に大きな葉っぱのかたまり
+        const lf = mat(def.accent), lf2 = mat(0x7ddc5a);
+        for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; const c = am(new THREE.IcosahedronGeometry(0.8, 0), i % 2 ? lf : lf2, Math.cos(a) * 0.7, top + 0.6 + (i % 2) * 0.3, Math.sin(a) * 0.7); c.rotation.set(i, i * 2, 0); }
+        am(new THREE.IcosahedronGeometry(0.9, 0), lf, 0, top + 1.2, 0);
+        break;
+      }
+      case 'grassblades':   // 草: 上に細い草がたくさん
+        for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; const b = am(new THREE.ConeGeometry(0.12, 1.1, 4), mat(i % 2 ? def.accent : 0x9be15d), Math.cos(a) * 0.5, top + 0.4, Math.sin(a) * 0.5); b.rotation.set(Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35); anims.push(time => { b.rotation.z = -Math.cos(a) * 0.35 + Math.sin(time * 3 + i) * 0.12; }); }
+        break;
+      case 'veins': {   // 葉: 葉脈（くろい線）と茎
+        const v = mat(def.accent);
+        am(new THREE.BoxGeometry(0.06, 1.8, 0.05), v, 0, 1.3, S.front + 0.02).rotation.z = 0.15;
+        for (const y of [0.9, 1.5]) for (const s of [-1, 1]) { const l = am(new THREE.BoxGeometry(0.5, 0.06, 0.05), v, s * 0.25, y, S.front - 0.02); l.rotation.z = s * 0.5; }
+        am(new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6), mat(0x1f8a3a), 0, top + 0.3, 0);
+        break;
+      }
+      case 'droptop': {   // 水: しずくの先っぽと、まわりの泡
+        am(new THREE.ConeGeometry(0.75, 1.3, 16), body, 0, top + 0.25, 0);
+        const bub = new THREE.Group(); bub.position.y = top * 0.5; g.add(bub);
+        for (let i = 0; i < 5; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), new THREE.MeshLambertMaterial({ color: 0xc8f7ff, transparent: true, opacity: 0.7 })); const a = i / 5 * Math.PI * 2; b.position.set(Math.cos(a) * 1.3, 0, Math.sin(a) * 1.3); bub.add(b); }
+        anims.push(time => { bub.rotation.y = time * 1.2; bub.children.forEach((b, i) => { b.position.y = ((time * 0.5 + i * 0.3) % 1.6) - 0.8; }); });
+        break;
+      }
+      case 'raincloud': {   // 水: 灰色の雲がくっついている
+        const cl = mat(def.accent);
+        for (let i = 0; i < 4; i++) am(new THREE.SphereGeometry(0.42, 10, 8), cl, -0.9 + (i % 2) * 0.3, 1.6 - i * 0.35, -0.2 + (i % 3) * 0.3);
+        break;
+      }
+      case 'bigbolt': {   // 雷: 頭の上に大きな稲妻
+        const y = glowMat(0xffc21a, 1.2);
+        const bt = new THREE.Group(); bt.position.y = top + 1.0; g.add(bt);
+        [[0, 0.55, 0.5], [0.18, 0, -0.5], [0, -0.55, 0.5]].forEach(([x, yy, r]) => { const s = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.8, 0.22), y); s.position.set(x, yy, 0); s.rotation.z = r; bt.add(s); });
+        anims.push(time => { bt.rotation.y = Math.sin(time * 2) * 0.4; y.emissiveIntensity = 0.8 + Math.abs(Math.sin(time * 9)) * 0.8; });
+        break;
+      }
+      case 'fireball': {   // 炎: 体の中に光る黄色い芯
+        const core = am(new THREE.SphereGeometry(0.42, 14, 10), glowMat(def.accent, 1.3), 0, 0.75, S.front - 0.2);
+        anims.push(time => core.scale.setScalar(0.9 + Math.abs(Math.sin(time * 6)) * 0.25));
+        break;
+      }
       case 'stripes':   // サーモンの白いすじ
         for (let i = 0; i < 4; i++) { const s = add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.34, 1.62), mat(0xffe3d1)), -0.75 + i * 0.5, 1.17, 0); s.rotation.y = 0.4; }
         break;
