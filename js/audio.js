@@ -58,3 +58,26 @@ export function stopLoop(name) {
   try { loops[name].stop(); } catch (e) { /* 既に停止済み */ }
   delete loops[name];
 }
+
+// かんたんなメロディ（notes: [MIDI番号 or null(休み), 拍] の並び）
+export function playTune(notes, bpm = 120, vol = 0.22) {
+  if (!ctx) return;
+  const beat = 60 / bpm;
+  let t = ctx.currentTime + 0.05;
+  for (const [n, len] of notes) {
+    const d = len * beat;
+    if (n != null) {
+      const f = 440 * Math.pow(2, (n - 69) / 12);
+      for (const [type, mul, v] of [['triangle', 1, 1], ['sine', 2, 0.25]]) {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = type; o.frequency.value = f * mul;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * v, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, t + Math.max(0.15, d * 0.95));
+        o.connect(g).connect(master);
+        o.start(t); o.stop(t + d + 0.05);
+      }
+    }
+    t += d;
+  }
+}

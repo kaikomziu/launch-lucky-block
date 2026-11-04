@@ -8,7 +8,7 @@ import {
   BOSS_ACCEL, BOSS_ACCEL_MAX, BOSS_DASH_EVERY, BOSS_DASH_TIME, BOSS_DASH_MULT,
 } from './data.js';
 import { buildPlayer, buildBoss, buildLuckyBlock, buildCharacter, textTexture, mat } from './models.js';
-import { initAudio, play, startLoop, stopLoop, setVolume } from './audio.js';
+import { initAudio, play, startLoop, stopLoop, setVolume, playTune } from './audio.js';
 import { input, initInput, pollInput, lockPointer, unlockPointer } from './input.js';
 import { GENRES, submitScore, fetchRanking, fetchMine, ping } from './ranking.js';
 import { fetchEvents, adminCheck, adminPost, adminEnd, adminFlagged, adminSetFlag, adminSetTrust, adminTrusted } from './admin.js';
@@ -81,6 +81,8 @@ function sanitizeSave(s) {
   const fixChar = x => { x.star = int(x.star, 1, MAX_STAR); if (x.mut && !MUT_BY_ID[x.mut]) delete x.mut; return x; };
   s.slots = s.slots.slice(0, SLOT_COUNT).map(x => (x ? fixChar(x) : null));
   s.inventory = s.inventory.slice(0, 2000).map(fixChar);
+  if (s.bday && typeof s.bday === 'object') s.bday = { m: int(s.bday.m, 1, 12), d: int(s.bday.d, 1, 31) }; else delete s.bday;
+  if (s.bdayYear !== undefined) s.bdayYear = int(s.bdayYear, 0, 9999);
   if (s.dex && typeof s.dex === 'object') for (const e of Object.values(s.dex)) if (e && e.muts) for (const m of Object.keys(e.muts)) if (!MUT_BY_ID[m]) delete e.muts[m];
   return s;
 }
@@ -804,6 +806,31 @@ function burst(pos, color, n = 30, power = 12) {
     spawnParticle(pos, v, color, 0.7 + Math.random() * 0.6, 0.25 + Math.random() * 0.4);
   }
 }
+// ---- 花火（打ち上げて、空で開く） ----
+const rockets = [];
+const FW_COLORS = [0xff4fa3, 0xffd23f, 0x4fc3ff, 0x7dff8a, 0xb388ff, 0xff7043, 0xffffff];
+function firework(x, z, color = FW_COLORS[Math.random() * FW_COLORS.length | 0]) {
+  const m = new THREE.Mesh(partGeo, new THREE.MeshBasicMaterial({ color }));
+  m.scale.setScalar(0.4); m.position.set(x, 1, z); scene.add(m);
+  rockets.push({ m, color, t: 0.85 + Math.random() * 0.45, vel: new THREE.Vector3((Math.random() - 0.5) * 3, 17 + Math.random() * 4, (Math.random() - 0.5) * 3) });
+}
+function updateRockets(dt) {
+  for (let i = rockets.length - 1; i >= 0; i--) {
+    const r = rockets[i];
+    r.t -= dt; r.vel.y -= 12 * dt;
+    r.m.position.addScaledVector(r.vel, dt);
+    if (Math.random() < 0.6) spawnParticle(r.m.position, new THREE.Vector3(0, -2, 0), 0xffe9a8, 0.35, 0.18, 0);
+    if (r.t > 0) continue;
+    scene.remove(r.m); r.m.material.dispose(); rockets.splice(i, 1);
+    // 球の形に広がる
+    const c2 = FW_COLORS[Math.random() * FW_COLORS.length | 0];
+    for (let k = 0; k < 64; k++) {
+      const v = new THREE.Vector3(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1).normalize().multiplyScalar(11 + Math.random() * 4);
+      spawnParticle(r.m.position, v, k % 4 ? r.color : c2, 1.1 + Math.random() * 0.7, 0.3 + Math.random() * 0.3, 5);
+    }
+    play('hit', { vol: 0.16, rate: 0.5 + Math.random() * 0.25 });
+  }
+}
 function updateParticles(dt) {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
@@ -1306,6 +1333,7 @@ function update(dt) {
   if (flight.pillar) flight.pillar.material.opacity = 0.25 + Math.sin(elapsed * 5) * 0.1;
   if (teeBlock.visible) { teeBlock.rotation.y += dt; teeBlock.position.y = TEE_POS.y + 0.8 + Math.sin(elapsed * 2) * 0.08; }
 
+  updateRockets(dt); updateBirthday(dt);
   updateParticles(dt);
   updateCamera(dt);
   updateSky(dt);
@@ -1459,10 +1487,11 @@ const BOOSTS = {
   speed:    { icon: '👟', name: 'スピードアップ', desc: '走るのが速くなる' },
 };
 function boostMult(type) {
-  let m = 1;
+  let m = type === 'luck' && bdayOn ? 2 : 1;   // 誕生日は一日じゅう運×2
   for (const e of liveEvents('boost')) if (e.payload.type === type) m = Math.max(m, Math.min(type === 'speed' ? 1.5 : 3, +e.payload.mult || 1));
   return m;
 }
+let bdayOn = false;   // 今日が誕生日か（checkBirthday で更新）
 const seenBoosts = new Set();
 // ---------- 管理者のイベント（日付つき）: 開始まで／残り時間をみんなに出す ----------
 const seenPeriod = new Set();
@@ -1515,7 +1544,7 @@ function updateBoosts() {
     play('evolve');
     toast(`⚡ ブーストイベント開始！ ${b.icon} ${b.name} ×${e.payload.mult}<br><small>${b.desc}</small>`, { color: '#ffd23f', big: true, time: 4000 });
   }
-  const html = live.map(e => {
+  const html = (bdayOn ? '<div class="stat boost bday"><span class="ico">🎂</span><b>誕生日</b><small>運アップ ×2</small></div>' : '') + live.map(e => {
     const b = BOOSTS[e.payload.type];
     const left = Math.max(0, Math.ceil((Date.parse(e.ends_at) - Date.now()) / 1000));
     return `<div class="stat boost"><span class="ico">${b.icon}</span><b>${mmss(left)}</b><small>${b.name} ×${e.payload.mult}</small></div>`;
@@ -1703,6 +1732,7 @@ function renderPanels() {
   if (openPanel === 'skinPanel') renderSkins();
   if (openPanel === 'dailyPanel') renderDaily();
   if (openPanel === 'loginPanel') renderLogin();
+  if (openPanel === 'bdayPanel') renderBday();
   if (openPanel === 'tradePanel') renderTrade();
   if (openPanel === 'backupPanel') renderBackups();
   if (openPanel === 'chatPanel') openChat();
@@ -1711,6 +1741,7 @@ function renderPanels() {
   if (openPanel === 'settingsPanel') {
     $('nameInput').value = save.name;
     $('volInput').value = save.volume;
+    renderBdayField();
   }
 }
 
@@ -2075,6 +2106,8 @@ function applySkin() {
   scene.remove(player.group);
   Object.assign(player, np);
   scene.add(player.group);
+  player.hat = null;
+  if (bdayOn) setPartyHat(player, true, SKIN_BY_ID[save.skin]);
 }
 function renderSkins() {
   const st = skinStats();
@@ -2280,6 +2313,248 @@ function maybeLoginBonus(tries = 0) {
   openPanelById('loginPanel');
 }
 ensureDaily(); updateDailyBadge();
+
+// ---------- 誕生日 ----------
+// 設定で月日を決めておくと、その日は一日じゅうお祝い（とんがり帽子・拠点の飾り・花火・運×2）。プレゼントは1年に1回
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+function isBirthday(now = new Date()) {
+  const b = save.bday;
+  if (!b) return false;
+  let d = b.d;
+  const y = now.getFullYear();
+  if (b.m === 2 && d === 29 && !(y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0))) d = 28;   // 2/29 生まれは、うるう年でなければ 2/28 にお祝い
+  return now.getMonth() + 1 === b.m && now.getDate() === d;
+}
+function daysToBirthday() {
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  for (let i = 0; i <= 366; i++) { const t = new Date(now); t.setDate(now.getDate() + i); if (isBirthday(t)) return i; }
+  return -1;
+}
+const remoteLabel = r => `<div class="n">${r.bd ? '🎂' : '👥'} ${escHtml(r.name)}</div>${r.bd ? '<div class="bd-tag">HAPPY BIRTHDAY!</div>' : ''}`;
+
+// とんがり帽子（しま模様）
+let hatTex = null;
+function partyHat(sk) {
+  if (!hatTex) {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+    const x = c.getContext('2d'), cols = ['#ff4fa3', '#ffd23f', '#4fc3ff', '#7dff8a'];
+    for (let i = 0; i < 8; i++) { x.fillStyle = cols[i % 4]; x.fillRect(0, i * 8, 64, 8); }
+    hatTex = new THREE.CanvasTexture(c); hatTex.colorSpace = THREE.SRGBColorSpace;
+  }
+  const g = new THREE.Group();
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.25, 16), new THREE.MeshLambertMaterial({ map: hatTex }));
+  cone.position.y = 0.62; cone.castShadow = true; g.add(cone);
+  const pom = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x666666 }));
+  pom.position.y = 1.3; g.add(pom);
+  // 帽子・王冠などがあるスキンは、その上にのせる
+  g.position.set(0.12, sk?.hat && sk.hat !== 'headband' ? 5.55 : 5.18, 0); g.rotation.z = -0.18;
+  return g;
+}
+function setPartyHat(p, on, sk) {
+  if (p.hat) { p.group.remove(p.hat); p.hat = null; }
+  if (on) { p.hat = partyHat(sk); p.group.add(p.hat); }
+}
+
+// 拠点の飾り（大きなケーキ・看板・風船）
+let bdayDeco = null;
+const balloons = [], candleFlames = [];
+function buildBdayDeco() {
+  const g = new THREE.Group();
+  const cake = new THREE.Group(); cake.position.set(7, 0, -4);
+  const tiers = [[2.2, 1.3, 0xffc1dc], [1.65, 1.1, 0xfffaf0], [1.1, 0.9, 0xff8fc8]];
+  let y = 0;
+  for (const [r, h, c] of tiers) {
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 28), mat(c)); t.position.y = y + h / 2; t.castShadow = true; cake.add(t);
+    const icing = new THREE.Mesh(new THREE.TorusGeometry(r, 0.12, 6, 28), mat(0xffffff)); icing.rotation.x = Math.PI / 2; icing.position.y = y + h; cake.add(icing);
+    y += h;
+  }
+  for (let i = 0; i < 8; i++) {   // いちご
+    const a = i / 8 * Math.PI * 2;
+    const s = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), mat(0xe8213a)); s.position.set(Math.cos(a) * 1.9, 1.45, Math.sin(a) * 1.9); cake.add(s);
+  }
+  const flameMat = new THREE.MeshBasicMaterial({ color: 0xffc94a });
+  for (let i = 0; i < 5; i++) {   // ろうそく
+    const a = i / 5 * Math.PI * 2;
+    const cd = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.8, 8), mat(FW_COLORS[i] ?? 0xffffff)); cd.position.set(Math.cos(a) * 0.6, y + 0.4, Math.sin(a) * 0.6); cake.add(cd);
+    const f = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.32, 8), flameMat); f.position.set(cd.position.x, y + 0.98, cd.position.z); cake.add(f); candleFlames.push(f);
+  }
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(8, 1.8),
+    new THREE.MeshBasicMaterial({ map: textTexture('🎂 HAPPY BIRTHDAY! 🎉', { bg: '#ff4fa3', fg: '#fff', font: 'bold 58px sans-serif' }), side: THREE.DoubleSide }));
+  sign.position.set(0, y + 3.4, 0); sign.rotation.y = Math.PI; cake.add(sign);
+  g.add(cake);
+  // 風船
+  const spots = [[-19, -3], [19, -3], [-19, -16], [19, -16], [-19, -30], [19, -30], [-19, -44], [19, -44], [4, -2], [10, -2], [-6, -27], [6, -27]];
+  spots.forEach(([x, z], i) => {
+    const b = new THREE.Group(); b.position.set(x, 0, z);
+    const col = FW_COLORS[i % 6];
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.9, 14, 10), new THREE.MeshLambertMaterial({ color: col, emissive: col, emissiveIntensity: 0.15 }));
+    ball.scale.y = 1.18; ball.position.y = 6; b.add(ball);
+    const knot = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.25, 6), mat(col)); knot.position.y = 4.85; knot.rotation.x = Math.PI; b.add(knot);
+    const str = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 4.8, 4), mat(0xffffff)); str.position.y = 2.4; b.add(str);
+    b.userData.ph = Math.random() * 6.28; g.add(b); balloons.push(b);
+  });
+  scene.add(g);
+  return g;
+}
+let fwTimer = 3, fwQueue = [];
+function bdayFireworks(n, ms) {
+  for (let i = 0; i < n; i++) fwQueue.push(performance.now() + Math.random() * ms);
+}
+function updateBirthday(dt) {
+  if (fwQueue.length) {
+    const now = performance.now();
+    fwQueue = fwQueue.filter(t => {
+      if (t > now) return true;
+      firework(pState.pos.x + (Math.random() - 0.5) * 40, Math.min(pState.pos.z, BASE_LINE) + 12 + Math.random() * 22);
+      return false;
+    });
+  }
+  if (!bdayOn || !bdayDeco) return;
+  for (const b of balloons) { const p = b.userData.ph; b.position.y = Math.sin(elapsed * 1.3 + p) * 0.35; b.rotation.z = Math.sin(elapsed * 0.9 + p) * 0.08; }
+  for (const f of candleFlames) f.scale.set(1, 0.85 + Math.random() * 0.35, 1);
+  // 拠点にいるあいだは、ときどき花火が上がる
+  if (pState.pos.z < BASE_LINE + 8 && (fwTimer -= dt) <= 0) {
+    fwTimer = 5 + Math.random() * 5;
+    bdayFireworks(2 + (Math.random() * 2 | 0), 1500);
+  }
+}
+
+// 紙吹雪（画面の上に重ねる 2D）
+const cfCanvas = $('bdayConfetti'), cfCtx = cfCanvas.getContext('2d');
+const CF_COLORS = ['#ff4fa3', '#ffd23f', '#4fc3ff', '#7dff8a', '#b388ff', '#ff7043', '#ffffff'];
+let cfParts = [], cfRunning = false;
+function confetti(n, fromBottom = false) {
+  const W = innerWidth, H = innerHeight;
+  for (let i = 0; i < n; i++) {
+    cfParts.push(fromBottom
+      ? { x: W / 2 + (Math.random() - 0.5) * W * 0.25, y: H * 0.7, vx: (Math.random() - 0.5) * 22, vy: -(12 + Math.random() * 16) }
+      : { x: Math.random() * W, y: -20 - Math.random() * H * 0.6, vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random() * 3 });
+    Object.assign(cfParts[cfParts.length - 1], { w: 7 + Math.random() * 7, h: 10 + Math.random() * 8, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3, flip: Math.random() * 6, c: CF_COLORS[Math.random() * CF_COLORS.length | 0] });
+  }
+  if (cfParts.length > 900) cfParts.splice(0, cfParts.length - 900);
+  if (!cfRunning) { cfRunning = true; cfCanvas.classList.remove('hidden'); requestAnimationFrame(cfLoop); }
+}
+function cfLoop() {
+  const W = innerWidth, H = innerHeight;
+  if (cfCanvas.width !== W || cfCanvas.height !== H) { cfCanvas.width = W; cfCanvas.height = H; }
+  cfCtx.clearRect(0, 0, W, H);
+  for (const p of cfParts) {
+    p.vy = Math.min(p.vy + 0.35, 4.5); p.vx *= 0.985;
+    p.flip += 0.12; p.rot += p.vr;
+    p.x += p.vx + Math.sin(p.flip) * 0.8; p.y += p.vy;
+    cfCtx.save(); cfCtx.translate(p.x, p.y); cfCtx.rotate(p.rot); cfCtx.scale(1, Math.cos(p.flip));
+    cfCtx.fillStyle = p.c; cfCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); cfCtx.restore();
+  }
+  cfParts = cfParts.filter(p => p.y < H + 30);
+  if (cfParts.length) requestAnimationFrame(cfLoop);
+  else { cfRunning = false; cfCtx.clearRect(0, 0, W, H); cfCanvas.classList.add('hidden'); }
+}
+
+// ハッピーバースデーのメロディ（作者不明の古い曲）
+const HB_TUNE = [[67, .75], [67, .25], [69, 1], [67, 1], [72, 1], [71, 2], [67, .75], [67, .25], [69, 1], [67, 1], [74, 1], [72, 2],
+  [67, .75], [67, .25], [79, 1], [76, 1], [72, 1], [71, 1], [69, 2], [77, .75], [77, .25], [76, 1], [72, 1], [74, 1], [72, 3]];
+
+// お祝いの画面
+let bdayBlown = false, bdayGiftHtml = '';
+const thisYear = () => new Date().getFullYear();
+function openBirthday() {
+  bdayBlown = false;
+  openPanelById('bdayPanel');
+  playTune(HB_TUNE, 132);
+  confetti(160);
+}
+function renderBday() {
+  const got = save.bdayYear === thisYear();
+  const hb = [...'HAPPY BIRTHDAY'].map((c, i) => c === ' ' ? '<i class="sp"></i>' : `<span style="--i:${i}">${c}</span>`).join('');
+  $('bdayBody').innerHTML = `
+    <div class="bd-hb">${hb}</div>
+    <p class="bd-to"><b>${escHtml(playerName())}</b> さん、お誕生日おめでとう！ 🎉</p>
+    <div class="bd-cake ${bdayBlown ? 'blown' : ''}"><div class="bd-candles">${'<i><b></b></i>'.repeat(5)}</div><div class="bd-emoji">🎂</div></div>
+    ${bdayBlown
+      ? (bdayGiftHtml ? `<div class="bd-gifts"><h3>🎁 誕生日プレゼント</h3>${bdayGiftHtml}</div>` : '<p class="bd-hint">🎁 今年のプレゼントは受け取り済み（1年に1回）。今日は一日じゅう 🍀運×2！</p>')
+      : `<p class="bd-hint">${got ? 'ろうそくを吹き消してね！' : 'ろうそくを吹き消すと、プレゼントがもらえるよ！'}</p>`}
+    <button class="btn bd-btn" id="bdBlow">${bdayBlown ? '🎉 ありがとう！' : '🌬️ ろうそくを吹き消す'}</button>`;
+}
+$('bdayBody').addEventListener('click', e => {
+  if (!e.target.closest('#bdBlow')) return;
+  if (bdayBlown) { closePanels(); lockPointer(); return; }
+  bdayBlown = true;
+  play('evolve');
+  confetti(260, true); setTimeout(() => confetti(200), 600);
+  bdayFireworks(24, 9000);
+  if (save.bdayYear !== thisYear() && bdayOn) {
+    save.bdayYear = thisYear();
+    const v = loginMoney(180), st = loginStrength(60);
+    save.money += v; save.stats.totalEarned += v; save.strength += st;
+    const def = giveZoneChar('galaxy');
+    bdayGiftHtml = `<div class="bd-gift"><span>🌌</span><b>ギャラクシー変異の ${escHtml(def.name)}</b><small>${RARITIES[def.r].name}・稼ぎ ×5（インベントリへ）</small></div>
+      <div class="bd-gift"><span>💰</span><b>$${fmt(v)}</b><small>稼ぎ3時間ぶん</small></div>
+      <div class="bd-gift"><span>💪</span><b>力 +${fmt(st)}</b><small>1時間ぶん</small></div>
+      <div class="bd-gift"><span>🍀</span><b>運アップ ×2</b><small>今日は一日じゅう</small></div>`;
+    toast('🎁 誕生日プレゼントを受け取った！', { color: '#ff8fd0', big: true, time: 3500 });
+    updateHud(); writeSave();
+  }
+  renderBday();
+});
+// スタートしたときのお祝い（今年まだなら画面を開く。もう開いていたら花火だけ）
+function maybeBirthday(tries = 0) {
+  if (!bdayOn || !$('title').classList.contains('hidden')) return;
+  if (save.bdayYear === thisYear()) {
+    toast('🎂 お誕生日おめでとう！ 今日は一日じゅう 🍀運×2', { color: '#ff8fd0', big: true, time: 4000 });
+    confetti(140); bdayFireworks(8, 4000);
+    return;
+  }
+  if (openPanel || state !== 'free') { if (tries < 20) setTimeout(() => maybeBirthday(tries + 1), 3000); return; }
+  openBirthday();
+}
+// 誕生日になった・終わった（0時をまたいだとき・設定を変えたとき）
+function checkBirthday() {
+  const on = isBirthday();
+  if (on === bdayOn) return;
+  bdayOn = on;
+  setPartyHat(player, on, SKIN_BY_ID[save.skin]);
+  if (on && !bdayDeco) bdayDeco = buildBdayDeco();
+  if (bdayDeco) bdayDeco.visible = on;
+  $('titleBday').classList.toggle('hidden', !on);
+}
+checkBirthday();
+setInterval(() => {
+  const was = bdayOn;
+  checkBirthday();
+  if (!was && bdayOn) maybeBirthday();   // 遊んでいるうちに誕生日になった
+}, 60000);
+
+// 設定の誕生日の欄
+const bdM = $('bdayM'), bdD = $('bdayD');
+bdM.innerHTML = '<option value="">--</option>' + Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+function fillBdayDays() {
+  const n = DAYS_IN_MONTH[(+bdM.value || 1) - 1], cur = +bdD.value;
+  bdD.innerHTML = '<option value="">--</option>' + Array.from({ length: n }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+  if (cur && cur <= n) bdD.value = String(cur);
+}
+function renderBdayField() {
+  bdM.value = save.bday ? String(save.bday.m) : '';
+  fillBdayDays();
+  bdD.value = save.bday ? String(save.bday.d) : '';
+  const left = save.bday ? daysToBirthday() : -1;
+  $('bdayNote').textContent = !save.bday ? '月と日を選ぶと、誕生日にお祝いとプレゼントがあります（プレゼントは1年に1回）'
+    : bdayOn ? '🎂 今日が誕生日！ おめでとう！' : `次の誕生日まで あと ${left} 日`;
+  $('bdayAgain').hidden = !bdayOn;
+}
+function onBdayChange() {
+  fillBdayDays();
+  const m = +bdM.value, d = +bdD.value;
+  if (m && d) save.bday = { m, d }; else delete save.bday;
+  writeSave();
+  const was = bdayOn;
+  checkBirthday();
+  renderBdayField();
+  if (!was && bdayOn && save.bdayYear !== thisYear()) openBirthday();   // 今日を選んだら、その場でお祝い
+}
+bdM.addEventListener('change', onBdayChange);
+bdD.addEventListener('change', onBdayChange);
+$('bdayAgain').addEventListener('click', openBirthday);
+
 // 日付が変わったら新しいクエストに
 setInterval(() => { if (save.daily?.day !== todayKey()) { ensureDaily(); updateDailyBadge(); if (openPanel === 'dailyPanel') renderDaily(); } }, 60000);
 
@@ -2580,9 +2855,9 @@ function sendParty(text) {
 function showSay(u, name, text) {
   const r = remotes.get(u);
   if (!r) return;
-  setLabel(r.label, `<div class="n">👥 ${escHtml(name)}</div><div class="say">${escHtml(text)}</div>`);
+  setLabel(r.label, `<div class="n">${r.bd ? '🎂' : '👥'} ${escHtml(name)}</div><div class="say">${escHtml(text)}</div>`);
   clearTimeout(r.sayTimer);
-  r.sayTimer = setTimeout(() => { r.sayTimer = null; setLabel(r.label, `<div class="n">👥 ${escHtml(r.name)}</div>`); }, 6000);
+  r.sayTimer = setTimeout(() => { r.sayTimer = null; setLabel(r.label, remoteLabel(r)); }, 6000);
 }
 
 // ---------- 取引（一緒に遊んでいるフレンドとキャラを交換。WebRTC で直接やりとり） ----------
@@ -2802,6 +3077,7 @@ function onNetMessage(m) {
       np.group.position.copy(r.p.group.position);
       if (r.carry) np.carry.add(r.carry);
       scene.remove(r.p.group); scene.add(np.group); r.p = np; r.sk = m.sk;
+      if (r.bd) setPartyHat(r.p, true, SKIN_BY_ID[m.sk]);
     }
     const cid = typeof m.c === 'string' && CHAR_BY_ID[m.c] ? m.c + ':' + (MUT_BY_ID[m.cm] ? m.cm : '') : '';
     if (cid !== r.carryId) {   // 持っているキャラが変わった
@@ -2812,7 +3088,17 @@ function onNetMessage(m) {
     r.rawX = +m.x || 0; r.rawZ = +m.z || 0;
     r.tgt.set(r.rawX + (r.rawZ < BASE_LINE ? baseX(m.u) : 0), 0, r.rawZ); r.tf = +m.f || 0; r.last = performance.now();
     const nm = String(m.n || m.u).slice(0, 16);
-    if (nm !== r.name) { r.name = nm; if (!r.sayTimer) setLabel(r.label, `<div class="n">👥 ${escHtml(nm)}</div>`); }
+    const bd = m.bd === 1;
+    if (nm !== r.name || bd !== !!r.bd) {
+      const turnedOn = bd && !r.bd;
+      r.name = nm; r.bd = bd;
+      setPartyHat(r.p, bd, SKIN_BY_ID[r.sk]);
+      if (!r.sayTimer) setLabel(r.label, remoteLabel(r));
+      if (turnedOn) {   // 一緒に遊んでいる人が誕生日
+        toast(`🎂 今日は ${escHtml(nm)} の誕生日！ おめでとう！`, { color: '#ff8fd0', big: true, time: 4500 });
+        for (let i = 0; i < 5; i++) setTimeout(() => firework(r.p.group.position.x + (Math.random() - 0.5) * 16, r.p.group.position.z + (Math.random() - 0.5) * 16), i * 350);
+      }
+    }
   } else if (m.t === 'base' && Array.isArray(m.slots)) {
     setNeighborBase(m.u, String(m.n || m.u).slice(0, 16), m.slots.slice(0, SLOT_COUNT));
   } else if (m.t === 'tr') {
@@ -2913,7 +3199,7 @@ function updateRemotes(dt) {
 let netSendT = 0;
 setInterval(() => {
   if (!net.connected) return;
-  net.send({ t: 'st', u: myFriendName || 'me', n: playerName(), sk: save.skin, x: +pState.pos.x.toFixed(2), z: +pState.pos.z.toFixed(2), f: +player.group.rotation.y.toFixed(2), c: carried?.def.id || '', cm: carried?.mut || '' });
+  net.send({ t: 'st', u: myFriendName || 'me', n: playerName(), sk: save.skin, x: +pState.pos.x.toFixed(2), z: +pState.pos.z.toFixed(2), f: +player.group.rotation.y.toFixed(2), c: carried?.def.id || '', cm: carried?.mut || '', bd: bdayOn ? 1 : 0 });
   netSendT++;
 }, 100);
 function netEvent(text) { if (net.connected) net.send({ t: 'ev', u: myFriendName || 'me', n: playerName(), text }); }
@@ -3369,6 +3655,7 @@ $('startBtn').addEventListener('click', () => {
   if (offlineMoney > 0) toast(`おかえり！ 放置中に $${fmt(offlineMoney)} 貯まったよ`, { color: '#7dff8a', time: 3500 });
   else if (save.stats.collected === 0) toast('黄色い発射台へ行ってブロックを打とう！', { color: '#ffd23f', time: 4000 });
   setTimeout(checkLostData, 800);
+  setTimeout(maybeBirthday, 1200);
   setTimeout(maybeLoginBonus, 1600);
 });
 addEventListener('beforeunload', writeSave);

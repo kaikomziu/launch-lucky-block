@@ -7,22 +7,22 @@
 <meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
-<link rel="stylesheet" href="style.css?v=0.59">
+<link rel="stylesheet" href="style.css?v=0.60">
 <!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
 <script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <!-- 更新のたびに ?v= をバージョンに合わせて変える（古いJSがキャッシュされないように） -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "./js/data.js": "./js/data.js?v=0.59",
-  "./js/models.js": "./js/models.js?v=0.59",
-  "./js/input.js": "./js/input.js?v=0.59",
-  "./js/audio.js": "./js/audio.js?v=0.59",
-  "./js/ranking.js": "./js/ranking.js?v=0.59",
-  "./js/admin.js": "./js/admin.js?v=0.59",
-  "./js/backup.js": "./js/backup.js?v=0.59",
-  "./js/chat.js": "./js/chat.js?v=0.59",
-  "./js/friends.js": "./js/friends.js?v=0.59"
+  "./js/data.js": "./js/data.js?v=0.60",
+  "./js/models.js": "./js/models.js?v=0.60",
+  "./js/input.js": "./js/input.js?v=0.60",
+  "./js/audio.js": "./js/audio.js?v=0.60",
+  "./js/ranking.js": "./js/ranking.js?v=0.60",
+  "./js/admin.js": "./js/admin.js?v=0.60",
+  "./js/backup.js": "./js/backup.js?v=0.60",
+  "./js/chat.js": "./js/chat.js?v=0.60",
+  "./js/friends.js": "./js/friends.js?v=0.60"
 } }
 </script>
 </head>
@@ -224,6 +224,12 @@
   </div>
 </div>
 
+<div id="bdayPanel" class="panel bday-panel hidden">
+  <div class="panel-head"><h2>🎂 お誕生日おめでとう！</h2><button class="close">✕</button></div>
+  <div class="panel-body" id="bdayBody"></div>
+</div>
+<canvas id="bdayConfetti" class="hidden"></canvas>
+
 <div id="loginPanel" class="panel hidden">
   <div class="panel-head"><h2>🎁 ログインボーナス</h2><button class="close">✕</button></div>
   <div class="panel-body" id="loginBody"></div>
@@ -288,6 +294,11 @@
     <label class="field">プレイヤー名（ランキングに出る名前）
       <input id="nameInput" maxlength="16" placeholder="名無し">
     </label>
+    <div class="field bday-field">🎂 誕生日（その日はお祝いがあります）
+      <div class="bday-row"><select id="bdayM"></select><span>月</span><select id="bdayD"></select><span>日</span>
+        <button class="btn" id="bdayAgain" type="button" hidden>🎉 もう一度お祝い</button></div>
+      <small id="bdayNote"></small>
+    </div>
     <label class="field">音量
       <input id="volInput" type="range" min="0" max="1" step="0.05">
     </label>
@@ -326,7 +337,7 @@
       <div class="adm-line"><button id="backupBtn" class="btn">バックアップから復元</button><button id="backupNowBtn" class="btn store">今すぐバックアップ</button></div>
     </div>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.59</p>
+    <p class="version">v0.60</p>
   </div>
 </div>
 
@@ -358,6 +369,7 @@
       <li>💪 鍛える</li><li>🏏 打つ</li><li>👹 逃げる</li><li>💰 稼ぐ</li>
     </ul>
     <p class="online-title hidden" id="titleOnline"></p>
+    <div class="title-bday hidden" id="titleBday">🎂 今日はあなたの誕生日！ スタートしてお祝いしよう 🎉</div>
     <div class="title-event hidden" id="titleEvent"></div>
     <p class="welcome hidden" id="titleWelcome"></p>
     <div class="title-card">
@@ -374,10 +386,10 @@
       </a>
       <p class="ctrl" id="ctrlHint"></p>
     </div>
-    <p class="note">v0.59 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.60 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=0.59"></script>
+<script type="module" src="js/main.js?v=0.60"></script>
 </body>
 </html>
