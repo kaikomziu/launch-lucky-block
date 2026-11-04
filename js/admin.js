@@ -26,4 +26,7 @@ export const adminPost = (kaToken, kind, payload, minutes, start = null) => rpc(
 // 不正の疑いで保留になった記録の一覧 ／ 保留にする・解除する
 export const adminFlagged = kaToken => rpc('llb_admin_flagged', { p_ka_token: kaToken });
 export const adminSetFlag = (kaToken, clientId, flag, reason = null) => rpc('llb_admin_set_flag', { p_ka_token: kaToken, p_client_id: clientId, p_flag: flag, p_reason: reason });
+// 信頼するプレイヤー（増え方のチェックをしない。明らかなチートは止める）
+export const adminSetTrust = (kaToken, clientId, trust) => rpc('llb_admin_set_trust', { p_ka_token: kaToken, p_client_id: clientId, p_trust: trust });
+export const adminTrusted = kaToken => rpc('llb_admin_trusted', { p_ka_token: kaToken });
 export const adminEnd = (kaToken, id) => rpc('llb_admin_end', { p_ka_token: kaToken, p_id: id });

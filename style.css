@@ -1004,3 +1004,8 @@ body.title-mode #toasts { display: none; }   /* タイトルの上にお知ら�
   .eb-main { font-size: 12px; padding: 4px 10px; }
   .eb-sub { font-size: 11px; }
 }
+
+/* ---- 信頼するプレイヤー ---- */
+.trust-btn { opacity: .55; }
+.trust-btn.on { opacity: 1; }
+.adm-row .btn.trust { background: #ffd23f; color: #3b2a00; }

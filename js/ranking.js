@@ -51,7 +51,7 @@ export async function ping(clientId) {
   return res.json();
 }
 
-const COLS = 'client_id,name,best_distance,total_earned,collected,best_rarity,income_per_sec,rebirths,dex_count,mut_count';
+const COLS = 'client_id,name,best_distance,total_earned,collected,best_rarity,income_per_sec,rebirths,dex_count,mut_count,trusted';
 
 // 上位の取得
 export async function fetchRanking(col = 'best_distance', limit = 50) {

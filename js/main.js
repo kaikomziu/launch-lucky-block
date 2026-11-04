@@ -11,7 +11,7 @@ import { buildPlayer, buildBoss, buildLuckyBlock, buildCharacter, textTexture, m
 import { initAudio, play, startLoop, stopLoop, setVolume } from './audio.js';
 import { input, initInput, pollInput, lockPointer, unlockPointer } from './input.js';
 import { GENRES, submitScore, fetchRanking, fetchMine, ping } from './ranking.js';
-import { fetchEvents, adminCheck, adminPost, adminEnd, adminFlagged, adminSetFlag } from './admin.js';
+import { fetchEvents, adminCheck, adminPost, adminEnd, adminFlagged, adminSetFlag, adminSetTrust, adminTrusted } from './admin.js';
 import { localBackups, saveLocalBackup, cloudBackupPut, cloudBackupList, cloudBackupGet } from './backup.js';
 import { fetchChat, postChat, deleteChat, ping2 } from './chat.js';
 import { friendList, friendRequest, friendRespond, friendRemove, Net } from './friends.js';
@@ -1702,7 +1702,7 @@ function renderPanels() {
   if (openPanel === 'backupPanel') renderBackups();
   if (openPanel === 'chatPanel') openChat();
   if (openPanel === 'friendPanel') renderFriends(true);
-  if (openPanel === 'adminPanel') { renderAdminActive(); renderGiftPicker(); renderFlagged(); }
+  if (openPanel === 'adminPanel') { renderAdminActive(); renderGiftPicker(); renderFlagged(); renderTrusted(); }
   if (openPanel === 'settingsPanel') {
     $('nameInput').value = save.name;
     $('volInput').value = save.volume;
@@ -2007,7 +2007,7 @@ async function openRanking() {
       ? `<div class="rank-me">あなたは <b>${me.rank ?? '?'}位</b> ・ ${g.icon} ${fmtVal(g, me[g.col])}</div>`
       : '<div class="rank-me">まだ記録がありません。キャラを持ち帰ると載ります！</div>';
     const rows = list.length ? list.map((r, i) => `<div class="rank-row ${r.client_id === save.clientId ? 'me' : ''} ${i < 3 ? 'top' : ''}">
-        <span class="pos">${medal(i)}</span><span class="nm">${esc(r.name)}</span><span class="val">${fmtVal(g, r[g.col])}</span>${isAdmin ? `<button class="chat-del" data-hold="${esc(r.client_id)}" data-hname="${esc(r.name)}" title="不正として保留にする">🚫</button>` : ''}</div>`).join('')
+        <span class="pos">${medal(i)}</span><span class="nm">${esc(r.name)}</span><span class="val">${fmtVal(g, r[g.col])}</span>${isAdmin ? `<button class="chat-del trust-btn ${r.trusted ? 'on' : ''}" data-trust="${esc(r.client_id)}" data-hname="${esc(r.name)}" data-on="${r.trusted ? 1 : 0}" title="${r.trusted ? '信頼を外す' : '信頼するプレイヤーにする'}">${r.trusted ? '⭐' : '☆'}</button><button class="chat-del" data-hold="${esc(r.client_id)}" data-hname="${esc(r.name)}" title="不正として保留にする">🚫</button>` : ''}</div>`).join('')
       : '<p class="dex-sum">まだだれも載っていません。一番乗りのチャンス！</p>';
     $('rankBody').innerHTML = mine + rows;
   } catch (e) {
@@ -2017,6 +2017,14 @@ async function openRanking() {
 document.querySelectorAll('#rankPanel .rank-tab').forEach(t => t.addEventListener('click', () => { rankGenre = t.dataset.col; openRanking(); }));
 // 管理者: ランキングの 🚫 で、その人の記録を保留にする
 $('rankBody').addEventListener('click', async e => {
+  const t = e.target.closest('[data-trust]');
+  if (t && isAdmin) {
+    const on = t.dataset.on !== '1';
+    if (!confirm(on ? `「${t.dataset.hname}」を信頼するプレイヤーにしますか？\n（リボーンや稼ぎの増え方が速くても保留になりません）` : `「${t.dataset.hname}」の信頼を外しますか？`)) return;
+    try { if (await adminSetTrust(ka?.token(), t.dataset.trust, on)) { toast(on ? '⭐ 信頼するプレイヤーにしました' : '信頼を外しました', { color: '#ffd23f' }); openRanking(); } }
+    catch (err) { toast('⚠ できませんでした', { color: '#ff6b6b' }); }
+    return;
+  }
   const b = e.target.closest('[data-hold]');
   if (!b || !isAdmin) return;
   const reason = prompt(`「${b.dataset.hname}」の記録を保留にします（ランキングから消えます）。\n理由（なくてもOK）`, '管理者が保留にしました');
@@ -2988,6 +2996,24 @@ $('adminPanel').addEventListener('click', e => {
   renderGiftPicker();
 });
 // 不正の疑いで保留になっている記録（サーバーが自動で見つけたもの・管理者が保留にしたもの）
+// 信頼するプレイヤーの一覧
+async function renderTrusted() {
+  const box = $('admTrusted');
+  box.innerHTML = '<p class="dex-sum">読み込み中…</p>';
+  try {
+    const list = await adminTrusted(ka?.token());
+    if (openPanel !== 'adminPanel') return;
+    box.innerHTML = list?.length ? list.map(r => `<div class="adm-row"><b>⭐ ${escHtml(r.name)}</b><small>リボーン ${r.rebirths}回・累計 $${fmt(r.total_earned)}</small>
+      <button class="btn sell" data-untrust="${escHtml(r.client_id)}" data-hname="${escHtml(r.name)}">外す</button></div>`).join('')
+      : '<p class="dex-sum">まだいません</p>';
+  } catch (e) { box.innerHTML = '<p class="dex-sum">読み込めませんでした</p>'; }
+}
+$('admTrusted').addEventListener('click', async e => {
+  const b = e.target.closest('[data-untrust]');
+  if (!b || !confirm(`「${b.dataset.hname}」の信頼を外しますか？`)) return;
+  try { if (await adminSetTrust(ka?.token(), b.dataset.untrust, false)) { toast('信頼を外しました', { color: '#ffd23f' }); renderTrusted(); } }
+  catch (err) { toast('⚠ できませんでした', { color: '#ff6b6b' }); }
+});
 async function renderFlagged() {
   const box = $('admFlagged');
   box.innerHTML = '<p class="dex-sum">読み込み中…</p>';
@@ -2996,11 +3022,18 @@ async function renderFlagged() {
     if (openPanel !== 'adminPanel') return;
     box.innerHTML = list?.length ? list.map(r => `<div class="adm-row"><b>${escHtml(r.name)}</b>
       <small>${escHtml(r.flag_reason || '')}${r.flagged_at ? '・' + fmtWhen(r.flagged_at) : ''}</small>
-      <button class="btn" data-unflag="${escHtml(r.client_id)}">解除</button></div>`).join('')
+      <button class="btn" data-unflag="${escHtml(r.client_id)}">解除</button><button class="btn trust" data-trustflag="${escHtml(r.client_id)}" data-hname="${escHtml(r.name)}">⭐ 信頼</button></div>`).join('')
       : '<p class="dex-sum">保留中の記録はありません</p>';
   } catch (e) { box.innerHTML = '<p class="dex-sum">読み込めませんでした</p>'; }
 }
 $('admFlagged').addEventListener('click', async e => {
+  const tf = e.target.closest('[data-trustflag]');
+  if (tf) {
+    if (!confirm(`「${tf.dataset.hname}」を信頼するプレイヤーにして、保留を解除しますか？`)) return;
+    try { if (await adminSetTrust(ka?.token(), tf.dataset.trustflag, true)) { toast('⭐ 信頼するプレイヤーにして解除しました', { color: '#7dff8a' }); renderFlagged(); renderTrusted(); } }
+    catch (err) { toast('⚠ できませんでした', { color: '#ff6b6b' }); }
+    return;
+  }
   const b = e.target.closest('[data-unflag]');
   if (!b || !confirm('この記録の保留を解除して、ランキングに戻しますか？')) return;
   try { if (await adminSetFlag(ka?.token(), b.dataset.unflag, false)) { toast('✅ 解除しました', { color: '#7dff8a' }); renderFlagged(); } }
