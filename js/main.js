@@ -14,6 +14,7 @@ import { GENRES, submitScore, fetchRanking, fetchMine, ping } from './ranking.js
 import { fetchEvents, adminCheck, adminPost, adminEnd } from './admin.js';
 import { localBackups, saveLocalBackup, cloudBackupPut, cloudBackupList, cloudBackupGet } from './backup.js';
 import { fetchChat, postChat, deleteChat, ping2 } from './chat.js';
+import { friendList, friendRequest, friendRespond, friendRemove, Net } from './friends.js';
 
 const $ = id => document.getElementById(id);
 
@@ -811,6 +812,7 @@ function reachedBase() {
   writeSave();
   renderPanels();
   sendScore();
+  netEvent(`🎁 ${mut ? MUT_BY_ID[mut].name + '変異の' : ''}${def.name}（${RARITIES[def.r].name}）を持ち帰った！${def.lowRate ? ' ✨激レア' : ''}`);
 }
 
 function addMoney(v) {
@@ -980,6 +982,7 @@ function update(dt) {
   // --- プレイヤーのアニメーション ---
   for (const a of player.anims) a(elapsed);
   if (HALLOWEEN) updateBats(elapsed);
+  updateRemotes(dt);
   const g = player.group;
   g.position.copy(pState.pos);
   let twist = 0;
@@ -1309,8 +1312,8 @@ addEventListener('keydown', e => { if (e.code === 'Escape') { closePanels(); if 
 
 // 数字キー 1〜4 でメニューパネルを開閉（PC 用。テンキーにも対応）
 const menuKeyPanels = {
-  Digit1: 'shopPanel', Digit2: 'charPanel', Digit3: 'indexPanel', Digit4: 'settingsPanel', Digit5: 'rankPanel', Digit6: 'skinPanel', Digit7: 'adminPanel', Digit8: 'chatPanel', Slash: 'chatPanel', NumpadDivide: 'chatPanel',
-  Numpad1: 'shopPanel', Numpad2: 'charPanel', Numpad3: 'indexPanel', Numpad4: 'settingsPanel', Numpad5: 'rankPanel', Numpad6: 'skinPanel', Numpad7: 'adminPanel', Numpad8: 'chatPanel',
+  Digit1: 'shopPanel', Digit2: 'charPanel', Digit3: 'indexPanel', Digit4: 'settingsPanel', Digit5: 'rankPanel', Digit6: 'skinPanel', Digit7: 'adminPanel', Digit8: 'chatPanel', Slash: 'chatPanel', NumpadDivide: 'chatPanel', Digit9: 'friendPanel',
+  Numpad1: 'shopPanel', Numpad2: 'charPanel', Numpad3: 'indexPanel', Numpad4: 'settingsPanel', Numpad5: 'rankPanel', Numpad6: 'skinPanel', Numpad7: 'adminPanel', Numpad8: 'chatPanel', Numpad9: 'friendPanel',
 };
 addEventListener('keydown', e => {
   const panelId = menuKeyPanels[e.code];
@@ -1339,6 +1342,7 @@ function renderPanels() {
   if (openPanel === 'skinPanel') renderSkins();
   if (openPanel === 'backupPanel') renderBackups();
   if (openPanel === 'chatPanel') openChat();
+  if (openPanel === 'friendPanel') renderFriends(true);
   if (openPanel === 'adminPanel') { renderAdminActive(); renderGiftPicker(); }
   if (openPanel === 'settingsPanel') {
     $('nameInput').value = save.name;
@@ -1419,6 +1423,7 @@ function doRebirth() {
   burst(pState.pos.clone().add(new THREE.Vector3(0, 3, 0)), 0xb388ff, 60, 16);
   toast(`🔄 リボーン ${save.rebirths}回目！ 稼ぎ・力の伸び ×${next}`, { color: '#b388ff', big: true, time: 3200 });
   sendScore();
+  netEvent(`🔄 リボーン ${save.rebirths}回目！`);
   shopSig = '';
   closePanels(); lockPointer();
   updateHud(); updateSlotLabels(); writeSave();
@@ -1928,6 +1933,158 @@ $('chatList').addEventListener('click', async e => {
   try { if (await deleteChat(window.KaAccount?.token(), +b.dataset.cdel)) b.closest('.chat-msg').remove(); } catch (err) { /* 消せなかった */ }
 });
 $('hudChatBtn').addEventListener('click', () => openPanelById('chatPanel'));
+
+// ---------- フレンドと一緒に遊ぶ（WebRTC） ----------
+const kaToken = () => window.KaAccount?.token();
+const net = new Net({
+  getToken: kaToken,
+  onPeer: (u, name) => { toast(`👥 ${escHtml(name || u)} とつながった！`, { color: '#7dff8a', big: true }); play('safe', { vol: 0.6 }); netStatus = ''; if (openPanel === 'friendPanel') renderFriends(); },
+  onLeave: (u, name) => {
+    const r = remotes.get(u);
+    if (r) { scene.remove(r.p.group); r.label.el.remove(); labels.splice(labels.indexOf(r.label), 1); remotes.delete(u); toast(`👋 ${escHtml(name || u)} が抜けた`, { color: '#9ad0ff' }); }
+    if (openPanel === 'friendPanel') renderFriends();
+  },
+  onMessage: msg => onNetMessage(msg),
+  onStatus: text => { netStatus = text; if (openPanel === 'friendPanel') renderFriends(); },
+});
+let netStatus = '';
+let myFriendName = '';
+// 相手のプレイヤー（見た目・名前・持っているキャラ）
+const remotes = new Map();
+function onNetMessage(m) {
+  if (typeof m.u !== 'string') return;
+  if (m.t === 'st') {
+    let r = remotes.get(m.u);
+    if (!r) {
+      const p = buildPlayer(SKIN_BY_ID[m.sk] || SKINS[0]);
+      scene.add(p.group);
+      r = { p, sk: m.sk, carry: null, carryId: '', pos: new THREE.Vector3(m.x, 0, m.z), tgt: new THREE.Vector3(), facing: 0, tf: 0, name: '', last: 0, walk: 0 };
+      r.label = makeLabel(() => r.p.group.position.clone().add(new THREE.Vector3(0, 7.2, 0)), 'friend', 120);
+      remotes.set(m.u, r);
+    }
+    if (m.sk !== r.sk && SKIN_BY_ID[m.sk]) {   // スキンを着がえた
+      const np = buildPlayer(SKIN_BY_ID[m.sk]);
+      np.group.position.copy(r.p.group.position);
+      if (r.carry) np.carry.add(r.carry);
+      scene.remove(r.p.group); scene.add(np.group); r.p = np; r.sk = m.sk;
+    }
+    const cid = typeof m.c === 'string' && CHAR_BY_ID[m.c] ? m.c + ':' + (MUT_BY_ID[m.cm] ? m.cm : '') : '';
+    if (cid !== r.carryId) {   // 持っているキャラが変わった
+      if (r.carry) r.p.carry.remove(r.carry);
+      r.carry = null; r.carryId = cid;
+      if (cid) { r.carry = buildCharacter(CHAR_BY_ID[m.c], MUT_BY_ID[m.cm] ? m.cm : null); r.carry.scale.setScalar(0.55); r.p.carry.add(r.carry); }
+    }
+    r.tgt.set(+m.x || 0, 0, +m.z || 0); r.tf = +m.f || 0; r.last = performance.now();
+    const nm = String(m.n || m.u).slice(0, 16);
+    if (nm !== r.name) { r.name = nm; setLabel(r.label, `<div class="n">👥 ${escHtml(nm)}</div>`); }
+  } else if (m.t === 'ev' && typeof m.text === 'string') {
+    toast(`👥 ${escHtml(String(m.n || m.u).slice(0, 16))}: ${escHtml(m.text.slice(0, 80))}`, { color: '#9ad0ff', time: 3500 });
+  }
+}
+function updateRemotes(dt) {
+  const now = performance.now();
+  for (const [u, r] of remotes) {
+    if (now - r.last > 15000) { net.cb.onLeave(u, r.name); continue; }   // しばらく様子が来なければ消す
+    const g = r.p.group;
+    const d = g.position.distanceTo(r.tgt);
+    if (d > 60) g.position.copy(r.tgt); else g.position.lerp(r.tgt, Math.min(1, dt * 10));
+    let diff = r.tf - g.rotation.y; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+    g.rotation.y += diff * Math.min(1, dt * 10);
+    // 歩いているように手足を振る
+    const moving = d > 0.05;
+    r.walk += moving ? dt * 12 : 0;
+    const sw = moving ? Math.sin(r.walk) * 0.8 : 0;
+    r.p.legL.rotation.x = sw; r.p.legR.rotation.x = -sw;
+    if (!r.carry) { r.p.armL.rotation.x = -sw * 0.8; r.p.armR.rotation.x = sw * 0.8; } else r.p.armL.rotation.x = r.p.armR.rotation.x = Math.PI;
+    for (const a of r.p.anims) a(now / 1000);
+    if (r.carry) for (const a of r.carry.userData.anims) a(now / 1000);
+  }
+}
+// 自分の様子を1秒に10回送る（つながっているときだけ）
+let netSendT = 0;
+setInterval(() => {
+  if (!net.connected) return;
+  net.send({ t: 'st', u: myFriendName || 'me', n: playerName(), sk: save.skin, x: +pState.pos.x.toFixed(2), z: +pState.pos.z.toFixed(2), f: +player.group.rotation.y.toFixed(2), c: carried?.def.id || '', cm: carried?.mut || '' });
+  netSendT++;
+}, 100);
+function netEvent(text) { if (net.connected) net.send({ t: 'ev', u: myFriendName || 'me', n: playerName(), text }); }
+
+// ---- フレンド画面 ----
+let friendData = null, friendTimer = null;
+async function loadFriends(room = null) {
+  const t = kaToken();
+  if (!t) { friendData = null; return null; }
+  try {
+    const r = await friendList(t, room);
+    if (r?.ok) { friendData = r; myFriendName = r.me.username; }
+  } catch (e) { /* 通信失敗 */ }
+  updateFriendBadge();
+  return friendData;
+}
+function updateFriendBadge() {
+  const n = friendData ? friendData.incoming.length + (net.busy ? 0 : friendData.friends.filter(f => f.room).length) : 0;
+  $('friendBadge').classList.toggle('hidden', !n);
+}
+async function renderFriends(refresh = false) {
+  const body = $('friendBody');
+  if (!kaToken()) {
+    body.innerHTML = `<div class="rank-me">フレンド機能は、かるわかGAMESアカウントでログインすると使えます。</div>
+      <button class="btn" data-fr="login" style="width:100%">👤 ログイン / アカウントを作る</button>`;
+    return;
+  }
+  if (refresh || !friendData) {
+    if (!friendData) body.innerHTML = '<p class="dex-sum">読み込み中…</p>';
+    await loadFriends(net.hosting ? true : null);
+  }
+  const d = friendData;
+  if (!d) { body.innerHTML = '<p class="dex-sum">⚠ 読み込めませんでした（通信を確認してね）</p>'; return; }
+  const peers = [...net.peers.entries()].filter(([, p]) => p.dc?.readyState === 'open').map(([u, p]) => escHtml(p.name || u));
+  const room = net.hosting
+    ? `<div class="fr-room on"><b>🏠 部屋を開いています</b><small>フレンドが「参加」するとつながります（最大4人）${peers.length ? `<br>いっしょに遊んでいる人: ${peers.join('、')}` : ''}</small><button class="btn sell" data-fr="close">部屋を閉じる</button></div>`
+    : net.hostName || net.pending
+      ? `<div class="fr-room on"><b>🎮 ${net.pending ? 'つないでいます…' : `${escHtml(net.peers.get(net.hostName)?.name || net.hostName)} の部屋で遊んでいます`}</b><button class="btn sell" data-fr="close">${net.pending ? 'やめる' : '抜ける'}</button></div>`
+      : `<div class="fr-room"><b>🏠 フレンドと一緒に遊ぶ</b><small>部屋を開くと、フレンドが参加できます。おたがいの姿が見えて、持ち帰ったキャラなども知らせ合えます（セーブは別々）</small><button class="btn" data-fr="host">部屋を開く</button></div>`;
+  const row = (f, btns) => `<div class="fr-row"><span class="av">${escHtml(f.avatar || '🎮')}</span><div><b>${escHtml(f.name)}</b><small>@${escHtml(f.username)}${f.online !== undefined ? (f.room ? ' ・ <span class="room">🏠 部屋を開いています</span>' : f.online ? ' ・ <span class="on">🟢 オンライン</span>' : ' ・ オフライン') : ''}</small></div>${btns}</div>`;
+  body.innerHTML = `${netStatus ? `<p class="fr-status">${escHtml(netStatus)}</p>` : ''}${room}
+    <p class="fr-me">あなたのID: <b>@${escHtml(d.me.username)}</b>（フレンドにこのIDを教えてね）</p>
+    <form class="fr-add" id="frAdd" autocomplete="off"><input id="frAddInput" maxlength="32" placeholder="フレンドのID（ユーザー名）"><button class="btn" type="submit">申請</button></form>
+    ${d.incoming.length ? `<h3 class="adm-h">📩 フレンド申請（${d.incoming.length}）</h3>` + d.incoming.map(f => row(f, `<button class="btn" data-fr="accept" data-u="${escHtml(f.username)}">承認</button><button class="btn sell" data-fr="decline" data-u="${escHtml(f.username)}">断る</button>`)).join('') : ''}
+    <h3 class="adm-h">👥 フレンド（${d.friends.length}）</h3>
+    ${d.friends.length ? d.friends.map(f => row(f, `${f.room ? `<button class="btn" data-fr="join" data-u="${escHtml(f.username)}" ${net.busy ? 'disabled' : ''}>参加</button>` : ''}<button class="fr-x" data-fr="remove" data-u="${escHtml(f.username)}" title="フレンドをやめる">✕</button>`)).join('') : '<p class="dex-sum">まだフレンドがいません。IDで申請してみよう！</p>'}
+    ${d.outgoing.length ? `<h3 class="adm-h">⏳ 申請中</h3>` + d.outgoing.map(f => row(f, `<button class="fr-x" data-fr="remove" data-u="${escHtml(f.username)}" title="申請を取り消す">✕</button>`)).join('') : ''}`;
+  $('frAdd').addEventListener('submit', async e => {
+    e.preventDefault();
+    const u = $('frAddInput').value.trim();
+    if (!u) return;
+    try {
+      const r = await friendRequest(kaToken(), u);
+      if (r?.ok) toast(r.accepted ? `👥 ${escHtml(r.name)} とフレンドになった！` : `📩 ${escHtml(r.name)} に申請しました`, { color: '#7dff8a' });
+      else toast(`⚠ ${{ notfound: 'そのIDの人は見つかりません', self: '自分には申請できません', already: 'もうフレンドです', many: '申請中が多すぎます' }[r?.reason] || '申請できませんでした'}`, { color: '#ff6b6b' });
+    } catch (err) { toast('⚠ 通信に失敗しました', { color: '#ff6b6b' }); }
+    renderFriends(true);
+  });
+  // 開いている間は15秒ごとに更新（オンライン・部屋の状態）
+  clearInterval(friendTimer);
+  friendTimer = setInterval(() => { if (openPanel !== 'friendPanel') { clearInterval(friendTimer); return; } if (!document.hidden) renderFriends(true); }, 15000);
+}
+$('friendBody').addEventListener('click', async e => {
+  const b = e.target.closest('[data-fr]');
+  if (!b || b.disabled) return;
+  const k = b.dataset.fr, u = b.dataset.u, t = kaToken();
+  if (k === 'login') { unlockPointer(); window.KaAccount?.openPanel(); return; }
+  if (k === 'host') { await net.host(); await loadFriends(true); }
+  else if (k === 'close') { const wasHost = net.hosting; net.leave(); for (const r of [...remotes.keys()]) net.cb.onLeave(r); if (wasHost) await loadFriends(false); }
+  else if (k === 'join') { await net.join(u); }
+  else if (k === 'accept' || k === 'decline') { try { await friendRespond(t, u, k === 'accept'); } catch (err) { /* 次の更新で */ } await loadFriends(); }
+  else if (k === 'remove') { if (!confirm(`@${u} をフレンドから外しますか？`)) return; try { await friendRemove(t, u); } catch (err) { /* 次の更新で */ } await loadFriends(); }
+  renderFriends();
+});
+$('hudFriendBtn').addEventListener('click', () => openPanelById('friendPanel'));
+// ログイン中は90秒ごとにフレンドの様子を確認（申請・部屋のバッジ用）。部屋を開いている間は「開いている」を更新し続ける
+setInterval(() => { if (!document.hidden && kaToken()) loadFriends(net.hosting ? true : null); }, 90000);
+setTimeout(() => { if (kaToken()) loadFriends(false); }, 3000);
+// ページを閉じるときは部屋も閉じる
+addEventListener('pagehide', () => { if (net.hosting && kaToken()) friendList(kaToken(), false, true).catch(() => {}); net.leave(); });
 
 // ---------- バックアップ ----------
 const hasProgress = sv => !!sv && (sv.stats?.collected > 0 || sv.rebirths > 0 || (sv.slots || []).some(Boolean));
