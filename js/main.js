@@ -43,7 +43,7 @@ function defaultSave() {
     claimedGifts: [],                            // 受け取った管理者のプレゼントのID                               // 拠点の色（インデックスの変異を75%集めると選べる）                              // 飛ばす力（0.1〜1）。強すぎて逃げ切れないとき用
     slots: Array(SLOT_COUNT).fill(null),         // { id, star, stored }
     inventory: [],                               // { id, star } 持ち帰ったが台座に置いていないキャラ
-    stats: { bestDistance: 0, totalEarned: 0, collected: 0, bestRarity: 0 },
+    stats: { bestDistance: 0, totalEarned: 0, collected: 0, bestRarity: 0, bestHome: 0 },   // bestHome: 持ち帰れた中でいちばん高いレア度
     dex: {},
     name: '', volume: 0.7,
     // オンラインランキング用の識別子（将来使用）
@@ -77,6 +77,7 @@ function sanitizeSave(s) {
   for (const k of ['bestDistance', 'totalEarned', 'collected', 'bestRarity']) s.stats[k] = num(s.stats[k]);
   s.stats.bestDistance = Math.min(s.stats.bestDistance, WORLD_END + 50);
   s.stats.bestRarity = Math.min(Math.floor(s.stats.bestRarity), RARITIES.length - 1);
+  s.stats.bestHome = Math.min(Math.max(0, Math.floor(+s.stats.bestHome || 0)), s.stats.bestRarity);
   const fixChar = x => { x.star = int(x.star, 1, MAX_STAR); if (x.mut && !MUT_BY_ID[x.mut]) delete x.mut; return x; };
   s.slots = s.slots.slice(0, SLOT_COUNT).map(x => (x ? fixChar(x) : null));
   s.inventory = s.inventory.slice(0, 2000).map(fixChar);
@@ -92,6 +93,11 @@ function loadSave() {
     // 署名があるのに合わない = 手で書きかえられた（署名のない古いセーブはそのまま受け入れて、次の保存で署名する）
     if (parsed.sig && parsed.sig !== signSave(parsed)) { parsed.tampered = true; tamperFound = true; }
     const s = Object.assign(defaultSave(), parsed);
+    // 古いセーブ: 「持ち帰れた最高レア度」を、インデックスのキャラ（ただし実際に行けたレア度まで）から決める
+    if (parsed.stats && parsed.stats.bestHome === undefined) {
+      const rs = Object.keys(parsed.dex || {}).map(id => CHAR_BY_ID[id]?.r ?? 0);
+      parsed.stats.bestHome = Math.min(+parsed.stats.bestRarity || 0, rs.length ? Math.max(...rs) : 0);
+    }
     s.stats = Object.assign(defaultSave().stats, s.stats);
     while (s.slots.length < SLOT_COUNT) s.slots.push(null);
     s.slots = s.slots.map(x => (x && CHAR_BY_ID[x.id] ? x : null));
@@ -1052,6 +1058,7 @@ function reachedBase() {
   setState('free');
   play('safe');
   save.stats.collected++;
+  save.stats.bestHome = Math.max(save.stats.bestHome || 0, def.r);
   questAdd('collect', 1);
   const isNew = !save.dex[def.id];
   const entry = save.dex[def.id] ||= { count: 0, first: Date.now(), seen: false };
@@ -2073,7 +2080,7 @@ function renderDaily() {
     }).join('')}
     <div class="card daily bonus ${allClaimed ? 'done' : ''} ${d.bonus ? 'claimed' : ''}">
       <div class="dq-ico">🎁</div>
-      <div class="info"><h3>3つ全部クリアのボーナス</h3><small>いちばん遠くまで行ったゾーンのキャラ1体（かならず変異つき）がもらえる！ 毎日つづけると連続日数がのびます</small></div>
+      <div class="info"><h3>3つ全部クリアのボーナス</h3><small>今まで持ち帰れたいちばんレアなゾーン（${RARITIES[save.stats.bestHome || 0].name}）のキャラ1体（かならず変異つき）がもらえる！ 毎日つづけると連続日数がのびます</small></div>
       <div class="btns">${d.bonus ? '<span class="dq-ok">✅ 受け取り済み</span>' : `<button class="btn" data-dq="bonus" ${allClaimed ? '' : 'disabled'}>${allClaimed ? '受け取る' : `${d.quests.filter(q => q.claimed).length}/3`}</button>`}</div>
     </div>`;
   updateDailyBadge();
@@ -2087,13 +2094,8 @@ $('dailyBody').addEventListener('click', e => {
     if (d.bonus || !d.quests.every(q => q.claimed)) return;
     d.bonus = true;
     d.streak = (d.lastAll === todayKey() ? d.streak : (d.streak || 0) + 1); d.lastAll = todayKey();
-    const zone = zoneAt(TEE_POS.z + save.stats.bestDistance);
-    const def = rollCharacter(zone);
     const mut = rollMutation(halloweenActive());
-    save.inventory.push({ id: def.id, star: 1, mut });
-    const entry = save.dex[def.id] ||= { count: 0, first: Date.now(), seen: false };
-    entry.count++; (entry.muts ||= {})[mut] = true;
-    newItems++;
+    const def = giveZoneChar(mut);
     play('evolve');
     toast(`🎁 ボーナス！ ${MUT_BY_ID[mut].name}変異の ${def.name}（${RARITIES[def.r].name}）をインベントリに入れた！ 🔥連続${d.streak}日`, { color: '#ffd23f', big: true, time: 4000 });
   } else {
@@ -2127,12 +2129,15 @@ const loginStrength = min => Math.max(50 * min, Math.round(strengthRate(save.dum
 function loginValue(r) {
   if (r.kind === 'money') return '$' + fmt(loginMoney(r.min));
   if (r.kind === 'strength') return '+' + fmt(loginStrength(r.min));
-  if (r.kind === 'char') return 'ゾーンのキャラ';
+  if (r.kind === 'char') return `${RARITIES[save.stats.bestHome || 0].name}のキャラ`;
   return '変異つき＋$' + fmt(loginMoney(r.min));
 }
-// いちばん遠くまで行ったゾーンのキャラをインベントリに入れる
+// 今まで持ち帰れたいちばん高いレア度のキャラをインベントリに入れる（行けるだけで持ち帰れていないゾーンのキャラは出ない）
 function giveZoneChar(mut = null) {
-  const def = rollCharacter(zoneAt(TEE_POS.z + save.stats.bestDistance));
+  const top = save.stats.bestHome || 0;
+  let def = rollCharacter(top);
+  for (let i = 0; i < 20 && def.r > top; i++) def = rollCharacter(top);   // 1つ上のレア度が出たら引き直す
+  if (def.r > top) def = CHARACTERS.find(c => c.r === top && !c.lowRate) || def;
   save.inventory.push(mut ? { id: def.id, star: 1, mut } : { id: def.id, star: 1 });
   const entry = save.dex[def.id] ||= { count: 0, first: Date.now(), seen: false };
   entry.count++; if (mut) (entry.muts ||= {})[mut] = true;
