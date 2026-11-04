@@ -23,4 +23,7 @@ export async function fetchEvents() {
 export const adminCheck = kaToken => rpc('llb_admin_check', { p_ka_token: kaToken });
 // start: 予約するときの開始時刻（ISO文字列）。null なら今すぐ
 export const adminPost = (kaToken, kind, payload, minutes, start = null) => rpc('llb_admin_post', { p_ka_token: kaToken, p_kind: kind, p_payload: payload, p_minutes: minutes, p_start: start });
+// 不正の疑いで保留になった記録の一覧 ／ 保留にする・解除する
+export const adminFlagged = kaToken => rpc('llb_admin_flagged', { p_ka_token: kaToken });
+export const adminSetFlag = (kaToken, clientId, flag, reason = null) => rpc('llb_admin_set_flag', { p_ka_token: kaToken, p_client_id: clientId, p_flag: flag, p_reason: reason });
 export const adminEnd = (kaToken, id) => rpc('llb_admin_end', { p_ka_token: kaToken, p_id: id });

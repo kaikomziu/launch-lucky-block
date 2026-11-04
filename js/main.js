@@ -11,7 +11,7 @@ import { buildPlayer, buildBoss, buildLuckyBlock, buildCharacter, textTexture, m
 import { initAudio, play, startLoop, stopLoop, setVolume } from './audio.js';
 import { input, initInput, pollInput, lockPointer, unlockPointer } from './input.js';
 import { GENRES, submitScore, fetchRanking, fetchMine, ping } from './ranking.js';
-import { fetchEvents, adminCheck, adminPost, adminEnd } from './admin.js';
+import { fetchEvents, adminCheck, adminPost, adminEnd, adminFlagged, adminSetFlag } from './admin.js';
 import { localBackups, saveLocalBackup, cloudBackupPut, cloudBackupList, cloudBackupGet } from './backup.js';
 import { fetchChat, postChat, deleteChat, ping2 } from './chat.js';
 import { friendList, friendRequest, friendRespond, friendRemove, Net } from './friends.js';
@@ -52,11 +52,46 @@ function defaultSave() {
   };
 }
 
+// ---- 改ざん対策: セーブに署名をつけ、読み込み時に確かめる ----
+// キーの順番や数字の書き方が変わっても同じになるよう、キーを並べかえた形で計算する（クラウド・バックアップ経由でもOK）
+function canon(v) {
+  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).filter(k => k !== 'sig' && v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}';
+  return JSON.stringify(v ?? null);
+}
+function hash53(str, seed = 0x4c4c42) {   // cyrb53
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0; i < str.length; i++) { const ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+const signSave = s => hash53('llb:' + canon(s) + ':' + (s.clientId || ''));
+// 数字や中身がおかしいところを直す（手で書きかえたデータで壊れないように）
+function sanitizeSave(s) {
+  const num = (v, min = 0, max = Number.MAX_VALUE) => (Number.isFinite(+v) ? Math.min(max, Math.max(min, +v)) : min);
+  const int = (v, min, max) => Math.floor(num(v, min, max));
+  s.money = num(s.money); s.strength = num(s.strength);
+  s.dumbbellLv = int(s.dumbbellLv, 1, 1e6); s.speedLv = int(s.speedLv, 1, 1e6); s.rebirths = int(s.rebirths, 0, 1e6);
+  s.launchPower = num(s.launchPower, 0.01, 1);
+  for (const k of ['bestDistance', 'totalEarned', 'collected', 'bestRarity']) s.stats[k] = num(s.stats[k]);
+  s.stats.bestDistance = Math.min(s.stats.bestDistance, WORLD_END + 50);
+  s.stats.bestRarity = Math.min(Math.floor(s.stats.bestRarity), RARITIES.length - 1);
+  const fixChar = x => { x.star = int(x.star, 1, MAX_STAR); if (x.mut && !MUT_BY_ID[x.mut]) delete x.mut; return x; };
+  s.slots = s.slots.slice(0, SLOT_COUNT).map(x => (x ? fixChar(x) : null));
+  s.inventory = s.inventory.slice(0, 2000).map(fixChar);
+  if (s.dex && typeof s.dex === 'object') for (const e of Object.values(s.dex)) if (e && e.muts) for (const m of Object.keys(e.muts)) if (!MUT_BY_ID[m]) delete e.muts[m];
+  return s;
+}
+let tamperFound = false;
 function loadSave() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return defaultSave();
-    const s = Object.assign(defaultSave(), JSON.parse(raw));
+    const parsed = JSON.parse(raw);
+    // 署名があるのに合わない = 手で書きかえられた（署名のない古いセーブはそのまま受け入れて、次の保存で署名する）
+    if (parsed.sig && parsed.sig !== signSave(parsed)) { parsed.tampered = true; tamperFound = true; }
+    const s = Object.assign(defaultSave(), parsed);
     s.stats = Object.assign(defaultSave().stats, s.stats);
     while (s.slots.length < SLOT_COUNT) s.slots.push(null);
     s.slots = s.slots.map(x => (x && CHAR_BY_ID[x.id] ? x : null));
@@ -66,7 +101,7 @@ function loadSave() {
       if (!CHAR_BY_ID[k]) delete s.dex[k];
       else if (s.dex[k] === true) s.dex[k] = { count: 1, first: null, seen: true };
     }
-    return s;
+    return sanitizeSave(s);
   } catch (e) {
     return defaultSave();
   }
@@ -76,6 +111,7 @@ let noSave = false;   // 復元・リセットで読み直す直前は、今の�
 function writeSave() {
   if (noSave) return;
   save.lastTime = Date.now();
+  save.sig = signSave(save);
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* 保存不可環境 */ }
 }
 
@@ -1564,7 +1600,7 @@ function renderPanels() {
   if (openPanel === 'backupPanel') renderBackups();
   if (openPanel === 'chatPanel') openChat();
   if (openPanel === 'friendPanel') renderFriends(true);
-  if (openPanel === 'adminPanel') { renderAdminActive(); renderGiftPicker(); }
+  if (openPanel === 'adminPanel') { renderAdminActive(); renderGiftPicker(); renderFlagged(); }
   if (openPanel === 'settingsPanel') {
     $('nameInput').value = save.name;
     $('volInput').value = save.volume;
@@ -1828,6 +1864,7 @@ $('charBody').addEventListener('click', e => {
 // ---------- オンラインランキング ----------
 let rankGenre = 'best_distance';
 let lastSent = '';
+let scoreHeld = false;   // サーバーで記録が「保留」になっている
 const playerName = () => save.name || window.KaAccount?.user()?.display_name || '名無し';
 function myScore() {
   return {
@@ -1841,11 +1878,11 @@ function myScore() {
 // 記録が変わったときだけ送る（失敗しても遊びは止めない）
 async function sendScore(force = false) {
   const sc = myScore();
-  if (!sc.collected) return;   // まだ1体も持ち帰っていない人は載せない
+  if (!sc.collected || save.tampered) return;   // まだ1体も持ち帰っていない人・改ざんされたセーブは載せない
   const sig = JSON.stringify(sc);
   if (!force && sig === lastSent) return;
   lastSent = sig;
-  try { await submitScore(save.clientId, save.token, sc); } catch (e) { lastSent = ''; }
+  try { scoreHeld = (await submitScore(save.clientId, save.token, sc)) === false; } catch (e) { lastSent = ''; }
 }
 const fmtVal = (g, v) => (g.money ? '$' + fmt(v) : Math.round(v).toLocaleString('ja-JP')) + (g.unit || '');
 const medal = i => ['🥇', '🥈', '🥉'][i] || `${i + 1}`;
@@ -1859,11 +1896,15 @@ async function openRanking() {
     const [list, me] = await Promise.all([fetchRanking(rankGenre, 50), fetchMine(rankGenre, save.clientId)]);
     if (rankGenre !== g.col || openPanel !== 'rankPanel') return;
     const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const mine = me
+    const mine = save.tampered
+      ? '<div class="rank-me held">⚠ このセーブデータは書きかえられた形跡があるため、ランキングには載りません</div>'
+      : scoreHeld && !me
+      ? '<div class="rank-me held">⚠ あなたの記録はいま「保留」中です（ふつうでは出ない数字が見つかりました）。まちがいだと思ったら管理者に伝えてね</div>'
+      : me
       ? `<div class="rank-me">あなたは <b>${me.rank ?? '?'}位</b> ・ ${g.icon} ${fmtVal(g, me[g.col])}</div>`
       : '<div class="rank-me">まだ記録がありません。キャラを持ち帰ると載ります！</div>';
     const rows = list.length ? list.map((r, i) => `<div class="rank-row ${r.client_id === save.clientId ? 'me' : ''} ${i < 3 ? 'top' : ''}">
-        <span class="pos">${medal(i)}</span><span class="nm">${esc(r.name)}</span><span class="val">${fmtVal(g, r[g.col])}</span></div>`).join('')
+        <span class="pos">${medal(i)}</span><span class="nm">${esc(r.name)}</span><span class="val">${fmtVal(g, r[g.col])}</span>${isAdmin ? `<button class="chat-del" data-hold="${esc(r.client_id)}" data-hname="${esc(r.name)}" title="不正として保留にする">🚫</button>` : ''}</div>`).join('')
       : '<p class="dex-sum">まだだれも載っていません。一番乗りのチャンス！</p>';
     $('rankBody').innerHTML = mine + rows;
   } catch (e) {
@@ -1871,6 +1912,17 @@ async function openRanking() {
   }
 }
 document.querySelectorAll('#rankPanel .rank-tab').forEach(t => t.addEventListener('click', () => { rankGenre = t.dataset.col; openRanking(); }));
+// 管理者: ランキングの 🚫 で、その人の記録を保留にする
+$('rankBody').addEventListener('click', async e => {
+  const b = e.target.closest('[data-hold]');
+  if (!b || !isAdmin) return;
+  const reason = prompt(`「${b.dataset.hname}」の記録を保留にします（ランキングから消えます）。\n理由（なくてもOK）`, '管理者が保留にしました');
+  if (reason === null) return;
+  try {
+    if (await adminSetFlag(ka?.token(), b.dataset.hold, true, reason)) { toast('🚫 保留にしました', { color: '#ffd23f' }); openRanking(); }
+    else toast('⚠ できませんでした', { color: '#ff6b6b' });
+  } catch (err) { toast('⚠ できませんでした（通信を確認してね）', { color: '#ff6b6b' }); }
+});
 $('hudRankBtn').addEventListener('click', () => openPanelById('rankPanel'));
 $('titleRankBtn').addEventListener('click', () => {
   // タイトルからはランキングだけを見る（スタートは押さない）
@@ -2600,6 +2652,25 @@ $('adminPanel').addEventListener('click', e => {
   else return;
   renderGiftPicker();
 });
+// 不正の疑いで保留になっている記録（サーバーが自動で見つけたもの・管理者が保留にしたもの）
+async function renderFlagged() {
+  const box = $('admFlagged');
+  box.innerHTML = '<p class="dex-sum">読み込み中…</p>';
+  try {
+    const list = await adminFlagged(ka?.token());
+    if (openPanel !== 'adminPanel') return;
+    box.innerHTML = list?.length ? list.map(r => `<div class="adm-row"><b>${escHtml(r.name)}</b>
+      <small>${escHtml(r.flag_reason || '')}${r.flagged_at ? '・' + fmtWhen(r.flagged_at) : ''}</small>
+      <button class="btn" data-unflag="${escHtml(r.client_id)}">解除</button></div>`).join('')
+      : '<p class="dex-sum">保留中の記録はありません</p>';
+  } catch (e) { box.innerHTML = '<p class="dex-sum">読み込めませんでした</p>'; }
+}
+$('admFlagged').addEventListener('click', async e => {
+  const b = e.target.closest('[data-unflag]');
+  if (!b || !confirm('この記録の保留を解除して、ランキングに戻しますか？')) return;
+  try { if (await adminSetFlag(ka?.token(), b.dataset.unflag, false)) { toast('✅ 解除しました', { color: '#7dff8a' }); renderFlagged(); } }
+  catch (err) { toast('⚠ できませんでした', { color: '#ff6b6b' }); }
+});
 const KIND_LABEL = { message: '📢 お知らせ', gift: '🎁 配布', mutation: '🧬 変異イベント' };
 function renderAdminActive() {
   const list = adminEvents.filter(e => Date.parse(e.ends_at) > Date.now());
@@ -2721,3 +2792,6 @@ renderer.setAnimationLoop(() => {
 
 
 
+
+// 改ざんを見つけたら知らせる（ランキングには送らない）
+if (tamperFound) setTimeout(() => toast('⚠ セーブデータが書きかえられた形跡があります。このデータはランキングに載りません', { color: '#ff6b6b', big: true, time: 6000 }), 1500);
