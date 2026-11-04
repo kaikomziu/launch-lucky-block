@@ -314,6 +314,83 @@ function decorate(type, x, z) {
       petals.rotation.x = -Math.PI / 2; petals.castShadow = false;
       break;
     }
+    case 'palm': {   // ヤシの木と大きな葉
+      const tr = add(new THREE.CylinderGeometry(0.35, 0.5, 6, 8), mat(0x8b5a2b), 0, 3, 0); tr.rotation.z = 0.12;
+      for (let k = 0; k < 6; k++) { const lf = add(new THREE.BoxGeometry(3.2, 0.12, 0.9), mat(0x2e8b3a), Math.cos(k) * 1.4 + 0.35, 6.1, Math.sin(k) * 1.4); lf.rotation.set(0, -k, -0.35); }
+      if (Math.random() < 0.5) add(new THREE.SphereGeometry(0.35, 8, 6), mat(0x6b4423), 0.4, 5.7, 0.3);
+      break;
+    }
+    case 'candy': {   // ぺろぺろキャンディとドーナツ
+      if (Math.random() < 0.5) {
+        add(new THREE.CylinderGeometry(0.15, 0.15, 4, 8), mat(0xffffff), 0, 2, 0);
+        const c = add(new THREE.CylinderGeometry(1.5, 1.5, 0.4, 24), mat([0xff5c8a, 0x7df9ff, 0xffd23f, 0xb388ff][Math.floor(Math.random() * 4)]), 0, 4.6, 0); c.rotation.x = Math.PI / 2;
+        const sw = add(new THREE.TorusGeometry(0.9, 0.12, 6, 24), mat(0xffffff), 0, 4.6, 0.22); spinners.push(sw);
+      } else {
+        const d = add(new THREE.TorusGeometry(1.3, 0.6, 12, 24), mat(0xe8b07a), 0, 0.6, 0); d.rotation.x = Math.PI / 2;
+        const ic = add(new THREE.TorusGeometry(1.3, 0.62, 12, 24, Math.PI * 2), mat([0xff9ecb, 0x8b4a2b, 0xffffff][Math.floor(Math.random() * 3)]), 0, 0.85, 0); ic.rotation.x = Math.PI / 2; ic.scale.z = 0.5;
+      }
+      break;
+    }
+    case 'treasure': {   // 宝箱とたる
+      if (Math.random() < 0.5) {
+        add(new THREE.BoxGeometry(2.2, 1.4, 1.4), mat(0x8b5a2b), 0, 0.7, 0);
+        const lid = add(new THREE.CylinderGeometry(0.7, 0.7, 2.2, 12, 1, false, 0, Math.PI), mat(0x7a4a22), 0, 1.4, 0); lid.rotation.z = Math.PI / 2;
+        add(new THREE.BoxGeometry(2.3, 0.2, 1.5), glow(0xffd23f), 0, 1.0, 0);
+        for (let k = 0; k < 5; k++) add(new THREE.CylinderGeometry(0.25, 0.25, 0.08, 10), glow(0xffd23f), (Math.random() - 0.5) * 3, 0.05, (Math.random() - 0.5) * 3);
+      } else {
+        add(new THREE.CylinderGeometry(0.9, 0.9, 1.8, 12), mat(0x9a6a3a), 0, 0.9, 0);
+        for (const y of [0.4, 1.4]) add(new THREE.CylinderGeometry(0.93, 0.93, 0.12, 12), mat(0x444444), 0, y, 0);
+      }
+      break;
+    }
+    case 'fern': {   // 大きなシダと恐竜の骨
+      if (Math.random() < 0.6) {
+        for (let k = 0; k < 5; k++) { const f = add(new THREE.ConeGeometry(0.5, 4, 4), mat(0x4a8a2a), 0, 1.6, 0); f.rotation.set(0.6, k * 1.25, 0); f.position.set(Math.sin(k * 1.25) * 0.9, 1.6, Math.cos(k * 1.25) * 0.9); }
+      } else {
+        for (let k = 0; k < 4; k++) { const r = add(new THREE.TorusGeometry(1.0 - k * 0.12, 0.12, 6, 16, Math.PI), mat(0xf1e9d2), 0, 0.2, -k * 0.6); r.rotation.y = Math.PI / 2; }
+        add(new THREE.SphereGeometry(0.7, 10, 8), mat(0xf1e9d2), 0, 0.5, 1.0);
+      }
+      break;
+    }
+    case 'neon': {   // 光るネオンの柱と看板
+      const col = [0x00f5d4, 0xff5cf4, 0xfff27a, 0x7a5cff][Math.floor(Math.random() * 4)];
+      const h = 5 + Math.random() * 6;
+      add(new THREE.BoxGeometry(2, h, 2), mat(0x22223b), 0, h / 2, 0);
+      add(new THREE.BoxGeometry(2.1, 0.25, 2.1), glow(col), 0, h * 0.4, 0);
+      add(new THREE.BoxGeometry(2.1, 0.25, 2.1), glow(col), 0, h * 0.75, 0);
+      const sign = add(new THREE.BoxGeometry(0.2, 1.4, 2.6), glow(col), 1.15, h * 0.6, 0); sign.castShadow = false;
+      break;
+    }
+    case 'pillar': {   // 白い神殿の柱と雲
+      const h = 6 + Math.random() * 4;
+      add(new THREE.CylinderGeometry(0.8, 0.9, h, 16), mat(0xfaf7ee), 0, h / 2, 0);
+      add(new THREE.BoxGeometry(2.2, 0.5, 2.2), mat(0xeee6d0), 0, h + 0.25, 0);
+      add(new THREE.BoxGeometry(2.2, 0.5, 2.2), mat(0xeee6d0), 0, 0.25, 0);
+      if (Math.random() < 0.4) for (let k = 0; k < 3; k++) add(decoGeo.puff, mat(0xffffff), (k - 1) * 1.4, h + 2 + (k % 2) * 0.5, 0);
+      break;
+    }
+    case 'grave': {   // お墓と枯れ木
+      if (Math.random() < 0.65) {
+        const st = add(new THREE.BoxGeometry(1.2, 1.8, 0.4), mat(0x8a8a9a), 0, 0.9, 0); st.rotation.z = (Math.random() - 0.5) * 0.3;
+        add(new THREE.CylinderGeometry(0.6, 0.6, 0.4, 14, 1, false, 0, Math.PI), mat(0x8a8a9a), 0, 1.8, 0).rotation.set(Math.PI / 2, 0, Math.PI / 2);
+        add(new THREE.BoxGeometry(0.15, 0.6, 0.1), mat(0x555566), 0, 1.0, 0.22);
+        add(new THREE.BoxGeometry(0.45, 0.15, 0.1), mat(0x555566), 0, 1.15, 0.22);
+      } else {
+        add(new THREE.CylinderGeometry(0.25, 0.4, 4, 6), mat(0x3a2e2a), 0, 2, 0);
+        for (let k = 0; k < 3; k++) { const b = add(new THREE.CylinderGeometry(0.08, 0.14, 1.8, 5), mat(0x3a2e2a), 0, 3.2 + k * 0.4, 0); b.rotation.z = (k - 1) * 0.9 + 0.3; }
+      }
+      break;
+    }
+    case 'rainbowarch': {   // 虹のアーチと光る星
+      if (Math.random() < 0.5) {
+        const cols = [0xff5e5e, 0xffa53f, 0xffd23f, 0x4cd964, 0x3a8dff, 0xb05cff];
+        cols.forEach((c, k) => { const a = add(new THREE.TorusGeometry(3.4 - k * 0.3, 0.16, 6, 32, Math.PI), glow(c), 0, 0, 0); a.castShadow = false; });
+      } else {
+        const st = add(new THREE.OctahedronGeometry(0.9), glow([0xfff27a, 0xff9ecb, 0x7df9ff][Math.floor(Math.random() * 3)]), 0, 2.5 + Math.random() * 3, 0);
+        spinners.push(st);
+      }
+      break;
+    }
     case 'luckyblock': {
       // 大きなラッキーブロック
       const b = buildLuckyBlock();
@@ -337,7 +414,7 @@ function decorate(type, x, z) {
 }
 ZONES.forEach((z, i) => {
   const start = ZONE_STARTS[i], len = ZONE_LENS[i];
-  for (let k = 0; k < Math.round(22 * len / 80); k++) {
+  for (let k = 0; k < Math.min(40, Math.round(22 * len / 80)); k++) {
     const side = Math.random() < 0.5 ? -1 : 1;
     decorate(z.deco, side * (11 + Math.random() * (WORLD_HALF_W - 13)), start + 4 + Math.random() * (len - 8));
   }
@@ -2372,6 +2449,7 @@ renderer.setAnimationLoop(() => {
   update(dt);
   renderer.render(scene, camera);
 });
+
 
 
 
