@@ -949,3 +949,20 @@ body.title-mode #toasts { display: none; }   /* タイトルの上にお知ら�
 .login-line em { margin-left: auto; font-style: normal; color: #ffd23f; }
 .login-line.ready { border-color: #ffd23f; box-shadow: 0 0 14px rgba(255, 210, 63, .3); }
 @media (max-width: 600px) { .login-grid { grid-template-columns: repeat(3, 1fr); } .login-day.big { grid-column: span 3; } }
+
+/* ---- 横向きのスマホなど、高さが低い画面でも右のボタンがはみ出さないように ---- */
+@media (max-height: 520px) and (min-width: 601px) {
+  #subMenu { width: 44px; top: calc(max(8px, env(safe-area-inset-top)) + 62px); gap: 4px; align-items: flex-end; }
+  #subMenu > button, #subMenu .hud-links a { width: 38px; height: 38px; padding: 0; justify-content: center; border-radius: 50%; }
+  #subMenu .t, #subMenu kbd { display: none; }
+  #subMenu .i { flex: none; font-size: 16px; }
+  #subMenu > .online { width: auto; padding: 2px 8px; font-size: 11px; white-space: nowrap; }
+  .links-btn { display: flex !important; }
+  #subMenu .hud-links { display: none; margin-top: 0; }
+  #subMenu.links-open .hud-links { display: flex; }
+  .stat { min-width: 0; padding: 2px 10px 2px 2px; }
+  .stat .ico { width: 24px; height: 24px; font-size: 13px; }
+  .stat b { font-size: 15px; }
+  .stat small { display: none; }
+  #stats { gap: 3px; }
+}

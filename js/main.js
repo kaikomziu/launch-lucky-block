@@ -91,7 +91,9 @@ function loadSave() {
     if (!raw) return defaultSave();
     const parsed = JSON.parse(raw);
     // 署名があるのに合わない = 手で書きかえられた（署名のない古いセーブはそのまま受け入れて、次の保存で署名する）
-    if (parsed.sig && parsed.sig !== signSave(parsed)) { parsed.tampered = true; tamperFound = true; }
+    // ※ 古いバージョンの画面を開いたままだと署名を直さずに保存されるので、ずっと外すのではなく今回だけランキングに送らない
+    if (parsed.sig && parsed.sig !== signSave(parsed)) tamperFound = true;
+    delete parsed.tampered;   // v0.48〜0.53 で付いた印は消す
     const s = Object.assign(defaultSave(), parsed);
     // 古いセーブ: 「持ち帰れた最高レア度」を、インデックスのキャラ（ただし実際に行けたレア度まで）から決める
     if (parsed.stats && parsed.stats.bestHome === undefined) {
@@ -1893,7 +1895,7 @@ function myScore() {
 // 記録が変わったときだけ送る（失敗しても遊びは止めない）
 async function sendScore(force = false) {
   const sc = myScore();
-  if (!sc.collected || save.tampered) return;   // まだ1体も持ち帰っていない人・改ざんされたセーブは載せない
+  if (!sc.collected || tamperFound) return;   // まだ1体も持ち帰っていない人・改ざんされたセーブは載せない
   const sig = JSON.stringify(sc);
   if (!force && sig === lastSent) return;
   lastSent = sig;
@@ -1911,8 +1913,8 @@ async function openRanking() {
     const [list, me] = await Promise.all([fetchRanking(rankGenre, 50), fetchMine(rankGenre, save.clientId)]);
     if (rankGenre !== g.col || openPanel !== 'rankPanel') return;
     const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const mine = save.tampered
-      ? '<div class="rank-me held">⚠ このセーブデータは書きかえられた形跡があるため、ランキングには載りません</div>'
+    const mine = tamperFound
+      ? '<div class="rank-me held">⚠ セーブデータに不自然な変更が見つかったため、今回はランキングに送っていません</div>'
       : scoreHeld && !me
       ? '<div class="rank-me held">⚠ あなたの記録はいま「保留」中です（ふつうでは出ない数字が見つかりました）。まちがいだと思ったら管理者に伝えてね</div>'
       : me
@@ -2327,6 +2329,7 @@ async function pingOnline() {
     const n = r?.online;
     if (!Number.isFinite(n)) return;
     chatLatest = Math.max(chatLatest, r.chat || 0);
+    if (!hasChatRead() && chatLatest) setChatRead(chatLatest);   // はじめての人は、これまでの発言を既読あつかいに
     updateChatBadge();
     $('onlineNum').textContent = n;
     $('onlineChip').classList.remove('hidden');
@@ -2342,6 +2345,7 @@ pingOnline();
 let chatLatest = 0, chatLastId = 0, chatTimer = null;
 const baseTitle = document.title;
 const chatRead = () => { try { return +localStorage.getItem('llb_chat_read') || 0; } catch (e) { return 0; } };
+const hasChatRead = () => { try { return localStorage.getItem('llb_chat_read') !== null; } catch (e) { return true; } };
 const setChatRead = id => { try { localStorage.setItem('llb_chat_read', String(id)); } catch (e) { /* 保存不可 */ } };
 const myChatIds = new Set();
 // 未読の数を赤い丸の中に出す（①②…、10件以上は 9+）
@@ -3040,4 +3044,4 @@ renderer.setAnimationLoop(() => {
 
 
 // 改ざんを見つけたら知らせる（ランキングには送らない）
-if (tamperFound) setTimeout(() => toast('⚠ セーブデータが書きかえられた形跡があります。このデータはランキングに載りません', { color: '#ff6b6b', big: true, time: 6000 }), 1500);
+// （タイトル画面ではお知らせを出さないので、ランキング画面でだけ知らせる）
