@@ -2533,11 +2533,15 @@ function fillBdayDays() {
   if (cur && cur <= n) bdD.value = String(cur);
 }
 function renderBdayField() {
-  bdM.value = save.bday ? String(save.bday.m) : '';
-  fillBdayDays();
-  bdD.value = save.bday ? String(save.bday.d) : '';
+  // 月だけ選んだ途中のときは、選んだものを消さない（セーブに入るのは月と日の両方がそろってから）
+  const partial = !save.bday && (bdM.value || bdD.value);
+  if (!partial) {
+    bdM.value = save.bday ? String(save.bday.m) : '';
+    fillBdayDays();
+    bdD.value = save.bday ? String(save.bday.d) : '';
+  }
   const left = save.bday ? daysToBirthday() : -1;
-  $('bdayNote').textContent = !save.bday ? '月と日を選ぶと、誕生日にお祝いとプレゼントがあります（プレゼントは1年に1回）'
+  $('bdayNote').textContent = partial ? (bdM.value ? '日も選んでね' : '月も選んでね') : !save.bday ? '月と日を選ぶと、誕生日にお祝いとプレゼントがあります（プレゼントは1年に1回）'
     : bdayOn ? '🎂 今日が誕生日！ おめでとう！' : `次の誕生日まで あと ${left} 日`;
   $('bdayAgain').hidden = !bdayOn;
 }
