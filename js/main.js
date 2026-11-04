@@ -1703,6 +1703,7 @@ function renderPanels() {
   if (openPanel === 'skinPanel') renderSkins();
   if (openPanel === 'dailyPanel') renderDaily();
   if (openPanel === 'loginPanel') renderLogin();
+  if (openPanel === 'tradePanel') renderTrade();
   if (openPanel === 'backupPanel') renderBackups();
   if (openPanel === 'chatPanel') openChat();
   if (openPanel === 'friendPanel') renderFriends(true);
@@ -2584,16 +2585,197 @@ function showSay(u, name, text) {
   r.sayTimer = setTimeout(() => { r.sayTimer = null; setLabel(r.label, `<div class="n">👥 ${escHtml(r.name)}</div>`); }, 6000);
 }
 
+// ---------- 取引（一緒に遊んでいるフレンドとキャラを交換。WebRTC で直接やりとり） ----------
+// 流れ: 申し込み → 承認 → おたがいにインベントリから出すキャラを選ぶ → 2人とも「OK」→ 2人とも「取引する」で交換
+const TRADE_MAX = 6;
+let trade = null;   // { tid, partner, pname, phase: 'asking'|'asked'|'open', mine:[], theirs:[], myOk, theirOk, myGo, theirGo }
+const itemKey = it => `${it.id}:${it.star}:${it.mut || ''}`;
+const itemsSig = list => list.map(itemKey).sort().join(',');
+const peerName = u => remotes.get(u)?.name || u;
+function sendTrade(op, extra = {}) { if (trade) net.send({ t: 'tr', u: meName(), n: playerName(), to: trade.partner, tid: trade.tid, op, ...extra }); }
+function cleanItems(list) {   // 相手から届いたキャラを確かめる
+  if (!Array.isArray(list)) return [];
+  return list.slice(0, TRADE_MAX).filter(it => it && CHAR_BY_ID[it.id]).map(it => {
+    const o = { id: it.id, star: Math.min(MAX_STAR, Math.max(1, Math.floor(+it.star) || 1)) };
+    if (MUT_BY_ID[it.mut]) o.mut = it.mut;
+    return o;
+  });
+}
+// 出そうとしているキャラが、まだインベントリにあるか
+function haveItems(list) {
+  const cnt = new Map();
+  for (const it of save.inventory) cnt.set(itemKey(it), (cnt.get(itemKey(it)) || 0) + 1);
+  for (const it of list) { const k = itemKey(it), n = cnt.get(k) || 0; if (!n) return false; cnt.set(k, n - 1); }
+  return true;
+}
+function updateTradeBtn() {
+  $('hudTradeBtn').classList.toggle('hidden', !net.connected && !trade);
+  $('tradeBadge').classList.toggle('hidden', !(trade && trade.phase === 'asked'));
+  $('tradeBadge').textContent = trade && trade.phase === 'asked' ? '!' : '';
+}
+function endTrade(msg, color = '#9ad0ff') {
+  trade = null;
+  if (msg) toast(`🤝 ${escHtml(msg)}`, { color, time: 3500 });
+  updateTradeBtn();
+  if (openPanel === 'tradePanel') renderTrade();
+}
+function requestTrade(u) {
+  if (trade) return;
+  trade = { tid: Math.random().toString(36).slice(2, 10), partner: u, pname: peerName(u), phase: 'asking', mine: [], theirs: [] };
+  sendTrade('req');
+  setTimeout(() => { if (trade && trade.phase === 'asking' && trade.partner === u) { sendTrade('cancel'); endTrade('返事がなかったので、取引の申し込みをやめました'); } }, 30000);
+  renderTrade(); updateTradeBtn();
+}
+function resetOk() { if (trade) { trade.myOk = trade.theirOk = trade.myGo = trade.theirGo = false; } }
+function onTradeMsg(m) {
+  const from = m.u;
+  if (m.op === 'req') {
+    if (trade) { net.send({ t: 'tr', u: meName(), n: playerName(), to: from, tid: m.tid, op: 'busy' }); return; }
+    trade = { tid: String(m.tid).slice(0, 12), partner: from, pname: String(m.n || from).slice(0, 16), phase: 'asked', mine: [], theirs: [] };
+    play('reveal', { vol: 0.5 });
+    toast(`🤝 ${escHtml(trade.pname)} から取引の申し込み！ <small>（右の 🤝 取引 から）</small>`, { color: '#ffd23f', big: true, time: 5000 });
+    updateTradeBtn();
+    if (openPanel === 'tradePanel' || openPanel === 'friendPanel') openPanelById('tradePanel');
+    return;
+  }
+  if (!trade || trade.partner !== from || trade.tid !== m.tid) return;
+  if (m.op === 'busy') return endTrade(`${trade.pname} はいま別の取引中です`);
+  if (m.op === 'cancel') return endTrade(`${trade.pname} が取引をやめました`);
+  if (m.op === 'acc' && trade.phase === 'asking') { trade.phase = 'open'; toast(`🤝 ${escHtml(trade.pname)} が取引を承認しました！ 出すキャラを選ぼう`, { color: '#7dff8a' }); }
+  else if (m.op === 'offer' && trade.phase === 'open') { trade.theirs = cleanItems(m.items); resetOk(); }
+  else if (m.op === 'ok' && trade.phase === 'open') {
+    // 相手から見た「自分が出す・相手が出す」が、こちらの見え方と同じときだけ OK とみなす
+    trade.theirOk = !!m.on && m.mine === itemsSig(trade.theirs) && m.theirs === itemsSig(trade.mine);
+    if (!m.on) trade.myGo = trade.theirGo = false;
+  } else if (m.op === 'go' && trade.phase === 'open') {
+    if (m.mine !== itemsSig(trade.theirs) || m.theirs !== itemsSig(trade.mine)) return;
+    trade.theirGo = true;
+    if (trade.myGo) return doTrade();
+  }
+  updateTradeBtn();
+  if (openPanel === 'tradePanel') renderTrade();
+}
+// 交換する（2人とも「取引する」を押したとき、それぞれの端末で行う）
+function doTrade() {
+  const t = trade;
+  if (!haveItems(t.mine)) { sendTrade('cancel'); return endTrade('出すキャラがインベントリにないので、取引をやめました', '#ff6b6b'); }
+  for (const it of t.mine) {
+    const i = save.inventory.findIndex(x => itemKey(x) === itemKey(it));
+    if (i >= 0) save.inventory.splice(i, 1);
+  }
+  for (const it of t.theirs) {
+    save.inventory.push(it.mut ? { id: it.id, star: it.star, mut: it.mut } : { id: it.id, star: it.star });
+    const entry = save.dex[it.id] ||= { count: 0, first: Date.now(), seen: false };
+    entry.count++; if (it.mut) (entry.muts ||= {})[it.mut] = true;
+    newItems++;
+  }
+  play('evolve');
+  burst(pState.pos.clone().add(new THREE.Vector3(0, 3, 0)), 0x7dff8a, 40, 12);
+  const got = t.theirs.map(it => CHAR_BY_ID[it.id].name).join('・') || 'なし';
+  pushParty({ sys: true, text: `🤝 ${t.pname} と取引しました` });
+  trade = null;
+  writeSave(); updateHud(); updateTradeBtn();
+  toast(`🤝 取引成立！ もらったキャラ: ${escHtml(got)}`, { color: '#7dff8a', big: true, time: 4000 });
+  if (openPanel === 'tradePanel') renderTrade();
+}
+const tradeTile = (it, attr = '') => {
+  const def = CHAR_BY_ID[it.id];
+  return `<div class="tr-item" ${attr}>${charIcon(def, it.mut)}<b>${def.name}</b><small>${stars(it.star)}${it.mut ? ' ' + MUT_BY_ID[it.mut].name : ''}</small><small class="rar">${rarityName(def.r)}</small></div>`;
+};
+function renderTrade() {
+  const body = $('tradeBody');
+  if (!trade) {
+    const list = [...remotes.entries()];
+    body.innerHTML = `<p class="dex-sum">一緒に遊んでいるフレンドと、インベントリのキャラを交換できます（1回に${TRADE_MAX}体まで）。台座に置いているキャラは出せません。</p>` + (net.connected && list.length
+      ? list.map(([u, r]) => `<div class="fr-row"><span class="av">👥</span><div><b>${escHtml(r.name || u)}</b><small>@${escHtml(u)}</small></div><button class="btn" data-tr-req="${escHtml(u)}">取引を申し込む</button></div>`).join('')
+      : '<div class="rank-me">いまは誰ともつながっていません。フレンド画面（9キー）から一緒に遊ぶと取引できます。</div>');
+    return;
+  }
+  if (trade.phase === 'asking') {
+    body.innerHTML = `<div class="tr-wait">⏳ <b>${escHtml(trade.pname)}</b> の返事を待っています…</div><button class="btn sell tr-wide" data-tr="cancel">やめる</button>`;
+    return;
+  }
+  if (trade.phase === 'asked') {
+    body.innerHTML = `<div class="tr-wait">🤝 <b>${escHtml(trade.pname)}</b> から取引の申し込みがきています！</div>
+      <div class="tr-btns"><button class="btn" data-tr="accept">承認する</button><button class="btn sell" data-tr="decline">断る</button></div>`;
+    return;
+  }
+  // 取引中
+  const both = trade.myOk && trade.theirOk;
+  const used = new Map();
+  for (const it of trade.mine) used.set(itemKey(it), (used.get(itemKey(it)) || 0) + 1);
+  const groups = new Map();
+  for (const it of save.inventory) { const k = itemKey(it); if (!groups.has(k)) groups.set(k, { it, n: 0 }); groups.get(k).n++; }
+  const pick = [...groups.entries()].map(([k, g]) => ({ k, it: g.it, left: g.n - (used.get(k) || 0) })).filter(g => g.left > 0)
+    .sort((a, b) => CHAR_BY_ID[b.it.id].r - CHAR_BY_ID[a.it.id].r || b.it.star - a.it.star);
+  const status = trade.myGo ? `⏳ ${escHtml(trade.pname)} が「取引する」を押すのを待っています…`
+    : both ? '✅ 2人ともOK！ 「取引する」を押すと交換します'
+    : trade.myOk ? `⏳ ${escHtml(trade.pname)} のOKを待っています…`
+    : trade.theirOk ? `${escHtml(trade.pname)} はOKしています。内容を確かめて「OK」を押してね`
+    : '出すキャラを選んで「OK」を押してね（内容が変わるとOKはやり直し）';
+  body.innerHTML = `
+    <div class="tr-cols">
+      <div class="tr-col ${trade.myOk ? 'ok' : ''}"><h3>あなたが出す <small>${trade.mine.length}/${TRADE_MAX}</small>${trade.myOk ? ' <span class="tr-okb">OK</span>' : ''}</h3>
+        <div class="tr-grid">${trade.mine.map((it, i) => tradeTile(it, `data-tr-rm="${i}" title="外す"`)).join('') || '<p class="dex-sum">下のインベントリから選んでね</p>'}</div></div>
+      <div class="tr-col ${trade.theirOk ? 'ok' : ''}"><h3>${escHtml(trade.pname)} が出す <small>${trade.theirs.length}/${TRADE_MAX}</small>${trade.theirOk ? ' <span class="tr-okb">OK</span>' : ''}</h3>
+        <div class="tr-grid">${trade.theirs.map(it => tradeTile(it)).join('') || '<p class="dex-sum">まだ選んでいません</p>'}</div></div>
+    </div>
+    <p class="tr-status">${status}</p>
+    <div class="tr-btns">
+      ${both ? `<button class="btn tr-go" data-tr="go" ${trade.myGo ? 'disabled' : ''}>🤝 取引する</button>` : `<button class="btn" data-tr="ok">${trade.myOk ? 'OKを取り消す' : 'OK'}</button>`}
+      <button class="btn sell" data-tr="cancel">やめる</button>
+    </div>
+    <h3 class="adm-h">🎒 インベントリから選ぶ</h3>
+    <div class="tr-grid pick">${pick.map(g => tradeTile(g.it, `data-tr-add="${escHtml(g.k)}" title="出す"`).replace('</div>', `${g.left > 1 ? `<i class="tr-n">×${g.left}</i>` : ''}</div>`)).join('') || '<p class="dex-sum">インベントリにキャラがいません</p>'}</div>`;
+}
+$('tradeBody').addEventListener('click', e => {
+  const req = e.target.closest('[data-tr-req]');
+  if (req) return requestTrade(req.dataset.trReq);
+  if (!trade) return;
+  const add = e.target.closest('[data-tr-add]'), rm = e.target.closest('[data-tr-rm]'), b = e.target.closest('[data-tr]');
+  if ((add || rm) && trade.phase === 'open' && !trade.myGo) {
+    if (add) {
+      if (trade.mine.length >= TRADE_MAX) return toast(`1回に出せるのは${TRADE_MAX}体までです`, { color: '#ff6b6b' });
+      const it = save.inventory.find(x => itemKey(x) === add.dataset.trAdd);
+      if (!it) return;
+      trade.mine.push(it.mut ? { id: it.id, star: it.star, mut: it.mut } : { id: it.id, star: it.star });
+    } else trade.mine.splice(+rm.dataset.trRm, 1);
+    resetOk();
+    sendTrade('offer', { items: trade.mine });
+    return renderTrade();
+  }
+  if (!b) return;
+  const k = b.dataset.tr;
+  if (k === 'accept' && trade.phase === 'asked') { trade.phase = 'open'; sendTrade('acc'); }
+  else if (k === 'decline' || k === 'cancel') { sendTrade('cancel'); return endTrade(k === 'decline' ? '取引を断りました' : '取引をやめました'); }
+  else if (k === 'ok' && trade.phase === 'open') {
+    if (!trade.myOk && !trade.mine.length && !trade.theirs.length) return toast('どちらもキャラを選んでいません', { color: '#ff6b6b' });
+    if (!trade.myOk && !haveItems(trade.mine)) return toast('出すキャラがインベントリにありません（台座に置いたかも）', { color: '#ff6b6b' });
+    trade.myOk = !trade.myOk;
+    if (!trade.myOk) trade.myGo = false;
+    sendTrade('ok', { on: trade.myOk, mine: itemsSig(trade.mine), theirs: itemsSig(trade.theirs) });
+  } else if (k === 'go' && trade.myOk && trade.theirOk && !trade.myGo) {
+    if (!haveItems(trade.mine)) { sendTrade('cancel'); return endTrade('出すキャラがインベントリにないので、取引をやめました', '#ff6b6b'); }
+    trade.myGo = true;
+    sendTrade('go', { mine: itemsSig(trade.mine), theirs: itemsSig(trade.theirs) });
+    if (trade.theirGo) return doTrade();
+  }
+  updateTradeBtn(); renderTrade();
+});
+$('hudTradeBtn').addEventListener('click', () => openPanelById('tradePanel'));
+
 // ---------- フレンドと一緒に遊ぶ（WebRTC） ----------
 const kaToken = () => window.KaAccount?.token();
 const net = new Net({
   getToken: kaToken,
-  onPeer: (u, name) => { lastBaseSent = 0; lastBaseSig = ''; pushParty({ sys: true, text: `👥 ${String(name || u).slice(0, 16)} が参加しました` }); toast(`👥 ${escHtml(name || u)} とつながった！`, { color: '#7dff8a', big: true }); play('safe', { vol: 0.6 }); netStatus = ''; if (openPanel === 'friendPanel') renderFriends(); },
+  onPeer: (u, name) => { lastBaseSent = 0; lastBaseSig = ''; setTimeout(updateTradeBtn, 500); pushParty({ sys: true, text: `👥 ${String(name || u).slice(0, 16)} が参加しました` }); toast(`👥 ${escHtml(name || u)} とつながった！`, { color: '#7dff8a', big: true }); play('safe', { vol: 0.6 }); netStatus = ''; if (openPanel === 'friendPanel') renderFriends(); },
   onLeave: (u, name) => {
     const r = remotes.get(u);
     if (r) { scene.remove(r.p.group); r.label.el.remove(); labels.splice(labels.indexOf(r.label), 1); remotes.delete(u); toast(`👋 ${escHtml(name || u)} が抜けた`, { color: '#9ad0ff' }); }
     removeNeighborBase(u);
     if (r) pushParty({ sys: true, text: `👋 ${String(name || u).slice(0, 16)} が抜けました` });
+    if (trade && trade.partner === u) endTrade(`${String(name || u).slice(0, 16)} が抜けたので、取引をやめました`);
+    setTimeout(updateTradeBtn, 0);
     if (openPanel === 'friendPanel') renderFriends();
   },
   onMessage: msg => onNetMessage(msg),
@@ -2633,6 +2815,8 @@ function onNetMessage(m) {
     if (nm !== r.name) { r.name = nm; if (!r.sayTimer) setLabel(r.label, `<div class="n">👥 ${escHtml(nm)}</div>`); }
   } else if (m.t === 'base' && Array.isArray(m.slots)) {
     setNeighborBase(m.u, String(m.n || m.u).slice(0, 16), m.slots.slice(0, SLOT_COUNT));
+  } else if (m.t === 'tr') {
+    if (m.to === meName()) onTradeMsg(m);
   } else if (m.t === 'pc' && typeof m.text === 'string') {
     const name = String(m.n || m.u).slice(0, 16), text = m.text.trim().slice(0, 100);
     if (!text) return;
@@ -2770,7 +2954,7 @@ async function renderFriends(refresh = false) {
       ? `<div class="fr-room on"><b>🎮 ${net.pending ? 'つないでいます…' : `${escHtml(net.peers.get(net.hostName)?.name || net.hostName)} の部屋で遊んでいます`}</b><button class="btn sell" data-fr="close">${net.pending ? 'やめる' : '抜ける'}</button></div>`
       : `<div class="fr-room"><b>🏠 フレンドと一緒に遊ぶ</b><small>部屋を開くと、フレンドが参加できます。おたがいの姿が見えて、持ち帰ったキャラなども知らせ合えます（セーブは別々）</small><button class="btn" data-fr="host">部屋を開く</button></div>`;
   const row = (f, btns) => `<div class="fr-row"><span class="av">${escHtml(f.avatar || '🎮')}</span><div><b>${escHtml(f.name)}</b><small>@${escHtml(f.username)}${f.online !== undefined ? (f.room ? ' ・ <span class="room">🏠 部屋を開いています</span>' : f.online ? ' ・ <span class="on">🟢 オンライン</span>' : ' ・ オフライン') : ''}</small></div>${btns}</div>`;
-  body.innerHTML = `${netStatus ? `<p class="fr-status">${escHtml(netStatus)}</p>` : ''}${room}
+  body.innerHTML = `${netStatus ? `<p class="fr-status">${escHtml(netStatus)}</p>` : ''}${room}${net.connected ? '<button class="btn fr-trade" data-open-trade>🤝 一緒に遊んでいる人とキャラを取引する</button>' : ''}
     <p class="fr-me">あなたのID: <b>@${escHtml(d.me.username)}</b>（フレンドにこのIDを教えてね）</p>
     <form class="fr-add" id="frAdd" autocomplete="off"><input id="frAddInput" maxlength="32" placeholder="フレンドのID（ユーザー名）"><button class="btn" type="submit">申請</button></form>
     ${d.incoming.length ? `<h3 class="adm-h">📩 フレンド申請（${d.incoming.length}）</h3>` + d.incoming.map(f => row(f, `<button class="btn" data-fr="accept" data-u="${escHtml(f.username)}">承認</button><button class="btn sell" data-fr="decline" data-u="${escHtml(f.username)}">断る</button>`)).join('') : ''}
@@ -2792,6 +2976,7 @@ async function renderFriends(refresh = false) {
   clearInterval(friendTimer);
   friendTimer = setInterval(() => { if (openPanel !== 'friendPanel') { clearInterval(friendTimer); return; } if (!document.hidden) renderFriends(true); }, 15000);
 }
+$('friendBody').addEventListener('click', e => { if (e.target.closest('[data-open-trade]')) openPanelById('tradePanel'); });
 $('friendBody').addEventListener('click', async e => {
   const b = e.target.closest('[data-fr]');
   if (!b || b.disabled) return;

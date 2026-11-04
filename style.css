@@ -1009,3 +1009,31 @@ body.title-mode #toasts { display: none; }   /* タイトルの上にお知ら�
 .trust-btn { opacity: .55; }
 .trust-btn.on { opacity: 1; }
 .adm-row .btn.trust { background: #ffd23f; color: #3b2a00; }
+
+/* ---- 取引 ---- */
+#tradePanel { width: min(640px, 96vw); }
+#hudTradeBtn { position: relative; border-color: rgba(125, 255, 138, .6) !important; }
+.btn.fr-trade { display: block; width: 100%; margin: 0 0 12px; background: linear-gradient(90deg, #22b544, #4cd964); color: #053b10; }
+.tr-wait { padding: 16px; margin-bottom: 12px; border-radius: 14px; text-align: center; font-size: 16px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .15); }
+.tr-wide { display: block; width: 100%; }
+.tr-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tr-col { padding: 8px; border-radius: 14px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .15); min-height: 120px; }
+.tr-col.ok { border-color: #7dff8a; box-shadow: 0 0 0 1px #7dff8a inset; }
+.tr-col h3 { margin: 0 0 6px; font-size: 14px; }
+.tr-col h3 small { color: var(--muted); font-size: 11px; }
+.tr-okb { display: inline-block; padding: 0 8px; border-radius: 999px; background: #7dff8a; color: #053b10; font-size: 11px; }
+.tr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.tr-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 4px; border-radius: 12px; text-align: center; cursor: pointer; background: rgba(0, 0, 0, .25); border: 1px solid rgba(255, 255, 255, .12); }
+.tr-item:hover { border-color: #ffd23f; }
+.tr-item .thumb { width: 48px; height: 48px; }
+.tr-item b { font-size: 12px; line-height: 1.2; }
+.tr-item small { font-size: 10px; color: #ffd23f; }
+.tr-item small.rar { color: var(--muted); }
+.tr-col .tr-item[data-tr-rm]::after { content: '✕'; position: absolute; top: 2px; right: 6px; font-size: 11px; color: #ff9e80; }
+.tr-n { position: absolute; top: 2px; right: 4px; font-style: normal; font-size: 11px; font-weight: 900; color: #fff; background: rgba(0, 0, 0, .5); padding: 0 5px; border-radius: 999px; }
+.tr-status { margin: 10px 0 6px; text-align: center; font-weight: 800; font-size: 14px; }
+.tr-btns { display: flex; gap: 8px; }
+.tr-btns .btn { flex: 1; }
+.btn.tr-go { background: linear-gradient(#8dff99, #22b544); color: #053b10; font-size: 17px; }
+.tr-grid.pick { max-height: 260px; overflow-y: auto; padding: 2px; }
+@media (max-width: 600px) { .tr-cols { grid-template-columns: 1fr; } .tr-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); } }

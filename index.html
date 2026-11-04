@@ -7,22 +7,22 @@
 <meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
-<link rel="stylesheet" href="style.css?v=0.58">
+<link rel="stylesheet" href="style.css?v=0.59">
 <!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
 <script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <!-- 更新のたびに ?v= をバージョンに合わせて変える（古いJSがキャッシュされないように） -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "./js/data.js": "./js/data.js?v=0.58",
-  "./js/models.js": "./js/models.js?v=0.58",
-  "./js/input.js": "./js/input.js?v=0.58",
-  "./js/audio.js": "./js/audio.js?v=0.58",
-  "./js/ranking.js": "./js/ranking.js?v=0.58",
-  "./js/admin.js": "./js/admin.js?v=0.58",
-  "./js/backup.js": "./js/backup.js?v=0.58",
-  "./js/chat.js": "./js/chat.js?v=0.58",
-  "./js/friends.js": "./js/friends.js?v=0.58"
+  "./js/data.js": "./js/data.js?v=0.59",
+  "./js/models.js": "./js/models.js?v=0.59",
+  "./js/input.js": "./js/input.js?v=0.59",
+  "./js/audio.js": "./js/audio.js?v=0.59",
+  "./js/ranking.js": "./js/ranking.js?v=0.59",
+  "./js/admin.js": "./js/admin.js?v=0.59",
+  "./js/backup.js": "./js/backup.js?v=0.59",
+  "./js/chat.js": "./js/chat.js?v=0.59",
+  "./js/friends.js": "./js/friends.js?v=0.59"
 } }
 </script>
 </head>
@@ -54,6 +54,7 @@
   <button id="hudDailyBtn" title="デイリークエスト"><span class="i">📅</span><span class="t">デイリー</span><kbd class="pc-only">Q</kbd><i id="dailyBadge" class="chat-dot hidden"></i></button>
   <button id="hudRankBtn" title="ランキング"><span class="i">🏆</span><span class="t">ランキング</span><kbd class="pc-only">5</kbd></button>
   <button id="hudSkinBtn" title="スキン"><span class="i">👕</span><span class="t">スキン</span><kbd class="pc-only">6</kbd></button>
+  <button id="hudTradeBtn" class="hidden" title="取引"><span class="i">🤝</span><span class="t">取引</span><i id="tradeBadge" class="chat-dot hidden"></i></button>
   <button id="hudFriendBtn" title="フレンド"><span class="i">👥</span><span class="t">フレンド</span><kbd class="pc-only">9</kbd><i id="friendBadge" class="chat-dot hidden"></i></button>
   <button id="hudChatBtn" title="チャット"><span class="i">💬</span><span class="t">チャット</span><kbd class="pc-only">/</kbd><i id="chatBadge" class="chat-dot hidden"></i></button>
   <button id="hudAccountBtn" title="アカウント"><span class="i">👤</span><span class="t">ログイン</span></button>
@@ -228,6 +229,11 @@
   <div class="panel-body" id="loginBody"></div>
 </div>
 
+<div id="tradePanel" class="panel hidden">
+  <div class="panel-head"><h2>🤝 取引</h2><button class="close">✕</button></div>
+  <div class="panel-body" id="tradeBody"></div>
+</div>
+
 <div id="dailyPanel" class="panel hidden">
   <div class="panel-head"><h2>📅 デイリークエスト</h2><button class="close">✕</button></div>
   <div class="panel-body" id="dailyBody"></div>
@@ -320,7 +326,7 @@
       <div class="adm-line"><button id="backupBtn" class="btn">バックアップから復元</button><button id="backupNowBtn" class="btn store">今すぐバックアップ</button></div>
     </div>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.58</p>
+    <p class="version">v0.59</p>
   </div>
 </div>
 
@@ -368,10 +374,10 @@
       </a>
       <p class="ctrl" id="ctrlHint"></p>
     </div>
-    <p class="note">v0.58 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.59 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=0.58"></script>
+<script type="module" src="js/main.js?v=0.59"></script>
 </body>
 </html>
