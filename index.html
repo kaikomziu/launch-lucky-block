@@ -7,22 +7,22 @@
 <meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
-<link rel="stylesheet" href="style.css?v=0.49">
+<link rel="stylesheet" href="style.css?v=0.50">
 <!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
 <script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <!-- 更新のたびに ?v= をバージョンに合わせて変える（古いJSがキャッシュされないように） -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "./js/data.js": "./js/data.js?v=0.49",
-  "./js/models.js": "./js/models.js?v=0.49",
-  "./js/input.js": "./js/input.js?v=0.49",
-  "./js/audio.js": "./js/audio.js?v=0.49",
-  "./js/ranking.js": "./js/ranking.js?v=0.49",
-  "./js/admin.js": "./js/admin.js?v=0.49",
-  "./js/backup.js": "./js/backup.js?v=0.49",
-  "./js/chat.js": "./js/chat.js?v=0.49",
-  "./js/friends.js": "./js/friends.js?v=0.49"
+  "./js/data.js": "./js/data.js?v=0.50",
+  "./js/models.js": "./js/models.js?v=0.50",
+  "./js/input.js": "./js/input.js?v=0.50",
+  "./js/audio.js": "./js/audio.js?v=0.50",
+  "./js/ranking.js": "./js/ranking.js?v=0.50",
+  "./js/admin.js": "./js/admin.js?v=0.50",
+  "./js/backup.js": "./js/backup.js?v=0.50",
+  "./js/chat.js": "./js/chat.js?v=0.50",
+  "./js/friends.js": "./js/friends.js?v=0.50"
 } }
 </script>
 </head>
@@ -49,15 +49,19 @@
 
 <!-- プレイ中も使えるアカウント・ほかのゲームへのボタン -->
 <div id="subMenu" class="hud">
-  <div id="onlineChip" class="online hidden"><i></i><b id="onlineNum">0</b>人がプレイ中</div>
-  <button id="hudRankBtn"><kbd class="pc-only">5</kbd>🏆 ランキング</button>
-  <button id="hudSkinBtn"><kbd class="pc-only">6</kbd>👕 スキン</button>
-  <button id="hudFriendBtn"><kbd class="pc-only">9</kbd>👥 フレンド<i id="friendBadge" class="chat-dot hidden"></i></button>
-  <button id="hudChatBtn"><kbd class="pc-only">/</kbd>💬 チャット<i id="chatBadge" class="chat-dot hidden"></i></button>
-  <button id="hudAccountBtn">👤 ログイン</button>
-  <button id="hudAdminBtn" class="hidden"><kbd class="pc-only">7</kbd>🛠 管理者メニュー</button>
-  <a href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ</a>
-  <a class="oc-mini" href="https://line.me/ti/g2/RNE2vwllCnyl4-Y8ukT0Pqmay1BYPPtICBvzaw?utm_source=invitation&amp;utm_medium=link_copy&amp;utm_campaign=default" target="_blank" rel="noopener">💬 公認オプチャ（雑談OK）</a>
+  <div id="onlineChip" class="online hidden" title="いま遊んでいる人数"><i></i><b id="onlineNum">0</b><span class="t">人がプレイ中</span></div>
+  <button id="hudRankBtn" title="ランキング"><span class="i">🏆</span><span class="t">ランキング</span><kbd class="pc-only">5</kbd></button>
+  <button id="hudSkinBtn" title="スキン"><span class="i">👕</span><span class="t">スキン</span><kbd class="pc-only">6</kbd></button>
+  <button id="hudFriendBtn" title="フレンド"><span class="i">👥</span><span class="t">フレンド</span><kbd class="pc-only">9</kbd><i id="friendBadge" class="chat-dot hidden"></i></button>
+  <button id="hudChatBtn" title="チャット"><span class="i">💬</span><span class="t">チャット</span><kbd class="pc-only">/</kbd><i id="chatBadge" class="chat-dot hidden"></i></button>
+  <button id="hudAccountBtn" title="アカウント"><span class="i">👤</span><span class="t">ログイン</span></button>
+  <button id="hudAdminBtn" class="hidden" title="管理者メニュー"><span class="i">🛠</span><span class="t">管理者</span><kbd class="pc-only">7</kbd></button>
+  <!-- リンク（スマホでは🔗で開く） -->
+  <button id="hudLinksBtn" class="links-btn" title="リンク" aria-expanded="false"><span class="i">🔗</span><span class="t">リンク</span></button>
+  <div id="hudLinks" class="hud-links">
+    <a class="more" href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener"><span class="i">🎮</span><span class="t">作者の別のゲーム</span></a>
+    <a class="oc-mini" href="https://line.me/ti/g2/RNE2vwllCnyl4-Y8ukT0Pqmay1BYPPtICBvzaw?utm_source=invitation&amp;utm_medium=link_copy&amp;utm_campaign=default" target="_blank" rel="noopener"><span class="i">💬</span><span class="t">公認オプチャ</span></a>
+  </div>
 </div>
 <div id="zoneLabel" class="hud"></div>
 <div id="adminMsg" class="hud hidden"><span>📢 管理者より</span><b id="adminMsgText"></b></div>
@@ -275,7 +279,7 @@
       <div class="adm-line"><button id="backupBtn" class="btn">バックアップから復元</button><button id="backupNowBtn" class="btn store">今すぐバックアップ</button></div>
     </div>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.49</p>
+    <p class="version">v0.50</p>
   </div>
 </div>
 
@@ -322,10 +326,10 @@
       </a>
       <p class="ctrl" id="ctrlHint"></p>
     </div>
-    <p class="note">v0.49 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.50 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=0.49"></script>
+<script type="module" src="js/main.js?v=0.50"></script>
 </body>
 </html>

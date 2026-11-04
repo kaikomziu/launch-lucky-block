@@ -2648,12 +2648,17 @@ function updateAccountUi(user = ka?.user()) {
     : 'ログインすると、セーブがクラウドに保存されて別の端末でも続きから遊べます。';
   $('accountBtn').textContent = user ? 'アカウント・同期の状態' : 'ログイン / アカウントを作る';
   $('titleAccountBtn').textContent = user ? `${user.avatar} ${user.display_name} でログイン中` : '👤 かるわかGAMESアカウントでログイン';
-  $('hudAccountBtn').textContent = user ? `${user.avatar} ${user.display_name}` : '👤 ログイン';
+  $('hudAccountBtn').innerHTML = user ? `<span class="i">${escHtml(user.avatar || '👤')}</span><span class="t">${escHtml(user.display_name)}</span>` : '<span class="i">👤</span><span class="t">ログイン</span>';
   $('nameInput').placeholder = user ? user.display_name : '名無し';
 }
 $('accountBtn').addEventListener('click', () => ka?.openPanel());
 $('titleAccountBtn').addEventListener('click', () => ka?.openPanel());
 $('hudAccountBtn').addEventListener('click', () => { unlockPointer(); ka?.openPanel(); });
+// スマホではリンク（作者の別のゲーム・オプチャ）を 🔗 で開け閉めする
+$('hudLinksBtn').addEventListener('click', () => {
+  const open = $('subMenu').classList.toggle('links-open');
+  $('hudLinksBtn').setAttribute('aria-expanded', String(open));
+});
 ka?.onChange(user => { updateAccountUi(user); checkAdmin(); if (user && !$('title').classList.contains('hidden')) return; if (user) checkLostData(); });
 
 // ---------- 管理者メニュー（かるわかGAMESの管理者アカウントだけ） ----------
