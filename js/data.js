@@ -16,6 +16,7 @@ export const RARITIES = [
   { name: 'ネビュラ',       color: 0xff7ae0, css: '#ff7ae0', income: 3500000000 },
   { name: 'カオス',         color: 0xd6336c, css: '#d6336c', income: 25000000000 },
   { name: 'オメガ',         color: 0xffffff, css: 'rainbow', income: 180000000000, fx: 0xffd23f },
+  { name: 'ヤマト',         color: 0xff5c8a, css: '#ff5c8a', income: 1260000000000 },
 ];
 // 3D演出・枠線に使う色（白いレア度は代わりの色）
 export const rarFx = r => RARITIES[r].fx ?? RARITIES[r].color;
@@ -69,6 +70,8 @@ export const ZONES = [
     boss: { name: 'カオスタイタン', kind: 'titan',   color: 0xff2a2a, speed: 65, scale: 6.8 } },
   { name: 'ラッキーの頂', ground: 0xfff3c4, alt: 0xffe58a, sky: 0xfff6d5, deco: 'luckyblock',
     boss: { name: 'ラッキーキング', kind: 'luckyking',   color: 0xffd23f, speed: 69, scale: 7.2 } },
+  { name: '日本', ground: 0xc9e4b4, alt: 0xb7d8a0, sky: 0xffdbe9, deco: 'sakura',
+    boss: { name: '影の忍者', kind: 'ninja', color: 0x1b1f3a, speed: 73, scale: 7.6 } },
 ];
 
 // キャラクター（形状パラメータは models.js の buildCharacter で使う）
@@ -227,6 +230,14 @@ export const CHARACTERS = [
   { id: 'stardust',   r: 12, name: '星くずの精霊',     mult: 3, shape: 'sphere', color: 0x5a189a, accent: 0xffd23f, extras: ['sprout', 'stars', 'halo', 'orbit'], lowRate: true },
   { id: 'shikkoku',   r: 13, name: '漆黒の天使',       mult: 3, shape: 'box',    color: 0x0b0b12, accent: 0xff2a2a, extras: ['wings', 'halo', 'horns', 'glow'], lowRate: true },
   { id: 'prismgod',   r: 14, name: '虹の創造神',       mult: 3, shape: 'sphere', color: 0xffffff, accent: 0xffd23f, extras: ['halo', 'crown', 'wings', 'rainbow', 'glow'], lowRate: true },
+
+  // ---- v0.41 で追加（日本） ----
+  { id: 'maguro',    r: 15, name: 'マグロ寿司',      mult: 0.7, shape: 'sushi',  color: 0xfaf8f2, accent: 0xd62839, extras: ['blush'] },
+  { id: 'salmon',    r: 15, name: 'サーモン寿司',    mult: 0.9, shape: 'sushi',  color: 0xfaf8f2, accent: 0xff8c5a, extras: ['stripes', 'blush'] },
+  { id: 'tamagozushi', r: 15, name: 'たまご寿司',    mult: 1.1, shape: 'sushi',  color: 0xfaf8f2, accent: 0xffd23f, extras: ['band', 'blush'] },
+  { id: 'yozakura',  r: 15, name: '夜桜ひめ',        mult: 1.2, shape: 'egg',    color: 0xffd6e8, accent: 0xff8fab, extras: ['sakura', 'blush', 'glow'] },
+  { id: 'torii',     r: 15, name: '鳥居さま',        mult: 1.4, shape: 'box',    color: 0xfff1e0, accent: 0xe63946, extras: ['toriiframe', 'blush'] },
+  { id: 'samurai',   r: 15, name: 'サムライ大将',    mult: 1.5, shape: 'box',    color: 0x3a3a5a, accent: 0xe63946, extras: ['kabuto', 'katana', 'mustache'] },
 ];
 
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));

@@ -347,6 +347,33 @@ export function buildBoss(def) {
       legL = limb(-1, 2.7, 1.5, 2.7, rock); legR = limb(1, 2.7, 1.5, 2.7, rock);
       break;
     }
+    case 'ninja': {   // 影の忍者。覆面・赤いマフラー・背中の刀・まわる手裏剣
+      const cloth = mat(def.color);
+      add(B(2.6, 3, 1.8), cloth, 0, 4, 0);
+      add(B(2.7, 0.35, 1.9), mat(0x5a1020), 0, 3.1, 0);   // 帯
+      add(B(2.2, 2.1, 2.1), cloth, 0, 6.5, 0);
+      add(B(2.25, 0.55, 2.15), mat(0xf1d2b0), 0, 6.7, 0);   // 目のまわりだけ肌
+      eyes(6.72, 1.1, 0.48, 0.42, 0.18);
+      const knot = pivot(0, 7.1, -1.1);   // はちまきの結び目
+      for (const s of [-1, 1]) { const tl = add(B(0.18, 1.6, 0.5), mat(0xe63946), s * 0.25, -0.8, -0.2, knot); tl.rotation.z = s * 0.3; }
+      anims.push(t => { knot.rotation.x = 0.5 + Math.sin(t * 8) * 0.25; });
+      add(B(2.25, 0.25, 2.15), mat(0xe63946), 0, 7.1, 0);
+      const scarf = pivot(0, 5.4, -0.9);   // なびく赤いマフラー
+      add(B(0.7, 0.18, 3), mat(0xe63946), 0, 0, -1.5, scarf);
+      anims.push(t => { scarf.rotation.x = 0.25 + Math.sin(t * 7) * 0.2; scarf.rotation.y = Math.sin(t * 4) * 0.25; });
+      const sw = add(B(0.18, 4.6, 0.35), mat(0xdfe6ee), 0.6, 5.2, -1.05); sw.rotation.z = 0.7;   // 背中の刀
+      add(B(0.3, 1.4, 0.4), mat(0x2b1a10), 1.55, 6.3, -1.05).rotation.z = 0.7;
+      const shuri = new THREE.Group(); shuri.position.y = 4.8; inner.add(shuri);
+      for (let i = 0; i < 3; i++) {
+        const s = new THREE.Group(); const a = i / 3 * Math.PI * 2; s.position.set(Math.cos(a) * 3.6, Math.sin(a) * 0.6, Math.sin(a) * 3.6); shuri.add(s);
+        for (let k = 0; k < 4; k++) { const bl = add(B(0.9, 0.08, 0.25), mat(0x9aa6b2), 0, 0, 0, s); bl.rotation.y = k * Math.PI / 4; }
+        anims.push(t => { s.rotation.y = t * 14; });
+      }
+      anims.push(t => { shuri.rotation.y = t * 1.8; });
+      armL = limb(-1.8, 5.2, 0.8, 2.9, cloth); armR = limb(1.8, 5.2, 0.8, 2.9, cloth);
+      legL = limb(-0.7, 2.5, 1.0, 2.5, cloth); legR = limb(0.7, 2.5, 1.0, 2.5, cloth);
+      break;
+    }
     case 'luckyking': {   // ラッキーブロックの王さま
       const tex = luckyTexture();
       const blk = add(B(4.2, 4.2, 4.2), new THREE.MeshLambertMaterial({ map: tex, color: 0xffd23f, emissive: 0x332200 }), 0, 4.6, 0);
@@ -422,6 +449,7 @@ const SHAPES = {
   dome:   { top: 1.6, eyeY: 0.9,  front: 0.8 },
   egg:    { top: 2.5, eyeY: 1.45, front: 0.82 },
   cone:   { top: 2.2, eyeY: 0.8,  front: 0.62 },
+  sushi:  { top: 1.4, eyeY: 0.55, front: 0.72 },
 };
 
 // 変異キャラの体の素材
@@ -458,6 +486,14 @@ export function buildCharacter(def, mut = null) {
     mainMesh.scale.set(0.9, 1.25, 0.9); mainMesh.position.y = 1.25;
   } else if (def.shape === 'cone') {
     mainMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 1.0, 2.2, 18), body); mainMesh.position.y = 1.1;
+  } else if (def.shape === 'sushi') {
+    // シャリ（白いごはん）の上にネタ
+    mainMesh = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.0, 1.4), body); mainMesh.position.y = 0.5;
+    const neta = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.32, 1.6), mat(def.accent)); neta.position.y = 1.16; neta.rotation.z = 0.04; g.add(neta);
+    for (let i = 0; i < 6; i++) {   // ごはんつぶ
+      const r = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 4), mat(0xffffff));
+      r.position.set(-0.8 + i * 0.32, 0.15 + (i % 2) * 0.55, 0.71); g.add(r);
+    }
   } else {
     mainMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), body);
     mainMesh.position.y = 0.6;
@@ -758,6 +794,41 @@ export function buildCharacter(def, mut = null) {
           add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 10), body), Math.cos(a) * 0.95, 0.8 + (i % 2) * 0.25, Math.sin(a) * 0.55 - 0.15);
         }
         break;
+      case 'stripes':   // サーモンの白いすじ
+        for (let i = 0; i < 4; i++) { const s = add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.34, 1.62), mat(0xffe3d1)), -0.75 + i * 0.5, 1.17, 0); s.rotation.y = 0.4; }
+        break;
+      case 'band':   // たまご寿司ののり
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.5, 1.66), mat(0x1b2a1b)), 0, 0.72, 0);
+        break;
+      case 'kabuto': {   // 兜（かぶと）と金のくわがた
+        const k = add(new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x22223b)), 0, top - 0.05, 0);
+        k.scale.set(1.05, 0.7, 1.05);
+        add(new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.35, 0.12, 16), mat(0x22223b)), 0, top - 0.15, -0.05);
+        const gold = glowMat(0xffd23f, 0.4);
+        for (const s of [-1, 1]) { const h = add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.9, 0.1), gold), s * 0.32, top + 0.5, S.front - 0.2); h.rotation.z = -s * 0.45; }
+        add(new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), mat(0xe63946)), 0, top + 0.12, S.front - 0.1);
+        break;
+      }
+      case 'sakura': {   // 頭に桜の花、まわりに花びら
+        const pink = mat(0xffb7d0);
+        for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; const p = add(new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 6), pink), Math.cos(a) * 0.25, top + 0.12, Math.sin(a) * 0.25); p.scale.set(1, 0.4, 1); }
+        add(new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), mat(0xffe066)), 0, top + 0.18, 0);
+        const holder = new THREE.Group(); holder.position.y = top * 0.5; g.add(holder);
+        for (let i = 0; i < 8; i++) {
+          const p = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.03, 0.12), mat(0xffc8dc));
+          const a = i / 8 * Math.PI * 2; p.position.set(Math.cos(a) * 1.4, Math.sin(a * 3) * 0.6, Math.sin(a) * 1.4); p.rotation.set(a, a * 2, 0); holder.add(p);
+        }
+        anims.push(time => { holder.rotation.y = time * 0.8; holder.children.forEach((p, i) => { p.position.y = ((time * 0.4 + i * 0.25) % 2) - 1; p.rotation.x = time * 2 + i; }); });
+        break;
+      }
+      case 'toriiframe': {   // 体のまわりに鳥居
+        const red = mat(0xe63946), blk = mat(0x1a1a1a);
+        for (const s of [-1, 1]) add(new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, top + 0.9, 10), red), s * 1.25, (top + 0.9) / 2, 0);
+        add(new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.22, 0.4), blk), 0, top + 0.95, 0);
+        add(new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.2, 0.32), red), 0, top + 0.78, 0);
+        add(new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.14, 0.24), red), 0, top + 0.35, 0);
+        break;
+      }
       case 'orbit': {
         const holder = new THREE.Group(); holder.position.y = top * 0.55; g.add(holder);
         for (let i = 0; i < 3; i++) {

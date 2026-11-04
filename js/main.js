@@ -302,6 +302,18 @@ function decorate(type, x, z) {
       spinners.push(core);
       break;
     }
+    case 'sakura': {
+      // 桜の木（ピンクの花のかたまり）と、落ちた花びら
+      add(decoGeo.trunk, mat(0x5a3a2a), 0, 1.25, 0);
+      const pinks = [0xffb7d0, 0xffc8dc, 0xff9fbf];
+      for (let k = 0; k < 4; k++) {
+        const c = add(decoGeo.leaves, mat(pinks[k % 3]), (k - 1.5) * 0.9, 3.4 + (k % 2) * 0.9, (Math.random() - 0.5) * 1.2);
+        c.scale.setScalar(0.65 + Math.random() * 0.25);
+      }
+      const petals = add(new THREE.CircleGeometry(1.8, 12), mat(0xffd6e6), 0, 0.03, 0);
+      petals.rotation.x = -Math.PI / 2; petals.castShadow = false;
+      break;
+    }
     case 'luckyblock': {
       // 大きなラッキーブロック
       const b = buildLuckyBlock();
@@ -329,7 +341,23 @@ ZONES.forEach((z, i) => {
     const side = Math.random() < 0.5 ? -1 : 1;
     decorate(z.deco, side * (11 + Math.random() * (WORLD_HALF_W - 13)), start + 4 + Math.random() * (len - 8));
   }
+  // 日本: 道の途中に大きな鳥居
+  if (z.deco === 'sakura') for (let k = 1; k <= 3; k++) bigTorii(start + len * k / 4);
 });
+function bigTorii(z) {
+  const g = new THREE.Group(); g.position.set(0, 0, z);
+  const red = mat(0xe63946), blk = mat(0x1a1a1a);
+  const part = (geo, m, x, y) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, 0); o.castShadow = true; g.add(o); return o; };
+  for (const s of [-1, 1]) {
+    part(new THREE.CylinderGeometry(0.75, 0.85, 13, 16), red, s * 9, 6.5);
+    part(new THREE.CylinderGeometry(1.0, 1.0, 0.8, 16), blk, s * 9, 0.4);
+  }
+  part(new THREE.BoxGeometry(24, 1.0, 1.8), blk, 0, 13.6);     // 笠木（かさぎ）
+  part(new THREE.BoxGeometry(22.5, 0.9, 1.5), red, 0, 12.7);
+  part(new THREE.BoxGeometry(20.5, 0.8, 1.1), red, 0, 10.2);   // 貫（ぬき）
+  part(new THREE.BoxGeometry(1.4, 2.5, 0.9), red, 0, 11.4);    // 額束
+  scene.add(g);
+}
 // 拠点の木
 for (let k = 0; k < 10; k++) decorate('tree', (k % 2 ? -1 : 1) * (24 + Math.random() * 5), -6 - k * 4.8);
 
@@ -2344,6 +2372,7 @@ renderer.setAnimationLoop(() => {
   update(dt);
   renderer.render(scene, camera);
 });
+
 
 
 
