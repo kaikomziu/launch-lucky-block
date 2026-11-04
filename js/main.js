@@ -1146,6 +1146,7 @@ function update(dt) {
   for (const s of save.slots) if (s) s.stored += charIncome(CHAR_BY_ID[s.id], s.star, s.mut) * dt * incomeBoost;
 
   // --- 移動 ---
+  const prevX = pState.pos.x, prevZ = pState.pos.z;   // 動く前の位置（柵の判定に使う）
   const canMove = ['free', 'atBlock', 'chase'].includes(state) && !fadeBusy && !openPanel;
   dashT -= dt; dashCd -= dt;
   const spd = playerSpeed(save.speedLv) * (dashT > 0 ? DASH_MULT : 1) * boostMult('speed');
@@ -1173,7 +1174,10 @@ function update(dt) {
     const [bMin, bMax] = typeof baseRange === 'function' ? baseRange() : [0, 0];
     if (pState.pos.z < BASE_LINE) pState.pos.x = THREE.MathUtils.clamp(pState.pos.x, bMin - WORLD_HALF_W + 1, bMax + WORLD_HALF_W - 1);
     else if (Math.abs(pState.pos.x) > WORLD_HALF_W - 1) {
-      if (Math.abs(pState.pos.x) > WORLD_HALF_W + 2) pState.pos.z = BASE_LINE - 0.01;   // となりの基地からは道に出られない
+      // となりの基地（道の横）から道へ出ようとしたときだけ、拠点側にとどめる。
+      // ※ 以前は「柵より2以上外に出たら拠点の線へ移す」だったため、ダッシュで柵に勢いよく当たると拠点へワープして
+      //    持っているキャラがそのまま持ち帰り扱いになっていた
+      if (prevZ < BASE_LINE && Math.abs(prevX) > WORLD_HALF_W - 1) pState.pos.z = prevZ;
       else pState.pos.x = THREE.MathUtils.clamp(pState.pos.x, -WORLD_HALF_W + 1, WORLD_HALF_W - 1);
     }
   }
