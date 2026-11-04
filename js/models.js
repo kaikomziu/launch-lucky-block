@@ -503,6 +503,127 @@ export function buildBoss(def) {
       legL = limb(-1.2, 3, 1.3, 3, dark); legR = limb(1.2, 3, 1.3, 3, dark);
       break;
     }
+    case 'yeti': {   // もこもこの雪男
+      const fur = mat(def.color), face = mat(0x8fb8d8);
+      const tb = add(S(2.4, 16, 12), fur, 0, 4.6, 0); tb.scale.set(1.1, 1.2, 0.9);
+      add(S(1.4, 14, 10), fur, 0, 7.4, 0.2);
+      add(B(1.6, 1.2, 0.4), face, 0, 7.2, 1.45);
+      eyes(7.45, 1.66, 0.45, 0.3, 0.25, glowMat(0x2a7fff, 1.4));
+      add(B(0.9, 0.25, 0.1), black, 0, 6.8, 1.66);
+      for (const s of [-1, 1]) { const h = add(K(0.25, 1.0, 6), mat(0xc8d8e8), s * 0.8, 8.6, 0); h.rotation.z = -s * 0.5; }
+      armL = limb(-2.7, 6, 1.4, 4, fur); armR = limb(2.7, 6, 1.4, 4, fur);
+      for (const a of [armL, armR]) for (let k = 0; k < 3; k++) add(K(0.15, 0.5, 4), mat(0x8fb8d8), -0.4 + k * 0.4, -4.2, 0.4, a).rotation.x = Math.PI;
+      legL = limb(-1.1, 2.6, 1.5, 2.6, fur); legR = limb(1.1, 2.6, 1.5, 2.6, fur);
+      break;
+    }
+    case 'mummy': {   // 包帯ぐるぐるのミイラ王
+      const wrap = mat(def.color), band2 = mat(0xd8c9a4), gold = glowMat(0xffc21a, 0.5);
+      add(B(2.8, 3.2, 1.9), wrap, 0, 4.2, 0);
+      for (let i = 0; i < 6; i++) { const b = add(B(2.9, 0.18, 2.0), band2, 0, 2.9 + i * 0.5, 0); b.rotation.z = (i % 2 ? 1 : -1) * 0.08; }
+      add(B(2.2, 2.1, 2.0), wrap, 0, 6.8, 0);
+      eyes(6.9, 1.02, 0.45, 0.4, 0.2, glowMat(0x7dff8a, 1.6));
+      add(B(2.6, 2.0, 0.3), gold, 0, 7.4, -1.05);   // 王の頭巾
+      for (const s of [-1, 1]) add(B(0.5, 2.4, 1.6), gold, s * 1.3, 6.5, -0.2);
+      add(B(2.6, 0.5, 0.3), gold, 0, 5.4, 1.0);   // 胸飾り
+      armL = limb(-1.9, 5.4, 0.85, 3, wrap); armR = limb(1.9, 5.4, 0.85, 3, wrap);
+      const loose = pivot(0.3, -3, 0.3, armR); add(B(0.15, 1.4, 0.4), band2, 0, -0.7, 0, loose);   // ほどけた包帯
+      anims.push(t => { loose.rotation.x = Math.sin(t * 5) * 0.5; });
+      legL = limb(-0.8, 2.6, 1.1, 2.6, wrap); legR = limb(0.8, 2.6, 1.1, 2.6, wrap);
+      break;
+    }
+    case 'ifrit': {   // 炎の魔神（下半身が炎で浮いている）
+      const fire = glowMat(def.color, 1.0), fire2 = glowMat(0xffd23f, 1.2);
+      add(B(3.4, 3, 2.2), fire, 0, 5.4, 0);
+      add(B(2.4, 2.2, 2.2), fire, 0, 8, 0);
+      eyes(8.1, 1.12, 0.55, 0.5, 0.3, glowMat(0xffffff, 2));
+      for (const s of [-1, 1]) { const h = add(K(0.35, 1.8, 6), mat(0x2b1a17), s * 1.0, 9.5, 0); h.rotation.z = -s * 0.5; }
+      const flames = [];
+      for (let i = 0; i < 6; i++) { const f = add(K(1.1 - i * 0.15, 2.4, 8), i % 2 ? fire2 : fire, Math.sin(i) * 0.5, 2.6 - i * 0.2, Math.cos(i) * 0.5); f.rotation.x = Math.PI; flames.push(f); }
+      const hair = []; for (let i = 0; i < 4; i++) { const f = add(K(0.4, 1.6, 6), fire2, -0.9 + i * 0.6, 9.6, -0.3); hair.push(f); }
+      anims.push(t => { flames.forEach((f, i) => { f.scale.y = 0.8 + Math.abs(Math.sin(t * 7 + i)) * 0.5; }); hair.forEach((f, i) => { f.scale.y = 0.7 + Math.abs(Math.sin(t * 9 + i)) * 0.6; }); inner.position.y = 0.6 + Math.sin(t * 2) * 0.3; });
+      armL = limb(-2.3, 6.6, 1, 3.2, fire); armR = limb(2.3, 6.6, 1, 3.2, fire);
+      add(S(0.6, 10, 8), fire2, 0, -3.5, 0, armR);   // 手の火の玉
+      legL = pivot(-0.6, 1); legR = pivot(0.6, 1);
+      break;
+    }
+    case 'tinsoldier': {   // ブリキの兵隊（背中にねじ）
+      const red = mat(def.color), blue = mat(0x1e3a8a), gold = glowMat(0xffd23f, 0.4);
+      add(B(2.6, 3.2, 1.8), red, 0, 4.4, 0);
+      for (let i = 0; i < 3; i++) add(S(0.18, 8, 6), gold, 0, 3.4 + i * 0.8, 0.92);
+      add(B(2.7, 0.35, 1.9), mat(0xffffff), 0, 3.0, 0);   // ベルト
+      add(B(2, 1.8, 1.8), mat(0xffd29c), 0, 6.9, 0);
+      eyes(7.0, 0.92, 0.4, 0.3, 0.3, black);
+      for (const s of [-1, 1]) add(C(0.25, 0.25, 0.05, 12), mat(0xff7a8a), s * 0.6, 6.5, 0.92).rotation.x = Math.PI / 2;   // ほっぺ
+      add(C(1.0, 1.0, 2.2, 14), mat(0x111111), 0, 8.9, 0);   // 背の高い帽子
+      add(C(1.02, 1.02, 0.3, 14), gold, 0, 8.0, 0);
+      const key = pivot(0, 4.6, -1.0);   // ねじ
+      add(C(0.12, 0.12, 0.8, 6), gold, 0, 0, -0.4, key).rotation.x = Math.PI / 2;
+      for (const s of [-1, 1]) add(B(0.2, 0.9, 0.5), gold, s * 0.35, 0, -0.8, key);
+      anims.push(t => { key.rotation.z = t * 4; });
+      armL = limb(-1.7, 5.6, 0.75, 3, red); armR = limb(1.7, 5.6, 0.75, 3, red);
+      add(B(0.25, 4, 0.25), mat(0x5a3a1a), 0, -1.4, 0.4, armR);   // 銃（木）
+      legL = limb(-0.7, 2.8, 0.9, 2.8, blue); legR = limb(0.7, 2.8, 0.9, 2.8, blue);
+      break;
+    }
+    case 'ufo': {   // UFOに乗った宇宙人の王
+      const metal = mat(def.color), glass = new THREE.MeshLambertMaterial({ color: 0x9ad0ff, transparent: true, opacity: 0.45 });
+      const disc = add(S(4, 24, 10), metal, 0, 4, 0); disc.scale.set(1, 0.28, 1);
+      add(C(2.6, 3.2, 0.4, 24), dark, 0, 3.5, 0);
+      const lights = [];
+      for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; lights.push(add(S(0.25, 8, 6), glowMat([0xff5cf4, 0x7df9ff, 0xfff27a][i % 3], 1.2), Math.cos(a) * 3.6, 3.9, Math.sin(a) * 3.6)); }
+      add(S(1.9, 18, 12), glass, 0, 5.2, 0);
+      add(S(1, 14, 10), mat(0x7dff8a), 0, 5.4, 0).scale.set(1, 1.15, 1);   // 宇宙人
+      eyes(5.5, 0.92, 0.38, 0.35, 0.45, black);
+      for (const s of [-1, 1]) { add(C(0.05, 0.05, 0.8, 6), mat(0x7dff8a), s * 0.45, 6.6, 0); add(S(0.15, 8, 6), glowMat(0xfff27a, 1), s * 0.45, 7.0, 0); }
+      const beam = add(C(1.0, 2.6, 3.2, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff27a, transparent: true, opacity: 0.22, depthWrite: false }), 0, 1.7, 0);
+      anims.push(t => { disc.rotation.y = t * 1.2; lights.forEach((l, i) => { l.visible = Math.sin(t * 6 + i) > -0.3; }); beam.material.opacity = 0.15 + Math.abs(Math.sin(t * 3)) * 0.15; inner.position.y = 1 + Math.sin(t * 2) * 0.4; });
+      armL = pivot(-2, 4); armR = pivot(2, 4); legL = pivot(-1, 1); legR = pivot(1, 1);
+      break;
+    }
+    case 'treant': {   // 森の巨人（木の体・葉の頭）
+      const bark = mat(def.color), leaf = mat(0x4caf50), leaf2 = mat(0x7bd36a);
+      add(C(1.6, 2.0, 4.6, 10), bark, 0, 4.6, 0);
+      for (let i = 0; i < 5; i++) { const c = add(S(1.4, 10, 8), i % 2 ? leaf : leaf2, Math.cos(i * 1.3) * 1.4, 8.2 + (i % 2) * 0.8, Math.sin(i * 1.3) * 1.2); c.scale.setScalar(0.9 + (i % 3) * 0.2); }
+      eyes(6.0, 1.7, 0.6, 0.45, 0.35, glowMat(0xc8ff3a, 1.4));
+      add(B(1.2, 0.3, 0.1), black, 0, 5.2, 1.75);
+      for (let i = 0; i < 3; i++) add(S(0.35, 8, 6), mat(0xff5c8a), Math.cos(i * 2) * 1.6, 9.4, Math.sin(i * 2) * 1.6);   // 花
+      armL = pivot(-1.7, 6); add(C(0.35, 0.55, 3.6, 8), bark, 0, -1.8, 0, armL); add(S(0.8, 8, 6), leaf, 0, -3.8, 0, armL);
+      armR = pivot(1.7, 6); add(C(0.35, 0.55, 3.6, 8), bark, 0, -1.8, 0, armR); add(S(0.8, 8, 6), leaf, 0, -3.8, 0, armR);
+      legL = limb(-0.9, 2.5, 1.2, 2.5, bark); legR = limb(0.9, 2.5, 1.2, 2.5, bark);
+      break;
+    }
+    case 'mirrorknight': {   // 鏡の騎士（光を反射してきらめく）
+      const chrome = new THREE.MeshLambertMaterial({ color: def.color, emissive: 0x4a5a7a, emissiveIntensity: 0.5 });
+      add(B(3, 3.2, 2.2), chrome, 0, 4.2, 0);
+      add(B(2.2, 2.2, 2.2), chrome, 0, 6.8, 0);
+      add(B(1.8, 0.35, 0.1), glowMat(0xb388ff, 1.5), 0, 6.9, 1.12);
+      const shards = new THREE.Group(); shards.position.y = 5.5; inner.add(shards);
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; const sh = add(new THREE.OctahedronGeometry(0.7), new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x7df9ff, emissiveIntensity: 0.6 }), Math.cos(a) * 3.6, Math.sin(a * 2) * 0.8, Math.sin(a) * 3.6, shards); sh.scale.y = 1.8; }
+      anims.push(t => { shards.rotation.y = -t * 1.3; chrome.emissiveIntensity = 0.35 + Math.abs(Math.sin(t * 2)) * 0.45; });
+      armL = limb(-2, 5.4, 1, 3, chrome); armR = limb(2, 5.4, 1, 3, chrome);
+      add(B(0.25, 3.2, 2.6), new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x9ad0ff, emissiveIntensity: 0.7 }), -0.6, -2.0, 0.2, armL);   // 鏡の盾
+      add(B(0.2, 4.4, 0.4), glowMat(0xb388ff, 1.2), 0, -4.2, 0.4, armR);
+      legL = limb(-0.8, 2.6, 1.2, 2.6, chrome); legR = limb(0.8, 2.6, 1.2, 2.6, chrome);
+      break;
+    }
+    case 'demonlord': {   // ラッキー大魔王（角・羽・王冠・幸運の宝石）
+      const robe = mat(def.color), gold = glowMat(0xffd23f, 0.6);
+      add(B(3.6, 3.6, 2.4), robe, 0, 4.6, 0);
+      add(B(3.8, 0.5, 2.5), gold, 0, 3.0, 0);
+      const gem = add(new THREE.OctahedronGeometry(0.8), glowMat(0x7dff8a, 1.4), 0, 5.2, 1.3);   // 胸の幸運の宝石
+      add(B(2.6, 2.4, 2.4), mat(0x8a1a3a), 0, 7.6, 0);
+      eyes(7.8, 1.22, 0.6, 0.55, 0.3, glowMat(0xffe600, 2));
+      add(B(1.8, 0.3, 0.1), black, 0, 6.9, 1.22);
+      for (const s of [-1, 1]) { const h = add(K(0.4, 2.6, 6), mat(0x1a1a1a), s * 1.2, 9.6, 0); h.rotation.z = -s * 0.6; }
+      crown(9.0, 1.1);
+      wings(6.4, -1.2, 6, mat(0x2a0a3a), 2.5);
+      const pv = pivot(0, 6.8, -1.3); add(B(4.2, 6, 0.15), mat(0x8a1a3a), 0, -3, 0, pv);   // マント
+      anims.push(t => { gem.rotation.y = t * 2; pv.rotation.x = -0.1 - Math.abs(Math.sin(t * 2.5)) * 0.2; });
+      armL = limb(-2.6, 6, 1.2, 3.4, robe); armR = limb(2.6, 6, 1.2, 3.4, robe);
+      add(C(0.15, 0.15, 6, 8), gold, 0, -2.6, 0.5, armR); add(S(0.6, 12, 10), glowMat(0xff5cf4, 1.4), 0, -5.8, 0.5, armR);   // 杖
+      legL = limb(-1.1, 2.8, 1.3, 2.8, robe); legR = limb(1.1, 2.8, 1.3, 2.8, robe);
+      break;
+    }
     case 'luckyking': {   // ラッキーブロックの王さま
       const tex = luckyTexture();
       const blk = add(B(4.2, 4.2, 4.2), new THREE.MeshLambertMaterial({ map: tex, color: 0xffd23f, emissive: 0x332200 }), 0, 4.6, 0);

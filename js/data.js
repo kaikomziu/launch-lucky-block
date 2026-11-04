@@ -25,6 +25,14 @@ export const RARITIES = [
   { name: 'セラフ',         color: 0xfff3b0, css: '#fff3b0', income: 1.48e17 },
   { name: 'ファントム',     color: 0x9e9ac8, css: '#9e9ac8', income: 1.04e18 },
   { name: 'アルティメット', color: 0xffffff, css: 'cosmic', income: 7.27e18, fx: 0xff5cf4 },
+  { name: 'フロスト',       color: 0xa8e6ff, css: '#a8e6ff', income: 5.09e19 },
+  { name: 'ファラオ',       color: 0xe0b84a, css: '#e0b84a', income: 3.56e20 },
+  { name: 'ボルケーノ',     color: 0xff6a1a, css: '#ff6a1a', income: 2.49e21 },
+  { name: 'トイ',           color: 0xff4f7b, css: '#ff4f7b', income: 1.74e22 },
+  { name: 'コスモ',         color: 0x6c8cff, css: '#6c8cff', income: 1.22e23 },
+  { name: 'フェアリー',     color: 0xb6ff8a, css: '#b6ff8a', income: 8.54e23 },
+  { name: 'ミラー',         color: 0xdfe8f5, css: '#dfe8f5', income: 5.98e24 },
+  { name: 'ゴッドラック',   color: 0xffffff, css: 'rainbow', income: 4.19e25, fx: 0xffd23f },
 ];
 // 3D演出・枠線に使う色（白いレア度は代わりの色）
 export const rarFx = r => RARITIES[r].fx ?? RARITIES[r].color;
@@ -96,6 +104,22 @@ export const ZONES = [
     boss: { name: 'ビッグゴースト', kind: 'ghost', color: 0xe8eaff, speed: 101, scale: 10.4 } },
   { name: '虹の果て', ground: 0xffffff, alt: 0xf3f0ff, sky: 0xe9e4ff, deco: 'rainbowarch',
     boss: { name: '究極ラッキーブロック', kind: 'ultimate', color: 0xffd23f, speed: 105, scale: 10.8 } },
+  { name: '氷の城', ground: 0xe6f6ff, alt: 0xd4eefc, sky: 0xc8e6ff, deco: 'icecastle',
+    boss: { name: 'ビッグイエティ', kind: 'yeti', color: 0xf4f8ff, speed: 109, scale: 11.1 } },
+  { name: 'ピラミッド', ground: 0xe9c98a, alt: 0xdeba74, sky: 0xffd9a0, deco: 'obelisk',
+    boss: { name: 'ミイラ王', kind: 'mummy', color: 0xeee2c4, speed: 113, scale: 11.4 } },
+  { name: '火山', ground: 0x3a1f18, alt: 0x4a2418, sky: 0xff7a4a, deco: 'volcano',
+    boss: { name: '炎の魔神', kind: 'ifrit', color: 0xff5a1a, speed: 117, scale: 11.7 } },
+  { name: 'おもちゃ箱', ground: 0xfff2c4, alt: 0xffe6a0, sky: 0xbfe3ff, deco: 'toys',
+    boss: { name: 'ブリキの兵隊', kind: 'tinsoldier', color: 0xd62839, speed: 121, scale: 12.0 } },
+  { name: '宇宙ステーション', ground: 0x20263a, alt: 0x2a3148, sky: 0x05051a, deco: 'satellite',
+    boss: { name: 'UFOキング', kind: 'ufo', color: 0x9aa6b2, speed: 125, scale: 12.3 } },
+  { name: '妖精の森', ground: 0x6fcf6a, alt: 0x5fbe5a, sky: 0xd8ffe0, deco: 'flowers',
+    boss: { name: '森の巨人', kind: 'treant', color: 0x6b4a2a, speed: 129, scale: 12.6 } },
+  { name: '鏡の世界', ground: 0xcfd8e6, alt: 0xbcc8da, sky: 0xeef4ff, deco: 'mirror',
+    boss: { name: '鏡の騎士', kind: 'mirrorknight', color: 0xdfe8f5, speed: 133, scale: 12.9 } },
+  { name: 'ラッキー神殿', ground: 0xffe58a, alt: 0xffd966, sky: 0xfff2c4, deco: 'goldtemple',
+    boss: { name: 'ラッキー大魔王', kind: 'demonlord', color: 0x3a0a4a, speed: 137, scale: 13.2 } },
 ];
 
 // キャラクター（形状パラメータは models.js の buildCharacter で使う）
@@ -328,6 +352,72 @@ export const CHARACTERS = [
   { id: 'universelion', r: 23, name: 'ユニバース獅子', mult: 1.4, shape: 'sphere', color: 0xffd23f, accent: 0xff77e9, extras: ['tail', 'crown', 'glow'] },
   { id: 'prismgoddess', r: 23, name: 'プリズムの女神', mult: 1.5, shape: 'cone', color: 0xfff0ff, accent: 0x7df9ff, extras: ['tiara', 'wings', 'stars', 'glow'] },
   { id: 'ultimatedeity', r: 23, name: '伝説のアルティマ', mult: 3, shape: 'sphere', color: 0xffffff, accent: 0xffd23f, extras: ['halo', 'crown', 'wings', 'rainbow', 'glow'], lowRate: true },
+
+  // ---- v0.43 で追加（新エリア） ----
+  // フロスト（氷の城）
+  { id: 'frostyuki', r: 24, name: 'ゆきんこ坊や',     mult: 0.7, shape: 'sphere', color: 0xffffff, accent: 0x3a86ff, extras: ['scarf', 'blush'] },
+  { id: 'shirokuma', r: 24, name: 'シロクマ氷太',     mult: 0.9, shape: 'box',    color: 0xf5f7fa, accent: 0x8fb8de, extras: ['ears', 'belly'] },
+  { id: 'penpenkoori', r: 24, name: 'ペンペン氷ぺん', mult: 1.1, shape: 'egg',    color: 0x1d3557, accent: 0xffffff, extras: ['beak', 'belly'] },
+  { id: 'yukinokes', r: 24, name: '雪の結晶ちゃん',   mult: 1.2, shape: 'dome',   color: 0xcaf0f8, accent: 0x90e0ef, extras: ['gem', 'glow'] },
+  { id: 'tsurara',   r: 24, name: 'つらら王子',       mult: 1.4, shape: 'cone',   color: 0xe0f7ff, accent: 0x48cae4, extras: ['tiara', 'glow'] },
+  { id: 'icecastle', r: 24, name: '氷の城主',         mult: 1.5, shape: 'box',    color: 0xbde0fe, accent: 0xffffff, extras: ['crown', 'cape', 'halo'] },
+  { id: 'hyoutei',   r: 24, name: '氷の大王ペンギン', mult: 3, shape: 'sphere', color: 0x8ecae6, accent: 0xffd23f, extras: ['crown', 'belly', 'orbit', 'glow'], lowRate: true },
+  // ファラオ（ピラミッド）
+  { id: 'sphinx',    r: 25, name: 'スフィンクスくん', mult: 0.7, shape: 'box',    color: 0xd4a373, accent: 0x8d5524, extras: ['ears', 'mustache'] },
+  { id: 'mummy',     r: 25, name: 'ミイラ太郎',       mult: 0.9, shape: 'cyl',    color: 0xf5e6c8, accent: 0x8d6e63, extras: ['arms', 'cracks'] },
+  { id: 'scarab',    r: 25, name: 'スカラベ虫',       mult: 1.1, shape: 'dome',   color: 0x2a9d8f, accent: 0xe9c46a, extras: ['shell', 'spikes'] },
+  { id: 'camelrakuto', r: 25, name: 'ラクダのラクト', mult: 1.2, shape: 'box',    color: 0xdda15e, accent: 0x6f4518, extras: ['tail', 'ears'] },
+  { id: 'pharaohbo', r: 25, name: 'ファラオ坊や',     mult: 1.4, shape: 'cone',   color: 0xffd166, accent: 0x1d3557, extras: ['crown', 'stripes'] },
+  { id: 'jackalpriest', r: 25, name: 'ジャッカル神官', mult: 1.5, shape: 'box',    color: 0x264653, accent: 0xffd23f, extras: ['ears', 'cape', 'glasses'] },
+  { id: 'goldpharaoh', r: 25, name: '黄金のファラオ神', mult: 3, shape: 'sphere', color: 0xffd700, accent: 0x1e3a8a, extras: ['crown', 'halo', 'wings', 'glow'], lowRate: true },
+  // ボルケーノ（火山）
+  { id: 'lavaslime', r: 26, name: '溶岩スライム',     mult: 0.7, shape: 'dome',   color: 0xff5e13, accent: 0xffd23f, extras: ['glow', 'cracks'] },
+  { id: 'hiyokohi',  r: 26, name: 'ひよこ火の鳥',     mult: 0.9, shape: 'egg',    color: 0xff6b00, accent: 0xffe066, extras: ['beak', 'flame'] },
+  { id: 'magmarock', r: 26, name: 'マグマ岩くん',     mult: 1.1, shape: 'box',    color: 0x3a2320, accent: 0xff4a1c, extras: ['cracks', 'flame'] },
+  { id: 'firelizard', r: 26, name: '火トカゲ',        mult: 1.2, shape: 'egg',    color: 0xd7263d, accent: 0xffb703, extras: ['tail', 'spikes', 'flame'] },
+  { id: 'volcanomaru', r: 26, name: '火山まる',       mult: 1.4, shape: 'sphere', color: 0x6d2e1f, accent: 0xff6d00, extras: ['horns', 'glow', 'ring'] },
+  { id: 'kazanhime', r: 26, name: '火山の姫',         mult: 1.5, shape: 'cone',   color: 0xffb703, accent: 0xd62828, extras: ['tiara', 'flame', 'glow'] },
+  { id: 'bakanryu',  r: 26, name: '大噴火ドラゴン',   mult: 3, shape: 'egg',    color: 0xff2a00, accent: 0xffd23f, extras: ['horns', 'wings', 'crown', 'flame', 'glow'], lowRate: true },
+  // トイ（おもちゃ箱）
+  { id: 'kumanuigg', r: 27, name: 'くまのぬいっぴ',  mult: 0.7, shape: 'sphere', color: 0xc68b59, accent: 0xffe0b2, extras: ['ears', 'belly', 'bow'] },
+  { id: 'blockchan', r: 27, name: 'ブロックちゃん',  mult: 0.9, shape: 'box',    color: 0xe63946, accent: 0xffd23f, extras: ['stripes', 'blush'] },
+  { id: 'brikirobo', r: 27, name: 'ブリキのロボ',    mult: 1.1, shape: 'box',    color: 0xc0c0c0, accent: 0xe63946, extras: ['antenna', 'visor', 'arms'] },
+  { id: 'komachan',  r: 27, name: 'こまちゃん',      mult: 1.2, shape: 'cone',   color: 0x2196f3, accent: 0xffeb3b, extras: ['stripes', 'orbit'] },
+  { id: 'trumpetcho', r: 27, name: 'ラッパ隊長',     mult: 1.4, shape: 'cyl',    color: 0xffc107, accent: 0x8d6e63, extras: ['cap', 'mustache'] },
+  { id: 'jackinbox', r: 27, name: 'びっくり箱ボックス', mult: 1.5, shape: 'box', color: 0xff4081, accent: 0xffeb3b, extras: ['ears', 'bow', 'stars', 'ring'] },
+  { id: 'toymaster', r: 27, name: 'おもちゃの王様',  mult: 3, shape: 'sphere', color: 0xffd23f, accent: 0xe63946, extras: ['crown', 'bow', 'orbit', 'glow'], lowRate: true },
+  // コスモ（宇宙ステーション）
+  { id: 'astrokun',  r: 28, name: 'ぷかぷか宇宙士',  mult: 0.7, shape: 'sphere', color: 0xf5f5f5, accent: 0x3a86ff, extras: ['helmet', 'antenna'] },
+  { id: 'uchujin',   r: 28, name: 'ピコ宇宙人',      mult: 0.9, shape: 'egg',    color: 0x80ed99, accent: 0xf72585, extras: ['antenna', 'blush'] },
+  { id: 'rocketbo',  r: 28, name: 'ロケットくん',    mult: 1.1, shape: 'cone',   color: 0xe63946, accent: 0xffffff, extras: ['flame', 'stripes'] },
+  { id: 'planetmaru', r: 28, name: '惑星ちゃん',     mult: 1.2, shape: 'sphere', color: 0x4cc9f0, accent: 0xf9c74f, extras: ['ring', 'orbit'] },
+  { id: 'eiseistar', r: 28, name: 'えいせいスター',  mult: 1.4, shape: 'box',    color: 0xcfd8dc, accent: 0x00e5ff, extras: ['propeller', 'antenna', 'visor'] },
+  { id: 'cosmoqueen', r: 28, name: 'コスモの女王',   mult: 1.5, shape: 'dome',   color: 0x7b2cbf, accent: 0x00f5d4, extras: ['tiara', 'halo', 'stars'] },
+  { id: 'ufotaisho', r: 28, name: 'UFO大将',         mult: 3, shape: 'dome',   color: 0xb8c4ce, accent: 0x39ff14, extras: ['orbit', 'glow', 'ring', 'antenna'], lowRate: true },
+  // フェアリー（妖精の森）
+  { id: 'kinokoyo',  r: 29, name: 'キノコ妖精ポン',  mult: 0.7, shape: 'cyl',    color: 0xfff1d6, accent: 0xe53935, extras: ['cap', 'blush'] },
+  { id: 'tentoten',  r: 29, name: 'てんとう虫のテン', mult: 0.9, shape: 'dome',  color: 0xe53935, accent: 0x212121, extras: ['blush', 'antenna'] },
+  { id: 'chouchou',  r: 29, name: 'ちょうちょの舞',  mult: 1.1, shape: 'egg',    color: 0xba68c8, accent: 0xffeb3b, extras: ['wings', 'flower'] },
+  { id: 'hanaspirit', r: 29, name: '花の精ローズ',   mult: 1.2, shape: 'sphere', color: 0xf48fb1, accent: 0x66bb6a, extras: ['flower', 'sprout', 'blush'] },
+  { id: 'fairyorin', r: 29, name: 'フェアリーのリン', mult: 1.4, shape: 'cone',   color: 0xfff59d, accent: 0xce93d8, extras: ['wings', 'tiara', 'stars'] },
+  { id: 'youseiqueen', r: 29, name: 'ようせいの女王', mult: 1.5, shape: 'dome',   color: 0x81c784, accent: 0xff80ab, extras: ['tiara', 'wings', 'flower', 'glow'] },
+  { id: 'moridaiyoui', r: 29, name: '森の大妖精',     mult: 3, shape: 'sphere', color: 0x2e7d32, accent: 0xffd23f, extras: ['crown', 'wings', 'halo', 'flower', 'glow'], lowRate: true },
+  // ミラー（鏡の世界）
+  { id: 'kagamiuts', r: 30, name: '鏡うつしくん',    mult: 0.7, shape: 'box',    color: 0xcfe8ff, accent: 0x90caf9, extras: ['glasses', 'glow'] },
+  { id: 'crystalneko', r: 30, name: 'クリスタルネコ', mult: 0.9, shape: 'dome',   color: 0xe0f7fa, accent: 0xb388ff, extras: ['ears', 'gem', 'glow'] },
+  { id: 'prismball', r: 30, name: 'プリズム玉',      mult: 1.1, shape: 'sphere', color: 0xf0f8ff, accent: 0xff77e9, extras: ['rainbow', 'ring'] },
+  { id: 'utsushimi', r: 30, name: 'うつし身ちゃん',  mult: 1.2, shape: 'egg',    color: 0xfce4ec, accent: 0x9fa8da, extras: ['blush', 'orbit'] },
+  { id: 'kagaminoban', r: 30, name: '鏡の番人',      mult: 1.4, shape: 'box',    color: 0xb0bec5, accent: 0x7e57c2, extras: ['helmet', 'visor', 'cape'] },
+  { id: 'glassqueen', r: 30, name: 'ガラスの女王',   mult: 1.5, shape: 'cone',   color: 0xe1f5fe, accent: 0xff80ab, extras: ['tiara', 'gem', 'glow', 'stars'] },
+  { id: 'mirrorking', r: 30, name: '鏡界の大精霊',   mult: 3, shape: 'sphere', color: 0xf5faff, accent: 0x7c4dff, extras: ['halo', 'crown', 'wings', 'rainbow', 'glow'], lowRate: true },
+  // ゴッドラック（ラッキー神殿）
+  { id: 'kobanmaneki', r: 31, name: '小判まねき',   mult: 0.7, shape: 'box',    color: 0xd62828, accent: 0xffd23f, extras: ['bow', 'glow'] },
+  { id: 'yotsuba',   r: 31, name: 'よつば坊や',      mult: 0.9, shape: 'sphere', color: 0x66bb6a, accent: 0xffffff, extras: ['sprout', 'stars', 'blush'] },
+  { id: 'kanesuzuchan', r: 31, name: '金の鈴ちゃん', mult: 1.1, shape: 'dome',   color: 0xffd23f, accent: 0xd62828, extras: ['bow', 'glow', 'ring'] },
+  { id: 'luckysprite', r: 31, name: 'ラッキー小神',  mult: 1.2, shape: 'egg',    color: 0xfff3c4, accent: 0xffd700, extras: ['halo', 'wings', 'stars'] },
+  { id: 'fukugami',  r: 31, name: '福の神さま',      mult: 1.4, shape: 'sphere', color: 0xffe082, accent: 0xd62828, extras: ['crown', 'mustache', 'belly'] },
+  { id: 'kouunogami', r: 31, name: '幸運の神',       mult: 1.5, shape: 'cone',   color: 0xffd700, accent: 0xffffff, extras: ['halo', 'wings', 'tiara', 'glow'] },
+  { id: 'luckyblockgod', r: 31, name: 'ラッキーブロックの神', mult: 3, shape: 'box', color: 0xffd23f, accent: 0xff3b3b, extras: ['crown', 'halo', 'orbit', 'rainbow', 'glow'], lowRate: true },
 ];
 
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));

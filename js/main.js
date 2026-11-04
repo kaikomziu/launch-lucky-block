@@ -204,7 +204,7 @@ ZONES.forEach((z, i) => {
 });
 
 // 距離表示の杭
-for (let d = 50; d < WORLD_END; d += 50) {
+for (let d = 50; d < WORLD_END; d += d < 1000 ? 50 : 100) {
   const post = new THREE.Mesh(new THREE.PlaneGeometry(4, 1.6),
     new THREE.MeshBasicMaterial({ map: textTexture(`${d}m`, { bg: '#ffffff', fg: '#333', w: 256, h: 100, font: 'bold 64px sans-serif' }), side: THREE.DoubleSide }));
   post.position.set(-WORLD_HALF_W + 2, 2.2, d + LAUNCH_POS.z + 3);
@@ -388,6 +388,89 @@ function decorate(type, x, z) {
       } else {
         const st = add(new THREE.OctahedronGeometry(0.9), glow([0xfff27a, 0xff9ecb, 0x7df9ff][Math.floor(Math.random() * 3)]), 0, 2.5 + Math.random() * 3, 0);
         spinners.push(st);
+      }
+      break;
+    }
+    case 'icecastle': {   // 氷の塔と雪だるま
+      if (Math.random() < 0.6) {
+        const h = 5 + Math.random() * 5;
+        add(new THREE.CylinderGeometry(1.0, 1.2, h, 8), mat(0xc8ecff), 0, h / 2, 0);
+        add(new THREE.ConeGeometry(1.4, 2.6, 8), mat(0x7fc8f0), 0, h + 1.3, 0);
+        add(new THREE.BoxGeometry(0.4, 0.8, 0.1), glow(0x7df9ff), 0, h * 0.6, 1.05);
+      } else {
+        add(new THREE.SphereGeometry(1.2, 14, 10), mat(0xffffff), 0, 1.1, 0);
+        add(new THREE.SphereGeometry(0.8, 14, 10), mat(0xffffff), 0, 2.7, 0);
+        add(new THREE.ConeGeometry(0.15, 0.6, 6), mat(0xff7b00), 0, 2.7, 0.9).rotation.x = Math.PI / 2;
+      }
+      break;
+    }
+    case 'obelisk': {   // オベリスクと小さなピラミッド
+      if (Math.random() < 0.5) {
+        add(new THREE.BoxGeometry(1.2, 7, 1.2), mat(0xd8b46a), 0, 3.5, 0);
+        add(new THREE.ConeGeometry(0.9, 1.2, 4), glow(0xffd23f), 0, 7.6, 0).rotation.y = Math.PI / 4;
+      } else {
+        add(new THREE.ConeGeometry(3, 3.4, 4), mat(0xe2c27a), 0, 1.7, 0).rotation.y = Math.PI / 4;
+      }
+      break;
+    }
+    case 'volcano': {   // 小さな火山（てっぺんが光る）と溶岩
+      add(new THREE.ConeGeometry(2.6, 4, 10, 1, true), mat(0x2b1a17), 0, 2, 0);
+      const top = add(new THREE.CylinderGeometry(0.7, 0.7, 0.3, 10), glow(0xff5a1c), 0, 3.9, 0);
+      if (Math.random() < 0.5) { const sm = add(new THREE.SphereGeometry(0.8, 8, 6), mat(0x555555), 0, 5.2, 0); sm.scale.set(1, 0.7, 1); }
+      void top;
+      break;
+    }
+    case 'toys': {   // つみきとボール
+      const cols = [0xff4f7b, 0x3a8dff, 0xffd23f, 0x4cd964];
+      if (Math.random() < 0.6) {
+        for (let k = 0; k < 3; k++) { const b = add(new THREE.BoxGeometry(1.4, 1.4, 1.4), mat(cols[(k + Math.floor(Math.random() * 4)) % 4]), (k - 1) * 0.3, 0.7 + k * 1.4, 0); b.rotation.y = k * 0.4; }
+      } else {
+        const ball = add(new THREE.SphereGeometry(1.3, 16, 12), mat(cols[Math.floor(Math.random() * 4)]), 0, 1.3, 0);
+        add(new THREE.TorusGeometry(1.31, 0.12, 6, 24), mat(0xffffff), 0, 1.3, 0); void ball;
+      }
+      break;
+    }
+    case 'satellite': {   // 宇宙ステーションのアンテナと浮かぶ惑星
+      if (Math.random() < 0.5) {
+        add(new THREE.CylinderGeometry(0.15, 0.2, 5, 6), mat(0xaab4c0), 0, 2.5, 0);
+        const dish = add(new THREE.SphereGeometry(1.4, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2.4), mat(0xdfe6ee), 0, 5.2, 0); dish.rotation.x = Math.PI * 0.75;
+        add(new THREE.SphereGeometry(0.2, 8, 6), glow(0xff1744), 0, 5.6, 0.6);
+      } else {
+        const pl = add(new THREE.SphereGeometry(1.2, 14, 10), glow([0x6c8cff, 0xff9e00, 0xb388ff][Math.floor(Math.random() * 3)]), 0, 5 + Math.random() * 4, 0);
+        const ring = add(new THREE.TorusGeometry(1.8, 0.12, 6, 28), mat(0xfff1c4), pl.position.x, pl.position.y, 0); ring.rotation.x = 1.2; spinners.push(ring);
+      }
+      break;
+    }
+    case 'flowers': {   // 大きな花とキノコ
+      if (Math.random() < 0.6) {
+        add(new THREE.CylinderGeometry(0.12, 0.15, 3.2, 6), mat(0x3a9d23), 0, 1.6, 0);
+        const col = [0xff5c8a, 0xffd23f, 0xb388ff, 0x7df9ff][Math.floor(Math.random() * 4)];
+        for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; const p = add(new THREE.SphereGeometry(0.55, 10, 8), mat(col), Math.cos(a) * 0.65, 3.4, Math.sin(a) * 0.65); p.scale.y = 0.4; }
+        add(new THREE.SphereGeometry(0.4, 10, 8), glow(0xffe066), 0, 3.5, 0);
+      } else {
+        add(new THREE.CylinderGeometry(0.4, 0.5, 1.6, 8), mat(0xfff1d6), 0, 0.8, 0);
+        add(new THREE.SphereGeometry(1.2, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xff4f4f), 0, 1.5, 0);
+      }
+      break;
+    }
+    case 'mirror': {   // 立ち並ぶ鏡の板（光る縁）
+      const h = 4 + Math.random() * 3;
+      const m = add(new THREE.BoxGeometry(0.2, h, 2.6), new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x9ad0ff, emissiveIntensity: 0.55 }), 0, h / 2 + 0.3, 0);
+      m.rotation.y = Math.random() * Math.PI;
+      add(new THREE.BoxGeometry(0.3, 0.3, 2.8), glow(0xb388ff), m.position.x, h + 0.4, 0).rotation.y = m.rotation.y;
+      break;
+    }
+    case 'goldtemple': {   // 金の柱と招き猫の像
+      if (Math.random() < 0.6) {
+        const h = 6 + Math.random() * 3;
+        add(new THREE.CylinderGeometry(0.8, 0.9, h, 12), glow(0xffd23f), 0, h / 2, 0);
+        add(new THREE.BoxGeometry(2.2, 0.5, 2.2), mat(0xe63946), 0, h + 0.25, 0);
+      } else {
+        add(new THREE.BoxGeometry(1.8, 1.8, 1.6), mat(0xffffff), 0, 0.9, 0);
+        add(new THREE.BoxGeometry(1.6, 1.4, 1.4), mat(0xffffff), 0, 2.5, 0);
+        for (const s of [-1, 1]) add(new THREE.ConeGeometry(0.3, 0.6, 4), mat(0xffffff), s * 0.5, 3.4, 0);
+        const arm = add(new THREE.BoxGeometry(0.4, 1.2, 0.4), mat(0xffffff), 0.95, 3.0, 0.3); arm.rotation.z = -0.3;
+        add(new THREE.SphereGeometry(0.3, 10, 8), glow(0xffd23f), 0, 1.7, 0.85);   // 鈴
       }
       break;
     }
@@ -2449,6 +2532,7 @@ renderer.setAnimationLoop(() => {
   update(dt);
   renderer.render(scene, camera);
 });
+
 
 
 
