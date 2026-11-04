@@ -920,3 +920,32 @@ body.title-mode #toasts { display: none; }   /* タイトルの上にお知ら�
 .card.daily.bonus { border-color: rgba(255, 210, 63, .55); background: linear-gradient(135deg, rgba(255, 210, 63, .14), rgba(255, 255, 255, .03)); }
 .dq-ok { font-size: 12px; font-weight: 800; color: #7dff8a; white-space: nowrap; }
 #hudDailyBtn { position: relative; }
+
+/* ---- ログインボーナス ---- */
+#loginPanel { width: min(600px, 96vw); }
+.login-lead { margin: 0 0 12px; text-align: center; font-weight: 800; font-size: 16px; }
+.login-lead small { color: var(--muted); font-weight: 600; font-size: 12px; }
+.login-lead b { color: #ffd23f; }
+.login-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.login-day {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px 10px; border-radius: 16px; text-align: center;
+  background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .14);
+}
+.login-day small { font-size: 11px; color: var(--muted); font-weight: 800; }
+.login-day .ic { font-size: 30px; line-height: 1.2; }
+.login-day b { font-size: 12px; line-height: 1.25; }
+.login-day span { font-size: 11px; color: #ffd23f; font-weight: 800; word-break: break-all; }
+.login-day.got { opacity: .5; }
+.login-day.today { border: 2px solid #ffd23f; background: linear-gradient(160deg, rgba(255, 210, 63, .25), rgba(255, 255, 255, .05)); box-shadow: 0 0 18px rgba(255, 210, 63, .35); animation: loginPulse 1.4s ease-in-out infinite; }
+.login-day.big { grid-column: span 2; background: linear-gradient(135deg, rgba(179, 136, 255, .3), rgba(255, 210, 63, .18)); }
+@keyframes loginPulse { 50% { transform: scale(1.04); } }
+.btn.login-claim { display: block; width: 100%; margin-top: 14px; padding: 12px; font-size: 17px; }
+.login-line {
+  display: flex; align-items: center; gap: 8px; width: 100%; margin-bottom: 10px; padding: 10px 14px; border-radius: 14px; cursor: pointer;
+  border: 1px solid rgba(255, 210, 63, .4); background: rgba(255, 210, 63, .1); color: #fff; font-family: inherit; font-weight: 800; font-size: 14px; text-align: left;
+}
+.login-line span { color: var(--muted); font-weight: 600; font-size: 12px; }
+.login-line b { color: #ffd23f; }
+.login-line em { margin-left: auto; font-style: normal; color: #ffd23f; }
+.login-line.ready { border-color: #ffd23f; box-shadow: 0 0 14px rgba(255, 210, 63, .3); }
+@media (max-width: 600px) { .login-grid { grid-template-columns: repeat(3, 1fr); } .login-day.big { grid-column: span 3; } }

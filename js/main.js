@@ -1603,6 +1603,7 @@ function renderPanels() {
   if (openPanel === 'rankPanel') openRanking();
   if (openPanel === 'skinPanel') renderSkins();
   if (openPanel === 'dailyPanel') renderDaily();
+  if (openPanel === 'loginPanel') renderLogin();
   if (openPanel === 'backupPanel') renderBackups();
   if (openPanel === 'chatPanel') openChat();
   if (openPanel === 'friendPanel') renderFriends(true);
@@ -2045,7 +2046,7 @@ function questCleared(q) {
 const questReward = () => Math.max(300, Math.round(totalIncome() * 600));   // 1つにつき「いまの稼ぎの10分ぶん」
 function updateDailyBadge() {
   const d = save.daily;
-  const n = d ? d.quests.filter(q => questDone(q) && !q.claimed).length + (d.quests.every(q => q.claimed) && !d.bonus ? 1 : 0) : 0;
+  const n = (d ? d.quests.filter(q => questDone(q) && !q.claimed).length + (d.quests.every(q => q.claimed) && !d.bonus ? 1 : 0) : 0) + (loginReady() ? 1 : 0);
   const b = $('dailyBadge');
   b.classList.toggle('hidden', !n); b.textContent = n ? String(n) : '';
 }
@@ -2058,6 +2059,7 @@ function renderDaily() {
   const d = ensureDaily();
   const allClaimed = d.quests.every(q => q.claimed);
   $('dailyBody').innerHTML = `
+    <button class="login-line ${loginReady() ? 'ready' : ''}" data-open-login>🎁 ログインボーナス ${loginReady() ? '<b>受け取れます！</b>' : `<span>ログイン ${save.login?.count || 0} 日目・受け取り済み</span>`}<em>›</em></button>
     <div class="daily-top"><span>🔄 あと <b>${untilReset()}</b> で新しいクエスト</span><span>🔥 連続 <b>${d.streak || 0}</b> 日</span></div>
     ${d.quests.map((q, i) => {
       const Q = QUESTS[q.id], done = questDone(q), pct = Math.round(q.prog / q.goal * 100);
@@ -2077,6 +2079,7 @@ function renderDaily() {
   updateDailyBadge();
 }
 $('dailyBody').addEventListener('click', e => {
+  if (e.target.closest('[data-open-login]')) { openPanelById('loginPanel'); return; }
   const b = e.target.closest('[data-dq]');
   if (!b || b.disabled) return;
   const d = ensureDaily();
@@ -2105,6 +2108,71 @@ $('dailyBody').addEventListener('click', e => {
   renderDaily(); updateHud(); writeSave();
 });
 $('hudDailyBtn').addEventListener('click', () => openPanelById('dailyPanel'));
+
+// ---------- ログインボーナス ----------
+// 1日1回（0時に切りかわる）。7日でひとまわりして、日がたつほど豪華になる（休んでもリセットはしない）
+const LOGIN_REWARDS = [
+  { icon: '💰', name: '稼ぎ5分ぶん',   kind: 'money', min: 5 },
+  { icon: '💪', name: '力 10分ぶん',   kind: 'strength', min: 10 },
+  { icon: '💰', name: '稼ぎ15分ぶん',  kind: 'money', min: 15 },
+  { icon: '💪', name: '力 30分ぶん',   kind: 'strength', min: 30 },
+  { icon: '💰', name: '稼ぎ30分ぶん',  kind: 'money', min: 30 },
+  { icon: '🎒', name: 'キャラ1体',     kind: 'char' },
+  { icon: '🌟', name: '変異キャラ＋稼ぎ1時間ぶん', kind: 'big', min: 60 },
+];
+function loginReady() { return (save.login?.last || '') !== todayKey(); }   // 関数宣言（デイリーのバッジ計算から先に呼ばれるため）
+const loginDayIndex = () => (save.login?.count || 0) % 7;   // 次に受け取るのが何日目か（0始まり）
+const loginMoney = min => Math.max(200 * min, Math.round(totalIncome() * 60 * min));
+const loginStrength = min => Math.max(50 * min, Math.round(strengthRate(save.dumbbellLv) * 60 * min));
+function loginValue(r) {
+  if (r.kind === 'money') return '$' + fmt(loginMoney(r.min));
+  if (r.kind === 'strength') return '+' + fmt(loginStrength(r.min));
+  if (r.kind === 'char') return 'ゾーンのキャラ';
+  return '変異つき＋$' + fmt(loginMoney(r.min));
+}
+// いちばん遠くまで行ったゾーンのキャラをインベントリに入れる
+function giveZoneChar(mut = null) {
+  const def = rollCharacter(zoneAt(TEE_POS.z + save.stats.bestDistance));
+  save.inventory.push(mut ? { id: def.id, star: 1, mut } : { id: def.id, star: 1 });
+  const entry = save.dex[def.id] ||= { count: 0, first: Date.now(), seen: false };
+  entry.count++; if (mut) (entry.muts ||= {})[mut] = true;
+  newItems++;
+  return def;
+}
+function renderLogin() {
+  const idx = loginDayIndex(), ready = loginReady();
+  const cur = ready ? idx : (idx + 6) % 7;   // 今日受け取った（受け取る）日
+  $('loginBody').innerHTML = `
+    <p class="login-lead">${ready ? '今日のボーナスを受け取ろう！' : '今日のボーナスは受け取り済み。また明日！'}<br><small>通算ログイン <b>${save.login?.count || 0}</b> 日 ・ 7日でひとまわり（休んでもリセットされません）</small></p>
+    <div class="login-grid">${LOGIN_REWARDS.map((r, i) => {
+      const st = i < cur || (!ready && i === cur) ? 'got' : i === cur ? 'today' : '';
+      return `<div class="login-day ${st} ${i === 6 ? 'big' : ''}"><small>${i + 1}日目</small><div class="ic">${st === 'got' ? '✅' : r.icon}</div><b>${r.name}</b><span>${loginValue(r)}</span></div>`;
+    }).join('')}</div>
+    <button class="btn login-claim" id="loginClaim" ${ready ? '' : 'disabled'}>${ready ? `🎁 ${cur + 1}日目のボーナスを受け取る` : `✅ 受け取り済み（あと ${untilReset()} で次のボーナス）`}</button>`;
+}
+$('loginBody').addEventListener('click', e => {
+  if (!e.target.closest('#loginClaim') || !loginReady()) return;
+  const r = LOGIN_REWARDS[loginDayIndex()];
+  save.login = { last: todayKey(), count: (save.login?.count || 0) + 1 };
+  let msg = '';
+  if (r.kind === 'money' || r.kind === 'big') { const v = loginMoney(r.min); save.money += v; save.stats.totalEarned += v; msg = `+$${fmt(v)}`; }
+  if (r.kind === 'strength') { const v = loginStrength(r.min); save.strength += v; msg = `力 +${fmt(v)}`; }
+  if (r.kind === 'char' || r.kind === 'big') {
+    const mut = r.kind === 'big' ? rollMutation(halloweenActive()) : null;
+    const def = giveZoneChar(mut);
+    msg += `${msg ? ' と ' : ''}${mut ? MUT_BY_ID[mut].name + '変異の' : ''}${def.name}（${RARITIES[def.r].name}）`;
+  }
+  play(r.kind === 'big' ? 'evolve' : 'buy');
+  burst(pState.pos.clone().add(new THREE.Vector3(0, 3, 0)), 0xffd23f, 40, 12);
+  toast(`🎁 ログインボーナス ${loginDayIndex() === 0 ? 7 : loginDayIndex()}日目！ ${msg}`, { color: '#ffd23f', big: true, time: 3500 });
+  renderLogin(); updateHud(); updateDailyBadge(); writeSave();
+});
+// スタートしたとき、まだ受け取っていなければ自動で開く（ほかの画面が開いていたら少し待つ）
+function maybeLoginBonus(tries = 0) {
+  if (!loginReady() || !$('title').classList.contains('hidden')) return;
+  if (openPanel || state !== 'free') { if (tries < 20) setTimeout(() => maybeLoginBonus(tries + 1), 3000); return; }
+  openPanelById('loginPanel');
+}
 ensureDaily(); updateDailyBadge();
 // 日付が変わったら新しいクエストに
 setInterval(() => { if (save.daily?.day !== todayKey()) { ensureDaily(); updateDailyBadge(); if (openPanel === 'dailyPanel') renderDaily(); } }, 60000);
@@ -2947,6 +3015,7 @@ $('startBtn').addEventListener('click', () => {
   if (offlineMoney > 0) toast(`おかえり！ 放置中に $${fmt(offlineMoney)} 貯まったよ`, { color: '#7dff8a', time: 3500 });
   else if (save.stats.collected === 0) toast('黄色い発射台へ行ってブロックを打とう！', { color: '#ffd23f', time: 4000 });
   setTimeout(checkLostData, 800);
+  setTimeout(maybeLoginBonus, 1600);
 });
 addEventListener('beforeunload', writeSave);
 document.addEventListener('visibilitychange', () => { if (document.hidden) writeSave(); });
