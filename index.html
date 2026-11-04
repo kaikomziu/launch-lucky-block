@@ -7,22 +7,22 @@
 <meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
-<link rel="stylesheet" href="style.css?v=0.43">
+<link rel="stylesheet" href="style.css?v=0.44">
 <!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
 <script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <!-- 更新のたびに ?v= をバージョンに合わせて変える（古いJSがキャッシュされないように） -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "./js/data.js": "./js/data.js?v=0.43",
-  "./js/models.js": "./js/models.js?v=0.43",
-  "./js/input.js": "./js/input.js?v=0.43",
-  "./js/audio.js": "./js/audio.js?v=0.43",
-  "./js/ranking.js": "./js/ranking.js?v=0.43",
-  "./js/admin.js": "./js/admin.js?v=0.43",
-  "./js/backup.js": "./js/backup.js?v=0.43",
-  "./js/chat.js": "./js/chat.js?v=0.43",
-  "./js/friends.js": "./js/friends.js?v=0.43"
+  "./js/data.js": "./js/data.js?v=0.44",
+  "./js/models.js": "./js/models.js?v=0.44",
+  "./js/input.js": "./js/input.js?v=0.44",
+  "./js/audio.js": "./js/audio.js?v=0.44",
+  "./js/ranking.js": "./js/ranking.js?v=0.44",
+  "./js/admin.js": "./js/admin.js?v=0.44",
+  "./js/backup.js": "./js/backup.js?v=0.44",
+  "./js/chat.js": "./js/chat.js?v=0.44",
+  "./js/friends.js": "./js/friends.js?v=0.44"
 } }
 </script>
 </head>
@@ -57,6 +57,7 @@
   <button id="hudAccountBtn">👤 ログイン</button>
   <button id="hudAdminBtn" class="hidden"><kbd class="pc-only">7</kbd>🛠 管理者メニュー</button>
   <a href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ</a>
+  <a class="oc-mini" href="https://line.me/ti/g2/RNE2vwllCnyl4-Y8ukT0Pqmay1BYPPtICBvzaw?utm_source=invitation&amp;utm_medium=link_copy&amp;utm_campaign=default" target="_blank" rel="noopener">💬 公認オプチャ（雑談OK）</a>
 </div>
 <div id="zoneLabel" class="hud"></div>
 <div id="adminMsg" class="hud hidden"><span>📢 管理者より</span><b id="adminMsgText"></b></div>
@@ -253,6 +254,11 @@
       <p>3D: <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></p>
       <p class="note">本作は Roblox「Launch a Lucky Block（Lucky Bear Studio）」を題材にした非公式のファンメイド作品です。Roblox Corporation および Lucky Bear Studio とは関係ありません。</p>
     </div>
+<a class="openchat" href="https://line.me/ti/g2/RNE2vwllCnyl4-Y8ukT0Pqmay1BYPPtICBvzaw?utm_source=invitation&amp;utm_medium=link_copy&amp;utm_campaign=default" target="_blank" rel="noopener">
+      <span class="oc-icon">💬</span>
+      <span class="oc-text"><small>公認オープンチャット（LINE）</small><b>「偽ラッキーブロックを打つ」</b><em>雑談もOK！ 作者のかるわかもいます</em></span>
+      <span class="oc-go">参加する ›</span>
+    </a>
     <a class="btn more-games" href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ（かるわかGAMES）</a>
     <div class="account-box backup-box">
       <h3>💾 バックアップ</h3>
@@ -260,7 +266,7 @@
       <div class="adm-line"><button id="backupBtn" class="btn">バックアップから復元</button><button id="backupNowBtn" class="btn store">今すぐバックアップ</button></div>
     </div>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.43</p>
+    <p class="version">v0.44</p>
   </div>
 </div>
 
@@ -300,12 +306,17 @@
         <button id="titleAccountBtn" class="account-btn">👤 かるわかGAMESアカウントでログイン</button>
         <a class="account-btn more-games" href="https://kaikomziu.github.io/game-links/" target="_blank" rel="noopener">🎮 作者の別のゲームで遊ぶ</a>
       </div>
+      <a class="openchat" href="https://line.me/ti/g2/RNE2vwllCnyl4-Y8ukT0Pqmay1BYPPtICBvzaw?utm_source=invitation&amp;utm_medium=link_copy&amp;utm_campaign=default" target="_blank" rel="noopener">
+        <span class="oc-icon">💬</span>
+        <span class="oc-text"><small>公認オープンチャット（LINE）</small><b>「偽ラッキーブロックを打つ」</b><em>雑談もOK！ 作者のかるわかもいます</em></span>
+        <span class="oc-go">参加する ›</span>
+      </a>
       <p class="ctrl" id="ctrlHint"></p>
     </div>
-    <p class="note">v0.43 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.44 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=0.43"></script>
+<script type="module" src="js/main.js?v=0.44"></script>
 </body>
 </html>

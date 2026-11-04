@@ -169,8 +169,8 @@ safeLine.material = new THREE.MeshBasicMaterial({ color: 0x4cd964 });
 
 // 柵
 for (const s of [-1, 1]) {
-  const fence = new THREE.Mesh(new THREE.BoxGeometry(1, 2, WORLD_END + 60), mat(0x8d6e63));
-  fence.position.set(s * (WORLD_HALF_W + 1.5), 1, (WORLD_END - 60) / 2);
+  const fence = new THREE.Mesh(new THREE.BoxGeometry(1, 2, WORLD_END), mat(0x8d6e63));
+  fence.position.set(s * (WORLD_HALF_W + 1.5), 1, WORLD_END / 2);
   fence.castShadow = fence.receiveShadow = true; scene.add(fence);
 }
 const backWall = new THREE.Mesh(new THREE.BoxGeometry(W, 2, 1), mat(0x8d6e63));
@@ -1087,7 +1087,15 @@ function update(dt) {
   if (state === 'aim' && (Math.abs(input.move.x) > 0.5 || Math.abs(input.move.y) > 0.5)) {
     $('timing').classList.add('hidden'); setState('free');
   }
-  pState.pos.x = THREE.MathUtils.clamp(pState.pos.x, -WORLD_HALF_W + 1, WORLD_HALF_W - 1);
+  {
+    // 一緒に遊んでいる間は、拠点の中だけ横に並んだ基地まで歩ける（道は今までどおり）
+    const [bMin, bMax] = typeof baseRange === 'function' ? baseRange() : [0, 0];
+    if (pState.pos.z < BASE_LINE) pState.pos.x = THREE.MathUtils.clamp(pState.pos.x, bMin - WORLD_HALF_W + 1, bMax + WORLD_HALF_W - 1);
+    else if (Math.abs(pState.pos.x) > WORLD_HALF_W - 1) {
+      if (Math.abs(pState.pos.x) > WORLD_HALF_W + 2) pState.pos.z = BASE_LINE - 0.01;   // となりの基地からは道に出られない
+      else pState.pos.x = THREE.MathUtils.clamp(pState.pos.x, -WORLD_HALF_W + 1, WORLD_HALF_W - 1);
+    }
+  }
   pState.pos.z = THREE.MathUtils.clamp(pState.pos.z, -54, WORLD_END - 2);
 
   // --- 台座のお金を回収 ---
@@ -2126,10 +2134,11 @@ $('hudChatBtn').addEventListener('click', () => openPanelById('chatPanel'));
 const kaToken = () => window.KaAccount?.token();
 const net = new Net({
   getToken: kaToken,
-  onPeer: (u, name) => { toast(`👥 ${escHtml(name || u)} とつながった！`, { color: '#7dff8a', big: true }); play('safe', { vol: 0.6 }); netStatus = ''; if (openPanel === 'friendPanel') renderFriends(); },
+  onPeer: (u, name) => { lastBaseSent = 0; lastBaseSig = ''; toast(`👥 ${escHtml(name || u)} とつながった！`, { color: '#7dff8a', big: true }); play('safe', { vol: 0.6 }); netStatus = ''; if (openPanel === 'friendPanel') renderFriends(); },
   onLeave: (u, name) => {
     const r = remotes.get(u);
     if (r) { scene.remove(r.p.group); r.label.el.remove(); labels.splice(labels.indexOf(r.label), 1); remotes.delete(u); toast(`👋 ${escHtml(name || u)} が抜けた`, { color: '#9ad0ff' }); }
+    removeNeighborBase(u);
     if (openPanel === 'friendPanel') renderFriends();
   },
   onMessage: msg => onNetMessage(msg),
@@ -2162,17 +2171,83 @@ function onNetMessage(m) {
       r.carry = null; r.carryId = cid;
       if (cid) { r.carry = buildCharacter(CHAR_BY_ID[m.c], MUT_BY_ID[m.cm] ? m.cm : null); r.carry.scale.setScalar(0.55); r.p.carry.add(r.carry); }
     }
-    r.tgt.set(+m.x || 0, 0, +m.z || 0); r.tf = +m.f || 0; r.last = performance.now();
+    r.rawX = +m.x || 0; r.rawZ = +m.z || 0;
+    r.tgt.set(r.rawX + (r.rawZ < BASE_LINE ? baseX(m.u) : 0), 0, r.rawZ); r.tf = +m.f || 0; r.last = performance.now();
     const nm = String(m.n || m.u).slice(0, 16);
     if (nm !== r.name) { r.name = nm; setLabel(r.label, `<div class="n">👥 ${escHtml(nm)}</div>`); }
+  } else if (m.t === 'base' && Array.isArray(m.slots)) {
+    setNeighborBase(m.u, String(m.n || m.u).slice(0, 16), m.slots.slice(0, SLOT_COUNT));
   } else if (m.t === 'ev' && typeof m.text === 'string') {
     toast(`👥 ${escHtml(String(m.n || m.u).slice(0, 16))}: ${escHtml(m.text.slice(0, 80))}`, { color: '#9ad0ff', time: 3500 });
   }
 }
+// ---- マルチプレイ: みんなの基地を横に並べる ----
+// 参加者をユーザー名の順に並べ、自分の基地を x=0 として、となりは BASE_GAP ずつ横にずらす（全員の画面で同じ並び）
+const BASE_GAP = 70;
+const neighbors = new Map();   // ユーザー名 -> { g, label, models[], sig }
+const meName = () => myFriendName || 'me';
+function baseOrder() { return [meName(), ...new Set([...remotes.keys(), ...neighbors.keys()])].sort(); }
+function baseX(u) { const o = baseOrder(); return (o.indexOf(u) - o.indexOf(meName())) * BASE_GAP; }
+function baseRange() {
+  if (!net.connected || !neighbors.size) return [0, 0];
+  const xs = [0, ...[...neighbors.keys()].map(baseX)];
+  return [Math.min(...xs), Math.max(...xs)];
+}
+function setNeighborBase(u, name, slots) {
+  let nb = neighbors.get(u);
+  if (!nb) {
+    const g = new THREE.Group();
+    const gr = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_HALF_W * 2 + 4, 60), mat(0x9bd770)); gr.rotation.x = -Math.PI / 2; gr.position.set(0, 0.005, -30); gr.receiveShadow = true; g.add(gr);
+    const pz = new THREE.Mesh(new THREE.PlaneGeometry(40, 52), mat(0xd5dde2)); pz.rotation.x = -Math.PI / 2; pz.position.set(0, 0.015, -26); pz.receiveShadow = true; g.add(pz);
+    const line = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_HALF_W * 2 + 4, 1.2), new THREE.MeshBasicMaterial({ color: 0x9ad0ff })); line.rotation.x = -Math.PI / 2; line.position.set(0, 0.03, BASE_LINE); g.add(line);
+    const pads = SLOT_POS.map(p => {
+      const pg = new THREE.Group(); pg.position.copy(p);
+      const b = new THREE.Mesh(new THREE.CylinderGeometry(2, 2.2, 0.6, 20), mat(0xdfe6f5)); b.position.y = 0.3; b.castShadow = b.receiveShadow = true; pg.add(b);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.15, 8, 32), new THREE.MeshBasicMaterial({ color: 0x9ad0ff })); ring.rotation.x = Math.PI / 2; ring.position.y = 0.62; pg.add(ring);
+      g.add(pg); return pg;
+    });
+    scene.add(g);
+    nb = { g, pads, models: [], sig: '', name };
+    nb.label = makeLabel(() => nb.g.position.clone().add(new THREE.Vector3(0, 9, -6)), 'friend', 160);
+    neighbors.set(u, nb);
+  }
+  if (nb.name !== name || !nb.label.html) { nb.name = name; setLabel(nb.label, `<div class="n">🏠 ${escHtml(name)} の基地</div>`); }
+  const sig = JSON.stringify(slots);
+  if (sig === nb.sig) return;
+  nb.sig = sig;
+  nb.models.forEach(m => m && m.parent && m.parent.remove(m));
+  nb.models = slots.map((s, i) => {
+    if (!Array.isArray(s) || !CHAR_BY_ID[s[0]]) return null;
+    const mut = MUT_BY_ID[s[2]] ? s[2] : null;
+    const m = buildCharacter(CHAR_BY_ID[s[0]], mut);
+    m.position.y = 0.6; m.scale.setScalar(1 + (Math.min(5, Math.max(1, +s[1] || 1)) - 1) * 0.12);
+    m.rotation.y = -Math.sign(SLOT_POS[i].x) * Math.PI / 2;
+    nb.pads[i].add(m); return m;
+  });
+}
+function removeNeighborBase(u) {
+  const nb = neighbors.get(u);
+  if (!nb) return;
+  scene.remove(nb.g); nb.label.el.remove(); labels.splice(labels.indexOf(nb.label), 1); neighbors.delete(u);
+}
+// 自分の基地（台座のキャラ）を知らせる。変わったときと、15秒ごと（あとから来た人のため）
+let lastBaseSig = '', lastBaseSent = 0;
+setInterval(() => {
+  if (!net.connected) return;
+  const slots = save.slots.map(s => (s ? [s.id, s.star, s.mut || ''] : null));
+  const sig = JSON.stringify(slots);
+  if (sig === lastBaseSig && Date.now() - lastBaseSent < 15000) return;
+  lastBaseSig = sig; lastBaseSent = Date.now();
+  net.send({ t: 'base', u: meName(), n: playerName(), slots });
+}, 2000);
+
 function updateRemotes(dt) {
   const now = performance.now();
+  // 並びが変わったら基地の位置を合わせる
+  for (const [u, nb] of neighbors) { nb.g.position.x = baseX(u); for (const m of nb.models) if (m) for (const a of m.userData.anims) a(now / 1000); }
   for (const [u, r] of remotes) {
     if (now - r.last > 15000) { net.cb.onLeave(u, r.name); continue; }   // しばらく様子が来なければ消す
+    if (r.rawZ !== undefined) r.tgt.x = r.rawX + (r.rawZ < BASE_LINE ? baseX(u) : 0);
     const g = r.p.group;
     const d = g.position.distanceTo(r.tgt);
     if (d > 60) g.position.copy(r.tgt); else g.position.lerp(r.tgt, Math.min(1, dt * 10));
