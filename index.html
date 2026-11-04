@@ -7,22 +7,22 @@
 <meta name="description" content="Robloxの「ラッキーブロックを打つ（Launch a Lucky Block）」をブラウザで再現した非公式ファンメイド3Dゲーム。">
 <meta name="theme-color" content="#1b1530">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='8' y='8' width='84' height='84' rx='10' fill='%23ffd23f' stroke='%23b8860b' stroke-width='6'/><text x='50' y='74' font-size='64' font-weight='bold' text-anchor='middle' fill='%237a5a00'>?</text></svg>">
-<link rel="stylesheet" href="style.css?v=0.46">
+<link rel="stylesheet" href="style.css?v=0.47">
 <!-- かるわかGAMESアカウント（ログインとクラウドセーブ） -->
 <script src="https://kaikomziu.github.io/game-links/js/karuwaka-account.js" data-game="launch-lucky-block" data-keys="llb_save_v1" data-badge="off"></script>
 <!-- 更新のたびに ?v= をバージョンに合わせて変える（古いJSがキャッシュされないように） -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "./js/data.js": "./js/data.js?v=0.46",
-  "./js/models.js": "./js/models.js?v=0.46",
-  "./js/input.js": "./js/input.js?v=0.46",
-  "./js/audio.js": "./js/audio.js?v=0.46",
-  "./js/ranking.js": "./js/ranking.js?v=0.46",
-  "./js/admin.js": "./js/admin.js?v=0.46",
-  "./js/backup.js": "./js/backup.js?v=0.46",
-  "./js/chat.js": "./js/chat.js?v=0.46",
-  "./js/friends.js": "./js/friends.js?v=0.46"
+  "./js/data.js": "./js/data.js?v=0.47",
+  "./js/models.js": "./js/models.js?v=0.47",
+  "./js/input.js": "./js/input.js?v=0.47",
+  "./js/audio.js": "./js/audio.js?v=0.47",
+  "./js/ranking.js": "./js/ranking.js?v=0.47",
+  "./js/admin.js": "./js/admin.js?v=0.47",
+  "./js/backup.js": "./js/backup.js?v=0.47",
+  "./js/chat.js": "./js/chat.js?v=0.47",
+  "./js/friends.js": "./js/friends.js?v=0.47"
 } }
 </script>
 </head>
@@ -209,7 +209,7 @@
 <div id="chatPanel" class="panel hidden">
   <div class="panel-head"><h2>💬 チャット</h2><button class="close">✕</button></div>
   <div class="tabs chat-tabs">
-    <button class="tab active" data-ctab="all">🌏 全体</button>
+    <button class="tab active" data-ctab="all">🌏 全体<i id="allBadge" class="chat-dot hidden"></i></button>
     <button class="tab" data-ctab="party">👥 マルチ <b id="partyCount"></b><i id="partyBadge" class="chat-dot hidden"></i></button>
   </div>
   <p class="rank-name" id="chatNote">名前: <b id="chatName">名無し</b>（かるわかGAMESアカウントでログインすると ✔ が付きます）</p>
@@ -272,7 +272,7 @@
       <div class="adm-line"><button id="backupBtn" class="btn">バックアップから復元</button><button id="backupNowBtn" class="btn store">今すぐバックアップ</button></div>
     </div>
     <button id="resetBtn" class="danger-btn">データをリセット</button>
-    <p class="version">v0.46</p>
+    <p class="version">v0.47</p>
   </div>
 </div>
 
@@ -319,10 +319,10 @@
       </a>
       <p class="ctrl" id="ctrlHint"></p>
     </div>
-    <p class="note">v0.46 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
+    <p class="note">v0.47 ／ 非公式ファンメイド作品です ／ 効果音: OtoLogic・効果音ラボ</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=0.46"></script>
+<script type="module" src="js/main.js?v=0.47"></script>
 </body>
 </html>

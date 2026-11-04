@@ -2089,13 +2089,22 @@ pingOnline();
 
 // ---------- グローバルチャット（開いている間だけ4秒ごとに読み込む） ----------
 let chatLatest = 0, chatLastId = 0, chatTimer = null;
+const baseTitle = document.title;
 const chatRead = () => { try { return +localStorage.getItem('llb_chat_read') || 0; } catch (e) { return 0; } };
 const setChatRead = id => { try { localStorage.setItem('llb_chat_read', String(id)); } catch (e) { /* 保存不可 */ } };
 const myChatIds = new Set();
+// 未読の数を赤い丸の中に出す（①②…、10件以上は 9+）
+function setBadge(el, n) {
+  el.classList.toggle('hidden', !n);
+  el.textContent = n > 9 ? '9+' : n ? String(n) : '';
+}
 function updateChatBadge() {
-  const unread = openPanel === 'chatPanel' ? 0 : (chatLatest > chatRead() ? 1 : 0);
-  $('chatBadge').classList.toggle('hidden', !unread && !partyUnread);
-  $('partyBadge').classList.toggle('hidden', !partyUnread);
+  const viewingAll = openPanel === 'chatPanel' && chatTab === 'all';
+  const unread = viewingAll ? 0 : Math.max(0, chatLatest - chatRead());
+  setBadge($('chatBadge'), unread + partyUnread);
+  setBadge($('allBadge'), unread);
+  setBadge($('partyBadge'), partyUnread);
+  document.title = (unread + partyUnread ? `(${unread + partyUnread > 9 ? '9+' : unread + partyUnread}) ` : '') + baseTitle;
 }
 function chatRow(m) {
   const d = new Date(m.created_at);
