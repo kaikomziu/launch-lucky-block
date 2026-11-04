@@ -975,6 +975,11 @@ let rouletteTimer = 0;
 function openBlock() {
   setState('opening');
   openResult = rollCharacter(flight.zone);
+  // 運アップ中は倍率の回数だけ引いて、いちばんいいキャラ（レア度→稼ぎの順）にする
+  for (let i = 1; i < boostMult('luck'); i++) {
+    const c = rollCharacter(flight.zone);
+    if (c.r > openResult.r || (c.r === openResult.r && (c.lowRate || c.mult > openResult.mult) && !openResult.lowRate)) openResult = c;
+  }
   play('roulette');
   $('reveal').classList.remove('hidden', 'pop');
   $('revealIncome').textContent = '';
@@ -1111,7 +1116,7 @@ function decideAction() {
 }
 
 function liftDumbbell() {
-  const gain = strengthRate(save.dumbbellLv) * 2 + 1;
+  const gain = (strengthRate(save.dumbbellLv) * 2 + 1) * boostMult('strength');
   save.strength += gain;
   pState.lift = 1;
   play('lift', { vol: 0.6, rate: 0.9 + Math.random() * 0.2 });
@@ -1136,13 +1141,14 @@ function update(dt) {
 
   // --- 放置での成長・収入 ---
   trainBoost = state === 'free' && Math.hypot(pState.pos.x - DUMBBELL_POS.x, pState.pos.z - DUMBBELL_POS.z) < 3.4;
-  save.strength += strengthRate(save.dumbbellLv) * dt * (trainBoost ? 3 : 1);
-  for (const s of save.slots) if (s) s.stored += charIncome(CHAR_BY_ID[s.id], s.star, s.mut) * dt;
+  save.strength += strengthRate(save.dumbbellLv) * dt * (trainBoost ? 3 : 1) * boostMult('strength');
+  const incomeBoost = boostMult('income');
+  for (const s of save.slots) if (s) s.stored += charIncome(CHAR_BY_ID[s.id], s.star, s.mut) * dt * incomeBoost;
 
   // --- 移動 ---
   const canMove = ['free', 'atBlock', 'chase'].includes(state) && !fadeBusy && !openPanel;
   dashT -= dt; dashCd -= dt;
-  const spd = playerSpeed(save.speedLv) * (dashT > 0 ? DASH_MULT : 1);
+  const spd = playerSpeed(save.speedLv) * (dashT > 0 ? DASH_MULT : 1) * boostMult('speed');
   let moving = false;
   if (canMove && (input.move.x || input.move.y)) {
     const yaw = input.camYaw;
@@ -1441,6 +1447,36 @@ function currentEvent() {
   return ev;
 }
 let eventOn = currentEvent().active;
+// ---------- 管理者のブーストイベント（運・力・稼ぎ・スピード） ----------
+const BOOSTS = {
+  luck:     { icon: '🍀', name: '運アップ',     desc: 'レアなキャラが出やすい' },
+  strength: { icon: '💪', name: '力アップ',     desc: '力の伸びが増える' },
+  income:   { icon: '💰', name: '稼ぎアップ',   desc: '台座にたまるお金が増える' },
+  speed:    { icon: '👟', name: 'スピードアップ', desc: '走るのが速くなる' },
+};
+function boostMult(type) {
+  let m = 1;
+  for (const e of liveEvents('boost')) if (e.payload.type === type) m = Math.max(m, Math.min(type === 'speed' ? 1.5 : 3, +e.payload.mult || 1));
+  return m;
+}
+const seenBoosts = new Set();
+let boostSig = '';
+function updateBoosts() {
+  const live = liveEvents('boost').filter(e => BOOSTS[e.payload.type]);
+  for (const e of live) {
+    if (seenBoosts.has(e.id)) continue;
+    seenBoosts.add(e.id);
+    const b = BOOSTS[e.payload.type];
+    play('evolve');
+    toast(`⚡ ブーストイベント開始！ ${b.icon} ${b.name} ×${e.payload.mult}<br><small>${b.desc}</small>`, { color: '#ffd23f', big: true, time: 4000 });
+  }
+  const html = live.map(e => {
+    const b = BOOSTS[e.payload.type];
+    const left = Math.max(0, Math.ceil((Date.parse(e.ends_at) - Date.now()) / 1000));
+    return `<div class="stat boost"><span class="ico">${b.icon}</span><b>${mmss(left)}</b><small>${b.name} ×${e.payload.mult}</small></div>`;
+  }).join('');
+  if (html !== boostSig) { boostSig = html; $('boostStats').innerHTML = html; }
+}
 const eventSky = new THREE.Color(0x7a3cff);
 const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 let rankTimer = 0, eventTimer = 0;
@@ -1478,6 +1514,7 @@ function updateEvent() {
   const ev = currentEvent();
   $('eventStat').classList.toggle('on', ev.active);
   $('sEvent').textContent = mmss(ev.left);
+  updateBoosts();
   $('sEventLabel').textContent = ev.active ? (ev.mut ? `${MUT_BY_ID[ev.mut].name}変異イベント中！` : '変異イベント中！') : '次の変異まで';
   if (ev.active !== eventOn) {
     eventOn = ev.active;
@@ -2920,7 +2957,17 @@ $('admFlagged').addEventListener('click', async e => {
   try { if (await adminSetFlag(ka?.token(), b.dataset.unflag, false)) { toast('✅ 解除しました', { color: '#7dff8a' }); renderFlagged(); } }
   catch (err) { toast('⚠ できませんでした', { color: '#ff6b6b' }); }
 });
-const KIND_LABEL = { message: '📢 お知らせ', gift: '🎁 配布', mutation: '🧬 変異イベント' };
+// ブーストの種類と倍率を選ぶ
+let boostType = 'luck';
+function renderBoostPick() {
+  document.querySelectorAll('#boostPick [data-btype]').forEach(b => b.classList.toggle('active', b.dataset.btype === boostType));
+  const opts = boostType === 'speed' ? [1.3, 1.5] : [2, 3];
+  const cur = +$('admBoostMult').value;
+  $('admBoostMult').innerHTML = opts.map(v => `<option value="${v}" ${v === cur ? 'selected' : ''}>×${v}</option>`).join('');
+}
+$('boostPick').addEventListener('click', e => { const b = e.target.closest('[data-btype]'); if (!b) return; boostType = b.dataset.btype; renderBoostPick(); });
+renderBoostPick();
+const KIND_LABEL = { message: '📢 お知らせ', gift: '🎁 配布', mutation: '🧬 変異イベント', boost: '⚡ ブースト' };
 function renderAdminActive() {
   const list = adminEvents.filter(e => Date.parse(e.ends_at) > Date.now());
   $('admActive').innerHTML = list.length ? list.map(e => {
@@ -2928,6 +2975,7 @@ function renderAdminActive() {
     const future = Date.parse(e.starts_at) > Date.now();
     const what = e.kind === 'message' ? escHtml(e.payload.text)
       : e.kind === 'gift' ? `${e.payload.mut ? MUT_BY_ID[e.payload.mut].name + '変異の' : ''}${CHAR_BY_ID[e.payload.char]?.name || e.payload.char}`
+      : e.kind === 'boost' ? `${BOOSTS[e.payload.type]?.icon || ''} ${BOOSTS[e.payload.type]?.name || e.payload.type} ×${e.payload.mult}`
       : (e.payload.mut ? MUT_BY_ID[e.payload.mut].name : 'ランダム');
     return `<div class="adm-row ${future ? 'sched' : ''}"><span>${KIND_LABEL[e.kind]}</span><b>${what}</b>
       <small>${future ? `⏰ ${fmtWhen(e.starts_at)} から` : `あと${left}分`}</small>
@@ -2985,6 +3033,10 @@ $('adminPanel').addEventListener('click', async e => {
     const def = CHAR_BY_ID[gift.char], mut = gift.mut;
     if (!confirm(`${when.label}全員に「${mut ? MUT_BY_ID[mut].name + '変異の' : ''}${def.name}」を1体ずつ配りますか？`)) return;
     await postAdmin('gift', { char: def.id, mut, note: $('admGiftNote').value.trim() }, +$('admGiftMin').value, when.start);
+  } else if (k === 'boost') {
+    const b = BOOSTS[boostType], mult = +$('admBoostMult').value, min = +$('admBoostMin').value;
+    if (!confirm(`${when.label}全員に「${b.icon} ${b.name} ×${mult}」を${min >= 60 ? min / 60 + '時間' : min + '分'}かけますか？`)) return;
+    await postAdmin('boost', { type: boostType, mult }, min, when.start);
   } else if (k === 'mutation') {
     const mut = $('admMut').value;
     if (!confirm(`${when.label}変異イベント（${mut ? MUT_BY_ID[mut].name : 'ランダム'}・${$('admMutMin').value}分）を始めますか？`)) return;

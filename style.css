@@ -966,3 +966,16 @@ body.title-mode #toasts { display: none; }   /* タイトルの上にお知ら�
   .stat small { display: none; }
   #stats { gap: 3px; }
 }
+
+/* ---- ブーストイベント ---- */
+#boostStats { display: contents; }
+.stat.boost { border-color: rgba(255, 210, 63, .8); background: linear-gradient(90deg, rgba(255, 170, 0, .45), rgba(20, 12, 48, .6)); animation: evPulse 1.6s ease-in-out infinite; }
+.stat.boost b { color: #ffe680; font-variant-numeric: tabular-nums; }
+.stat.boost small { color: #fff; font-weight: 800; }
+.boost-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0 8px; }
+.boost-pick button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; border-radius: 12px; cursor: pointer; text-align: left;
+  border: 1px solid rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .06); color: #fff; font-family: inherit; font-weight: 800; font-size: 14px;
+}
+.boost-pick button small { font-size: 11px; font-weight: 600; color: var(--muted); }
+.boost-pick button.active { border-color: #ffd23f; background: rgba(255, 210, 63, .18); box-shadow: 0 0 0 1px #ffd23f inset; }
