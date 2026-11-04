@@ -2094,7 +2094,8 @@ const setChatRead = id => { try { localStorage.setItem('llb_chat_read', String(i
 const myChatIds = new Set();
 function updateChatBadge() {
   const unread = openPanel === 'chatPanel' ? 0 : (chatLatest > chatRead() ? 1 : 0);
-  $('chatBadge').classList.toggle('hidden', !unread);
+  $('chatBadge').classList.toggle('hidden', !unread && !partyUnread);
+  $('partyBadge').classList.toggle('hidden', !partyUnread);
 }
 function chatRow(m) {
   const d = new Date(m.created_at);
@@ -2106,8 +2107,9 @@ function chatRow(m) {
 }
 async function loadChat(first = false) {
   try {
+    if (chatTab !== 'all') return;
     const list = await fetchChat(first ? 0 : chatLastId, 50);
-    if (openPanel !== 'chatPanel') return;
+    if (openPanel !== 'chatPanel' || chatTab !== 'all') return;
     const box = $('chatList');
     const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
     if (first) box.innerHTML = list.length ? '' : '<p class="dex-sum chat-empty">まだ発言がありません。最初のひとことをどうぞ！</p>';
@@ -2123,6 +2125,8 @@ async function loadChat(first = false) {
   } catch (e) { $('chatStatus').textContent = '⚠ 読み込めませんでした（通信を確認してね）'; }
 }
 function openChat() {
+  if (net.connected && partyUnread) chatTab = 'party';   // マルチの新しい発言があればそちらを開く
+  setChatTab(chatTab);
   chatLastId = 0;
   $('chatList').innerHTML = '<p class="dex-sum">読み込み中…</p>';
   $('chatName').textContent = window.KaAccount?.user()?.display_name || save.name || '名無し';
@@ -2139,6 +2143,7 @@ $('chatForm').addEventListener('submit', async e => {
   e.preventDefault();
   const body = $('chatInput').value.trim();
   if (!body) return;
+  if (chatTab === 'party') { sendParty(body); return; }
   $('chatSend').disabled = true;
   try {
     const r = await postChat(save.clientId, save.name, body, window.KaAccount?.token());
@@ -2155,15 +2160,78 @@ $('chatList').addEventListener('click', async e => {
 });
 $('hudChatBtn').addEventListener('click', () => openPanelById('chatPanel'));
 
+// ---- マルチ専用チャット（一緒に遊んでいる人だけ。WebRTC で直接送るので Supabase は使わない） ----
+let chatTab = 'all', partyUnread = 0, partyLastSent = 0;
+const partyLog = [];   // { name, text, me, sys, time }
+function partyRow(m) {
+  if (m.sys) return `<div class="chat-sys">${escHtml(m.text)}</div>`;
+  const t = new Date(m.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+  return `<div class="chat-msg party ${m.me ? 'me' : ''}"><div class="chat-head"><b>${escHtml(m.name)}</b><small>${t}</small></div><p>${escHtml(m.text)}</p></div>`;
+}
+function renderParty() {
+  const box = $('partyList');
+  const n = remotes.size;
+  $('partyCount').textContent = net.connected ? String(n + 1) + '人' : '';
+  if (!partyLog.length) {
+    box.innerHTML = `<p class="dex-sum chat-empty">${net.connected ? 'まだ発言がありません。一緒に遊んでいる人にあいさつしよう！' : '👥 フレンドと一緒に遊んでいるときに使えます。<br>フレンド画面（9キー）から一緒に遊ぼう！'}</p>`;
+    return;
+  }
+  box.innerHTML = partyLog.map(partyRow).join('');
+  box.scrollTop = box.scrollHeight;
+}
+function setChatTab(tab) {
+  chatTab = tab;
+  document.querySelectorAll('#chatPanel .chat-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.ctab === tab));
+  const party = tab === 'party';
+  $('chatList').classList.toggle('hidden', party); $('chatNote').classList.toggle('hidden', party);
+  $('partyList').classList.toggle('hidden', !party); $('partyNote').classList.toggle('hidden', !party);
+  $('chatInput').placeholder = party ? '一緒に遊んでいる人へのメッセージ（100文字まで）' : 'メッセージ（100文字まで）';
+  $('chatStatus').textContent = '';
+  if (party) { partyUnread = 0; renderParty(); }
+  updateChatBadge();
+}
+document.querySelectorAll('#chatPanel .chat-tabs .tab').forEach(t => t.addEventListener('click', () => {
+  if (t.dataset.ctab === chatTab) return;
+  setChatTab(t.dataset.ctab);
+  if (chatTab === 'all') { chatLastId = 0; $('chatList').innerHTML = '<p class="dex-sum">読み込み中…</p>'; loadChat(true); }
+  $('chatInput').focus();
+}));
+function pushParty(m) {
+  partyLog.push({ time: Date.now(), ...m });
+  if (partyLog.length > 100) partyLog.shift();
+  if (openPanel === 'chatPanel' && chatTab === 'party') renderParty();
+  else if (!m.me && !m.sys) partyUnread++;
+  updateChatBadge();
+}
+function sendParty(text) {
+  if (!net.connected) { $('chatStatus').textContent = '⚠ いまは誰ともつながっていません（フレンド画面から一緒に遊ぼう）'; return; }
+  if (Date.now() - partyLastSent < 1000) { $('chatStatus').textContent = '⚠ 少し待ってから送ってね'; return; }
+  partyLastSent = Date.now();
+  text = text.slice(0, 100);
+  net.send({ t: 'pc', u: meName(), n: playerName(), text });
+  pushParty({ name: playerName(), text, me: true });
+  $('chatInput').value = ''; $('chatStatus').textContent = '';
+  $('chatInput').focus();
+}
+// 相手の頭の上に、ふきだしで少しのあいだ表示する
+function showSay(u, name, text) {
+  const r = remotes.get(u);
+  if (!r) return;
+  setLabel(r.label, `<div class="n">👥 ${escHtml(name)}</div><div class="say">${escHtml(text)}</div>`);
+  clearTimeout(r.sayTimer);
+  r.sayTimer = setTimeout(() => { r.sayTimer = null; setLabel(r.label, `<div class="n">👥 ${escHtml(r.name)}</div>`); }, 6000);
+}
+
 // ---------- フレンドと一緒に遊ぶ（WebRTC） ----------
 const kaToken = () => window.KaAccount?.token();
 const net = new Net({
   getToken: kaToken,
-  onPeer: (u, name) => { lastBaseSent = 0; lastBaseSig = ''; toast(`👥 ${escHtml(name || u)} とつながった！`, { color: '#7dff8a', big: true }); play('safe', { vol: 0.6 }); netStatus = ''; if (openPanel === 'friendPanel') renderFriends(); },
+  onPeer: (u, name) => { lastBaseSent = 0; lastBaseSig = ''; pushParty({ sys: true, text: `👥 ${String(name || u).slice(0, 16)} が参加しました` }); toast(`👥 ${escHtml(name || u)} とつながった！`, { color: '#7dff8a', big: true }); play('safe', { vol: 0.6 }); netStatus = ''; if (openPanel === 'friendPanel') renderFriends(); },
   onLeave: (u, name) => {
     const r = remotes.get(u);
     if (r) { scene.remove(r.p.group); r.label.el.remove(); labels.splice(labels.indexOf(r.label), 1); remotes.delete(u); toast(`👋 ${escHtml(name || u)} が抜けた`, { color: '#9ad0ff' }); }
     removeNeighborBase(u);
+    if (r) pushParty({ sys: true, text: `👋 ${String(name || u).slice(0, 16)} が抜けました` });
     if (openPanel === 'friendPanel') renderFriends();
   },
   onMessage: msg => onNetMessage(msg),
@@ -2199,9 +2267,15 @@ function onNetMessage(m) {
     r.rawX = +m.x || 0; r.rawZ = +m.z || 0;
     r.tgt.set(r.rawX + (r.rawZ < BASE_LINE ? baseX(m.u) : 0), 0, r.rawZ); r.tf = +m.f || 0; r.last = performance.now();
     const nm = String(m.n || m.u).slice(0, 16);
-    if (nm !== r.name) { r.name = nm; setLabel(r.label, `<div class="n">👥 ${escHtml(nm)}</div>`); }
+    if (nm !== r.name) { r.name = nm; if (!r.sayTimer) setLabel(r.label, `<div class="n">👥 ${escHtml(nm)}</div>`); }
   } else if (m.t === 'base' && Array.isArray(m.slots)) {
     setNeighborBase(m.u, String(m.n || m.u).slice(0, 16), m.slots.slice(0, SLOT_COUNT));
+  } else if (m.t === 'pc' && typeof m.text === 'string') {
+    const name = String(m.n || m.u).slice(0, 16), text = m.text.trim().slice(0, 100);
+    if (!text) return;
+    pushParty({ name, text });
+    showSay(m.u, name, text);
+    if (!(openPanel === 'chatPanel' && chatTab === 'party')) toast(`💬 ${escHtml(name)}: ${escHtml(text.slice(0, 60))}`, { color: '#9ad0ff', time: 4000 });
   } else if (m.t === 'ev' && typeof m.text === 'string') {
     toast(`👥 ${escHtml(String(m.n || m.u).slice(0, 16))}: ${escHtml(m.text.slice(0, 80))}`, { color: '#9ad0ff', time: 3500 });
   }
