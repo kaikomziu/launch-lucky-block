@@ -34,6 +34,7 @@ export const RARITIES = [
   { name: 'ミラー',         color: 0xdfe8f5, css: '#dfe8f5', income: 5.98e24 },
   { name: 'ゴッドラック',   color: 0xffffff, css: 'rainbow', income: 4.19e25, fx: 0xffd23f },
   { name: 'ネイチャー',     color: 0x6bdc4e, css: '#6bdc4e', income: 2.93e26 },
+  { name: 'ムーン',         color: 0xffe9a8, css: '#ffe9a8', income: 2.05e27, fx: 0xfff6c8 },
 ];
 // 3D演出・枠線に使う色（白いレア度は代わりの色）
 export const rarFx = r => RARITIES[r].fx ?? RARITIES[r].color;
@@ -123,6 +124,8 @@ export const ZONES = [
     boss: { name: 'ラッキー大魔王', kind: 'demonlord', color: 0x3a0a4a, speed: 137, scale: 13.2 } },
   { name: '自然', ground: 0x7ddc5a, alt: 0x6fcf4e, sky: 0xeefff2, deco: 'nature',
     boss: { name: '自然の精霊王', kind: 'nature', color: 0x3fbf5a, speed: 141, scale: 13.5 } },
+  { name: '月の都', ground: 0xb9bcc8, alt: 0xa9adbb, sky: 0x101436, deco: 'moon',
+    boss: { name: '月の大うさぎ', kind: 'moonrabbit', color: 0xf4f1ff, speed: 145, scale: 13.8 } },
 ];
 
 // キャラクター（形状パラメータは models.js の buildCharacter で使う）
@@ -429,6 +432,14 @@ export const CHARACTERS = [
   { id: 'mizu',      r: 32, name: '水',   mult: 1.2, shape: 'sphere', color: 0x2ec8d8, accent: 0x8a8a8a, extras: ['droptop', 'raincloud', 'blush'] },
   { id: 'kaminari',  r: 32, name: '雷',   mult: 1.4, shape: 'box',    color: 0xffc21a, accent: 0xfff27a, extras: ['bigbolt', 'glow'] },
   { id: 'honoo',     r: 32, name: '炎',   mult: 1.5, shape: 'egg',    color: 0xff7a2a, accent: 0xffc21a, extras: ['fireball', 'flame', 'glow'] },
+  // ムーン（月の都）
+  { id: 'tsukiusagi', r: 33, name: '月うさぎ',  mult: 0.7, shape: 'sphere', color: 0xffffff, accent: 0xffa8c8, extras: ['bunnyears', 'blush'] },
+  { id: 'tsukimidango', r: 33, name: '月見だんご', mult: 0.9, shape: 'sphere', color: 0xfff8e6, accent: 0xc8a06a, extras: ['dangostack', 'blush'] },
+  { id: 'mikazuki',  r: 33, name: '三日月',   mult: 1.1, shape: 'egg',    color: 0xffe066, accent: 0xfff6c8, extras: ['crescent', 'stars'] },
+  { id: 'mangetsu',  r: 33, name: '満月',     mult: 1.2, shape: 'sphere', color: 0xffe9a8, accent: 0xc9b77a, extras: ['craters', 'glow'] },
+  { id: 'nagareboshi', r: 33, name: '流れ星', mult: 1.4, shape: 'cone',   color: 0xfff27a, accent: 0x7ad7ff, extras: ['startail', 'glow'] },
+  { id: 'kaguyahime', r: 33, name: 'かぐや姫', mult: 1.5, shape: 'egg',   color: 0xffd6e4, accent: 0x111122, extras: ['tiara', 'crescent', 'blush'] },
+  { id: 'tsukinoou', r: 33, name: '月の王うさぎ', mult: 3, shape: 'sphere', color: 0xf4f1ff, accent: 0xffd23f, extras: ['bunnyears', 'crown', 'crescent', 'halo', 'glow'], lowRate: true },
   { id: 'raien',     r: 32, name: '雷炎', mult: 3,   shape: 'egg',    color: 0xff7a2a, accent: 0xffc21a, extras: ['fireball', 'bigbolt', 'halo', 'glow'], lowRate: true },
 ];
 

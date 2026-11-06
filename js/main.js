@@ -462,6 +462,28 @@ function decorate(type, x, z) {
       }
       break;
     }
+    case 'moon': {   // 月の都: クレーター・光る三日月・もちつきのうす・月のお城
+      const pick = Math.floor(Math.random() * 4);
+      if (pick === 0) {   // クレーター
+        const r = 1.6 + Math.random() * 1.4;
+        const rim = add(new THREE.TorusGeometry(r, 0.4, 6, 20), mat(0x9a9eae), 0, 0.15, 0); rim.rotation.x = Math.PI / 2; rim.castShadow = false;
+        const pit = add(new THREE.CircleGeometry(r, 20), mat(0x80849a), 0, 0.05, 0); pit.rotation.x = -Math.PI / 2; pit.castShadow = false;
+      } else if (pick === 1) {   // 浮かぶ三日月
+        const cr = add(new THREE.TorusGeometry(1.4, 0.4, 10, 24, Math.PI * 1.25), glow(0xffe066), 0, 5 + Math.random() * 3, 0); cr.rotation.z = 2.2; cr.castShadow = false;
+        spinners.push(cr);
+      } else if (pick === 2) {   // もちつきのうすときね
+        add(new THREE.CylinderGeometry(1.1, 0.9, 1.4, 14), mat(0x9a6a3a), 0, 0.7, 0);
+        add(new THREE.SphereGeometry(0.8, 12, 8), mat(0xffffff), 0, 1.45, 0).scale.y = 0.5;
+        const k = add(new THREE.CylinderGeometry(0.35, 0.35, 1.4, 10), mat(0xb07a3b), 0.4, 3.0, 0); k.rotation.z = Math.PI / 2 - 0.4;
+        add(new THREE.CylinderGeometry(0.08, 0.08, 1.8, 6), mat(0x8a5a2b), 1.1, 2.1, 0).rotation.z = 0.5;
+      } else {   // 月のお城（白い塔と金の屋根）
+        const h = 5 + Math.random() * 4;
+        add(new THREE.CylinderGeometry(0.9, 1.1, h, 10), mat(0xf4f1ff), 0, h / 2, 0);
+        add(new THREE.ConeGeometry(1.3, 2.4, 10), glow(0xffe066), 0, h + 1.2, 0);
+        add(new THREE.BoxGeometry(0.4, 0.7, 0.1), glow(0x7ad7ff), 0, h * 0.6, 1.0);
+      }
+      break;
+    }
     case 'icecastle': {   // 氷の塔と雪だるま
       if (Math.random() < 0.6) {
         const h = 5 + Math.random() * 5;
@@ -3681,3 +3703,4 @@ renderer.setAnimationLoop(() => {
 
 // 改ざんを見つけたら知らせる（ランキングには送らない）
 // （タイトル画面ではお知らせを出さないので、ランキング画面でだけ知らせる）
+

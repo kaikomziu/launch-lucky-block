@@ -626,6 +626,25 @@ export function buildBoss(def) {
       legL = limb(-0.9, 2.6, 1.2, 2.6, bark); legR = limb(0.9, 2.6, 1.2, 2.6, bark);
       break;
     }
+    case 'moonrabbit': {   // 月の大うさぎ（長い耳・月の冠・きねを持つ・まわる月）
+      const fur = mat(def.color), pink = mat(0xffa8c8), gold = glowMat(0xffe066, 1.1);
+      const bd = add(S(2.4, 18, 14), fur, 0, 4.4, 0); bd.scale.set(1, 1.1, 0.95);
+      add(S(1.7, 18, 14), fur, 0, 7.6, 0);
+      eyes(7.8, 1.55, 0.6, 0.45, 0.35, glowMat(0xff3b6b, 1.6));
+      add(S(0.25, 8, 6), pink, 0, 7.3, 1.65);
+      for (const s of [-1, 1]) {   // 長い耳
+        const e = add(S(0.6, 12, 10), fur, s * 0.8, 10.2, 0); e.scale.set(1, 3.2, 0.6); e.rotation.z = -s * 0.2;
+        const i2 = add(S(0.35, 10, 8), pink, s * 0.8, 10.2, 0.3); i2.scale.set(1, 3.6, 0.3); i2.rotation.z = -s * 0.2;
+      }
+      add(new THREE.TorusGeometry(0.9, 0.22, 8, 24, Math.PI * 1.3), gold, 0, 9.4, 0.3).rotation.z = 2.0;   // 月の冠
+      const orbit = new THREE.Group(); orbit.position.y = 5.5; inner.add(orbit);   // まわりを回る小さな月
+      for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2; add(S(0.7, 12, 10), glowMat(0xfff6c8, 0.9), Math.cos(a) * 4.4, Math.sin(a * 2) * 0.6, Math.sin(a) * 4.4, orbit); }
+      anims.push(t => { orbit.rotation.y = t * 0.9; gold.emissiveIntensity = 0.8 + Math.abs(Math.sin(t * 2)) * 0.6; });
+      armL = limb(-2.3, 5.6, 0.9, 3, fur); armR = limb(2.3, 5.6, 0.9, 3, fur);
+      add(C(0.15, 0.15, 3.4, 8), mat(0x8a5a2b), 0, -3.2, 0.5, armR); add(C(0.7, 0.7, 1.8, 14), mat(0xb07a3b), 0, -4.9, 0.5, armR).rotation.z = Math.PI / 2;   // きね
+      legL = limb(-1.0, 2.4, 1.3, 2.4, fur); legR = limb(1.0, 2.4, 1.3, 2.4, fur);
+      break;
+    }
     case 'demonlord': {   // ラッキー大魔王（角・羽・王冠・幸運の宝石）
       const robe = mat(def.color), gold = glowMat(0xffd23f, 0.6);
       add(B(3.6, 3.6, 2.4), robe, 0, 4.6, 0);
@@ -1103,6 +1122,38 @@ export function buildCharacter(def, mut = null) {
       case 'fireball': {   // 炎: 体の中に光る黄色い芯
         const core = am(new THREE.SphereGeometry(0.42, 14, 10), glowMat(def.accent, 1.3), 0, 0.75, S.front - 0.2);
         anims.push(time => core.scale.setScalar(0.9 + Math.abs(Math.sin(time * 6)) * 0.25));
+        break;
+      }
+      case 'bunnyears':   // うさぎの長い耳（内側がピンク）
+        for (const s of [-1, 1]) {
+          const e = am(new THREE.SphereGeometry(0.28, 12, 8), body, s * 0.38, top + 0.75, 0); e.scale.set(1, 2.8, 0.7); e.rotation.z = -s * 0.15;
+          const inr = am(new THREE.SphereGeometry(0.16, 10, 6), mat(def.accent === 0xffd23f ? 0xffa8c8 : def.accent), s * 0.38, top + 0.75, 0.13); inr.scale.set(1, 3.4, 0.4); inr.rotation.z = -s * 0.15;
+          anims.push(time => { e.rotation.x = Math.sin(time * 2 + s) * 0.12; inr.rotation.x = e.rotation.x; });
+        }
+        break;
+      case 'dangostack': {   // 月見だんご: 頭の上にだんごが3つ、下に台
+        const dw = mat(0xfffaf0);
+        [[-0.45, 0], [0.45, 0], [0, 0.55]].forEach(([x, y]) => am(new THREE.SphereGeometry(0.42, 14, 10), dw, x, top + 0.35 + y, -0.1));
+        am(new THREE.BoxGeometry(2.2, 0.25, 1.8), mat(def.accent), 0, 0.05, 0);
+        break;
+      }
+      case 'crescent': {   // 光る三日月がうかんでいる
+        const cr = am(new THREE.TorusGeometry(0.55, 0.16, 8, 20, Math.PI * 1.25), glowMat(0xffe066, 1.1), 0.9, top + 0.55, 0);
+        cr.rotation.z = 2.2;
+        anims.push(time => { cr.position.y = top + 0.55 + Math.sin(time * 2) * 0.12; });
+        break;
+      }
+      case 'craters':   // 満月: くぼみ（クレーター）
+        [[-0.35, 1.35, 0.3], [0.4, 0.75, 0.22], [0.1, 0.55, 0.16], [0.5, 1.5, 0.14], [-0.55, 0.8, 0.18]].forEach(([x, y, r]) => {
+          const c = am(new THREE.CircleGeometry(r, 14), mat(def.accent), x, y, 0);
+          c.lookAt(x * 4, 1 + (y - 1) * 4, 4); c.position.set(x, y, Math.sqrt(Math.max(0, 1 - x * x - (y - 1) * (y - 1))) + 0.01);
+        });
+        break;
+      case 'startail': {   // 流れ星: 頭に星、うしろに光のしっぽ
+        const st = am(new THREE.OctahedronGeometry(0.55), glowMat(0xfff27a, 1.2), 0, top + 0.5, 0);
+        const tl = new THREE.Group(); tl.position.set(0, top * 0.6, -0.6); g.add(tl);
+        [0x7ad7ff, 0xff9ecb, 0xfff27a].forEach((c, i) => { const t = new THREE.Mesh(new THREE.ConeGeometry(0.22 - i * 0.04, 2.2, 8), glowMat(c, 0.9)); t.rotation.x = -Math.PI / 2 - 0.3; t.position.set((i - 1) * 0.35, 0.1 * i, -1.0); tl.add(t); });
+        anims.push(time => { st.rotation.y = time * 2.5; tl.rotation.z = Math.sin(time * 4) * 0.1; });
         break;
       }
       case 'stripes':   // サーモンの白いすじ
