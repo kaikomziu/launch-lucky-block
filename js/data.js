@@ -35,6 +35,16 @@ export const RARITIES = [
   { name: 'ゴッドラック',   color: 0xffffff, css: 'rainbow', income: 4.19e25, fx: 0xffd23f },
   { name: 'ネイチャー',     color: 0x6bdc4e, css: '#6bdc4e', income: 2.93e26 },
   { name: 'ムーン',         color: 0xffe9a8, css: '#ffe9a8', income: 2.05e27, fx: 0xfff6c8 },
+  { name: 'サンダー',       color: 0x5ec8ff, css: '#5ec8ff', income: 1.44e28 },
+  { name: 'バンブー',       color: 0xa3d977, css: '#a3d977', income: 1.00e29 },
+  { name: 'メロディ',       color: 0xff6ec7, css: '#ff6ec7', income: 7.03e29 },
+  { name: 'カーニバル',     color: 0xffffff, css: 'rainbow', income: 4.92e30, fx: 0xff4f7b },
+  { name: 'ジュエル',       color: 0xe040fb, css: '#e040fb', income: 3.45e31 },
+  { name: 'グルメ',         color: 0xffa94d, css: '#ffa94d', income: 2.41e32 },
+  { name: 'マジック',       color: 0x9c6bff, css: '#9c6bff', income: 1.69e33 },
+  { name: 'スチーム',       color: 0xc9a46a, css: '#c9a46a', income: 1.18e34 },
+  { name: 'ドリーム',       color: 0xc5b3ff, css: '#c5b3ff', income: 8.27e34 },
+  { name: 'サン',           color: 0xffffff, css: 'cosmic', income: 5.79e35, fx: 0xffb300 },
 ];
 // 3D演出・枠線に使う色（白いレア度は代わりの色）
 export const rarFx = r => RARITIES[r].fx ?? RARITIES[r].color;
@@ -126,6 +136,26 @@ export const ZONES = [
     boss: { name: '自然の精霊王', kind: 'nature', color: 0x3fbf5a, speed: 141, scale: 13.5 } },
   { name: '月の都', ground: 0xb9bcc8, alt: 0xa9adbb, sky: 0x101436, deco: 'moon',
     boss: { name: '月の大うさぎ', kind: 'moonrabbit', color: 0xf4f1ff, speed: 145, scale: 13.8 } },
+  { name: '雷雲の峰', ground: 0x4a4f63, alt: 0x555b70, sky: 0x2a3050, deco: 'thunder',
+    boss: { name: '雷神', kind: 'raijinboss', color: 0x4fc3ff, speed: 149, scale: 14.1 } },
+  { name: '竹林', ground: 0x8fbf5a, alt: 0x7fb04c, sky: 0xdff5d0, deco: 'bamboo',
+    boss: { name: '大パンダ', kind: 'panda', color: 0xffffff, speed: 153, scale: 14.4 } },
+  { name: '音楽の国', ground: 0xf4f4f4, alt: 0x2a2a2a, sky: 0xffe0f2, deco: 'music',
+    boss: { name: '魔のグランドピアノ', kind: 'piano', color: 0x1a1a1a, speed: 157, scale: 14.7 } },
+  { name: '遊園地', ground: 0xffe08a, alt: 0xff9ec4, sky: 0xbfe8ff, deco: 'carnival',
+    boss: { name: '大ピエロ', kind: 'clown', color: 0xffffff, speed: 161, scale: 15.0 } },
+  { name: '宝石の洞窟', ground: 0x2a2440, alt: 0x332b4d, sky: 0x3a2a5a, deco: 'gems',
+    boss: { name: '宝石ゴーレム', kind: 'gemgolem', color: 0xe040fb, speed: 165, scale: 15.3 } },
+  { name: 'グルメ街', ground: 0xf6e2c0, alt: 0xecd2a8, sky: 0xffe9c8, deco: 'food',
+    boss: { name: 'ハンバーガー大王', kind: 'burger', color: 0xd9903f, speed: 169, scale: 15.6 } },
+  { name: '魔法学校', ground: 0x4b3a6b, alt: 0x56437a, sky: 0x2b2050, deco: 'magic',
+    boss: { name: '大魔法使い', kind: 'wizard', color: 0x5a3cc8, speed: 173, scale: 15.9 } },
+  { name: '蒸気の街', ground: 0x6b5a45, alt: 0x5e4f3c, sky: 0xd8b98a, deco: 'steam',
+    boss: { name: '蒸気の巨人', kind: 'steamgiant', color: 0xb08d57, speed: 177, scale: 16.2 } },
+  { name: '夢の国', ground: 0xf1e6ff, alt: 0xe3d4ff, sky: 0xffe6f5, deco: 'dream',
+    boss: { name: '夢喰いバク', kind: 'baku', color: 0xb39ddb, speed: 181, scale: 16.5 } },
+  { name: '太陽の神殿', ground: 0xffc94a, alt: 0xffb830, sky: 0xfff1c0, deco: 'sun',
+    boss: { name: '太陽神', kind: 'sungod', color: 0xffb300, speed: 185, scale: 16.8 } },
 ];
 
 // キャラクター（形状パラメータは models.js の buildCharacter で使う）
@@ -440,6 +470,86 @@ export const CHARACTERS = [
   { id: 'nagareboshi', r: 33, name: '流れ星', mult: 1.4, shape: 'cone',   color: 0xfff27a, accent: 0x7ad7ff, extras: ['startail', 'glow'] },
   { id: 'kaguyahime', r: 33, name: 'かぐや姫', mult: 1.5, shape: 'egg',   color: 0xffd6e4, accent: 0x111122, extras: ['tiara', 'crescent', 'blush'] },
   { id: 'tsukinoou', r: 33, name: '月の王うさぎ', mult: 3, shape: 'sphere', color: 0xf4f1ff, accent: 0xffd23f, extras: ['bunnyears', 'crown', 'crescent', 'halo', 'glow'], lowRate: true },
+  // サンダー（雷雲の峰）
+  { id: 'kumokko', r: 34, name: '雲っ子', mult: 0.7, shape: 'sphere', color: 0xe8eef8, accent: 0x8a96b0, extras: ['puffs', 'blush'] },
+  { id: 'inazuma', r: 34, name: 'いなずま', mult: 0.9, shape: 'box', color: 0xffe14a, accent: 0xfff6a8, extras: ['bigbolt', 'glow'] },
+  { id: 'kaminarikozo', r: 34, name: 'かみなり小僧', mult: 1.1, shape: 'sphere', color: 0xffd23f, accent: 0x222222, extras: ['horns', 'drumring'] },
+  { id: 'hiraishin', r: 34, name: 'ひらいしん', mult: 1.2, shape: 'cyl', color: 0x9aa3b5, accent: 0x7df9ff, extras: ['rod', 'bolt'] },
+  { id: 'raiun', r: 34, name: '雷雲', mult: 1.4, shape: 'dome', color: 0x5a6280, accent: 0xffe14a, extras: ['raincloud', 'bigbolt'] },
+  { id: 'denkiunagi', r: 34, name: 'でんきウナギ', mult: 1.5, shape: 'egg', color: 0x3a8dff, accent: 0xfff27a, extras: ['fins', 'bolt', 'glow'] },
+  { id: 'raijinsama', r: 34, name: '雷神さま', mult: 3, shape: 'sphere', color: 0x4fc3ff, accent: 0xffd23f, extras: ['horns', 'drumring', 'bigbolt', 'halo', 'glow'], lowRate: true },
+  // バンブー（竹林）
+  { id: 'takenoko', r: 35, name: 'たけのこ', mult: 0.7, shape: 'cone', color: 0xc8a06a, accent: 0x6b8e23, extras: ['sprout', 'blush'] },
+  { id: 'panda', r: 35, name: 'パンダ', mult: 0.9, shape: 'sphere', color: 0xffffff, accent: 0x111111, extras: ['pandaface'] },
+  { id: 'sasanoha', r: 35, name: 'ささの葉', mult: 1.1, shape: 'egg', color: 0x7fc75a, accent: 0x111111, extras: ['veins'] },
+  { id: 'takechochin', r: 35, name: 'ちょうちん', mult: 1.2, shape: 'cyl', color: 0xff5a3a, accent: 0x111111, extras: ['lanternbands', 'glow'] },
+  { id: 'hikarutake', r: 35, name: '光る竹', mult: 1.4, shape: 'cyl', color: 0x9fe07a, accent: 0xfff27a, extras: ['bamboostalk', 'glow'] },
+  { id: 'takeninja', r: 35, name: '竹忍者', mult: 1.5, shape: 'box', color: 0x2a3a2a, accent: 0x7fc75a, extras: ['band', 'katana'] },
+  { id: 'kinpanda', r: 35, name: '黄金パンダ', mult: 3, shape: 'sphere', color: 0xffd23f, accent: 0x111111, extras: ['pandaface', 'crown', 'bamboostalk', 'glow'], lowRate: true },
+  // メロディ（音楽の国）
+  { id: 'onpu', r: 36, name: '音符', mult: 0.7, shape: 'sphere', color: 0x1a1a1a, accent: 0xff6ec7, extras: ['notes'] },
+  { id: 'pianokun', r: 36, name: 'ピアノくん', mult: 0.9, shape: 'box', color: 0x1a1a1a, accent: 0xffffff, extras: ['pianokeys'] },
+  { id: 'taiko', r: 36, name: 'たいこ', mult: 1.1, shape: 'cyl', color: 0xd94a3a, accent: 0xf5e6c8, extras: ['drumtop'] },
+  { id: 'rappa', r: 36, name: 'ラッパ', mult: 1.2, shape: 'cone', color: 0xffc21a, accent: 0xfff27a, extras: ['notes', 'glow'] },
+  { id: 'idol', r: 36, name: 'アイドル', mult: 1.4, shape: 'egg', color: 0xffd6e4, accent: 0xff6ec7, extras: ['headphones', 'notes', 'blush'] },
+  { id: 'shikisha', r: 36, name: '指揮者', mult: 1.5, shape: 'egg', color: 0x101020, accent: 0xffffff, extras: ['tophat', 'baton'] },
+  { id: 'utahime', r: 36, name: '歌姫', mult: 3, shape: 'egg', color: 0xff9ecb, accent: 0xffd23f, extras: ['tiara', 'notes', 'halo', 'glow'], lowRate: true },
+  // カーニバル（遊園地）
+  { id: 'pierrot', r: 37, name: 'ピエロ', mult: 0.7, shape: 'sphere', color: 0xffffff, accent: 0xff3b3b, extras: ['clownnose', 'jesterhat'] },
+  { id: 'fuusen', r: 37, name: 'ふうせん', mult: 0.9, shape: 'sphere', color: 0xff5c8a, accent: 0xffffff, extras: ['balloons', 'blush'] },
+  { id: 'popcorn', r: 37, name: 'ポップコーン', mult: 1.1, shape: 'cyl', color: 0xff3b3b, accent: 0xfff6d5, extras: ['popcorn'] },
+  { id: 'watagashi', r: 37, name: 'わたがし', mult: 1.2, shape: 'sphere', color: 0xffb3d9, accent: 0xff77b0, extras: ['puffs', 'blush'] },
+  { id: 'kanransha', r: 37, name: '観覧車', mult: 1.4, shape: 'cyl', color: 0xffd23f, accent: 0x3a8dff, extras: ['ferris'] },
+  { id: 'tejinashi', r: 37, name: '手品師', mult: 1.5, shape: 'egg', color: 0x1a1a1a, accent: 0xff3b3b, extras: ['tophat', 'mustache', 'stars'] },
+  { id: 'pierroking', r: 37, name: 'ピエロキング', mult: 3, shape: 'sphere', color: 0xffffff, accent: 0xffd23f, extras: ['clownnose', 'crown', 'balloons', 'halo', 'glow'], lowRate: true },
+  // ジュエル（宝石の洞窟）
+  { id: 'ruby', r: 38, name: 'ルビー', mult: 0.7, shape: 'sphere', color: 0xff2d55, accent: 0xff8fa8, extras: ['crystals', 'blush'] },
+  { id: 'sapphire', r: 38, name: 'サファイア', mult: 0.9, shape: 'egg', color: 0x2d6bff, accent: 0x9ec0ff, extras: ['crystals'] },
+  { id: 'emerald', r: 38, name: 'エメラルド', mult: 1.1, shape: 'box', color: 0x1fcf6a, accent: 0xa8ffcc, extras: ['crystals', 'glow'] },
+  { id: 'amethyst', r: 38, name: 'アメジスト', mult: 1.2, shape: 'cone', color: 0x9c5cff, accent: 0xd7bfff, extras: ['crystals'] },
+  { id: 'topaz', r: 38, name: 'トパーズ', mult: 1.4, shape: 'sphere', color: 0xffb300, accent: 0xfff27a, extras: ['gem', 'stars', 'glow'] },
+  { id: 'diakun', r: 38, name: 'ダイヤくん', mult: 1.5, shape: 'egg', color: 0xd8f6ff, accent: 0xffffff, extras: ['crystals', 'stars', 'glow'] },
+  { id: 'nijidia', r: 38, name: '虹色ダイヤ', mult: 3, shape: 'sphere', color: 0xffffff, accent: 0xff77e9, extras: ['crystals', 'crown', 'rainbow', 'halo', 'glow'], lowRate: true },
+  // グルメ（グルメ街）
+  { id: 'hamburger', r: 39, name: 'ハンバーガー', mult: 0.7, shape: 'cyl', color: 0x6a3a20, accent: 0xf0a860, extras: ['bun'] },
+  { id: 'pizza', r: 39, name: 'ピザ', mult: 0.9, shape: 'cone', color: 0xffc95a, accent: 0xd94a3a, extras: ['pepperoni'] },
+  { id: 'ramen', r: 39, name: 'ラーメン', mult: 1.1, shape: 'dome', color: 0xf5d08a, accent: 0xd94a3a, extras: ['noodles'] },
+  { id: 'omurice', r: 39, name: 'オムライス', mult: 1.2, shape: 'dome', color: 0xffd23f, accent: 0xd94a3a, extras: ['ketchup', 'blush'] },
+  { id: 'chef', r: 39, name: 'シェフ', mult: 1.4, shape: 'egg', color: 0xffffff, accent: 0xff3b3b, extras: ['chefhat', 'mustache'] },
+  { id: 'parfait', r: 39, name: 'パフェ', mult: 1.5, shape: 'cone', color: 0xfff0f6, accent: 0xff2d55, extras: ['cherry', 'glow'] },
+  { id: 'goldburger', r: 39, name: '黄金バーガー', mult: 3, shape: 'cyl', color: 0xffd23f, accent: 0xfff27a, extras: ['bun', 'crown', 'halo', 'glow'], lowRate: true },
+  // マジック（魔法学校）
+  { id: 'majokko', r: 40, name: '魔女っ子', mult: 0.7, shape: 'sphere', color: 0xffe0c8, accent: 0x6a3cff, extras: ['wizardhat', 'blush'] },
+  { id: 'mahoubin', r: 40, name: '魔法のびん', mult: 0.9, shape: 'cyl', color: 0x7ad7ff, accent: 0xff7ae0, extras: ['cork', 'glow'] },
+  { id: 'madousho', r: 40, name: '魔導書', mult: 1.1, shape: 'box', color: 0x6b2a2a, accent: 0xffd23f, extras: ['bookpages'] },
+  { id: 'kuroneko', r: 40, name: '黒ねこ', mult: 1.2, shape: 'sphere', color: 0x1a1a22, accent: 0xffd23f, extras: ['ears', 'tail'] },
+  { id: 'mahoufukurou', r: 40, name: '魔法ふくろう', mult: 1.4, shape: 'egg', color: 0x8a6a4a, accent: 0xffd23f, extras: ['beak', 'glasses'] },
+  { id: 'daimajutsushi', r: 40, name: '大魔術師', mult: 1.5, shape: 'egg', color: 0x3a2a7a, accent: 0xffd23f, extras: ['wizardhat', 'wand', 'stars'] },
+  { id: 'kenja', r: 40, name: '伝説の賢者', mult: 3, shape: 'egg', color: 0xf4f1ff, accent: 0x9c6bff, extras: ['wizardhat', 'wand', 'halo', 'glow', 'stars'], lowRate: true },
+  // スチーム（蒸気の街）
+  { id: 'haguruma', r: 41, name: '歯車', mult: 0.7, shape: 'cyl', color: 0xb08d57, accent: 0x6b4a2a, extras: ['gears'] },
+  { id: 'joukipot', r: 41, name: '蒸気ポット', mult: 0.9, shape: 'sphere', color: 0xc0873f, accent: 0xffffff, extras: ['chimney'] },
+  { id: 'kaichudokei', r: 41, name: '懐中時計', mult: 1.1, shape: 'cyl', color: 0xffd23f, accent: 0x222222, extras: ['clockface'] },
+  { id: 'gogglehakase', r: 41, name: 'ゴーグル博士', mult: 1.2, shape: 'egg', color: 0xffe0c8, accent: 0xb08d57, extras: ['goggles', 'mustache'] },
+  { id: 'kikansha', r: 41, name: '機関車', mult: 1.4, shape: 'box', color: 0x1c1c1c, accent: 0xd94a3a, extras: ['chimney', 'gears'] },
+  { id: 'hikousen', r: 41, name: '飛行船', mult: 1.5, shape: 'egg', color: 0xd9b88a, accent: 0x6b4a2a, extras: ['propeller', 'goggles'] },
+  { id: 'joukiou', r: 41, name: '蒸気王', mult: 3, shape: 'box', color: 0xffd23f, accent: 0xb08d57, extras: ['gears', 'chimney', 'crown', 'glow'], lowRate: true },
+  // ドリーム（夢の国）
+  { id: 'hitsuji', r: 42, name: 'ひつじ', mult: 0.7, shape: 'sphere', color: 0xffffff, accent: 0xffb3c7, extras: ['puffs', 'blush'] },
+  { id: 'makura', r: 42, name: 'まくら', mult: 0.9, shape: 'box', color: 0xf4f1ff, accent: 0xc5b3ff, extras: ['blush', 'zzz'] },
+  { id: 'nightcapkun', r: 42, name: 'ねぼすけ', mult: 1.1, shape: 'egg', color: 0xc5b3ff, accent: 0x8a7dff, extras: ['nightcap', 'zzz'] },
+  { id: 'yumebaku', r: 42, name: 'ゆめバク', mult: 1.2, shape: 'sphere', color: 0xb39ddb, accent: 0xff9ecb, extras: ['trunk'] },
+  { id: 'hoshizora', r: 42, name: '星空', mult: 1.4, shape: 'dome', color: 0x2a2a6a, accent: 0xfff27a, extras: ['stars', 'crescent', 'glow'] },
+  { id: 'yumeneko', r: 42, name: '夢ねこ', mult: 1.5, shape: 'sphere', color: 0xffd6f0, accent: 0xc5b3ff, extras: ['ears', 'nightcap', 'zzz'] },
+  { id: 'yumenoou', r: 42, name: '夢の王', mult: 3, shape: 'egg', color: 0xf4f1ff, accent: 0xff9ecb, extras: ['nightcap', 'crown', 'zzz', 'halo', 'glow'], lowRate: true },
+  // サン（太陽の神殿）
+  { id: 'himawari', r: 43, name: 'ひまわり', mult: 0.7, shape: 'sphere', color: 0x6b4423, accent: 0xffd23f, extras: ['petals'] },
+  { id: 'taiyoukun', r: 43, name: '太陽くん', mult: 0.9, shape: 'sphere', color: 0xffc21a, accent: 0xff7a2a, extras: ['sunrays', 'blush'] },
+  { id: 'hinotori', r: 43, name: '火の鳥', mult: 1.1, shape: 'egg', color: 0xff5a2a, accent: 0xffd23f, extras: ['wings', 'flame', 'glow'] },
+  { id: 'sunglass', r: 43, name: 'サングラス', mult: 1.2, shape: 'box', color: 0xffd23f, accent: 0x111111, extras: ['shades'] },
+  { id: 'shinkan', r: 43, name: '太陽の神官', mult: 1.4, shape: 'egg', color: 0xfff3c4, accent: 0xffb300, extras: ['sunrays', 'tiara'] },
+  { id: 'corona', r: 43, name: 'コロナ', mult: 1.5, shape: 'sphere', color: 0xffe066, accent: 0xff5a00, extras: ['sunrays', 'flame', 'glow'] },
+  { id: 'taiyouou', r: 43, name: '太陽王', mult: 3, shape: 'sphere', color: 0xffb300, accent: 0xffffff, extras: ['sunrays', 'crown', 'halo', 'glow'], lowRate: true },
   { id: 'raien',     r: 32, name: '雷炎', mult: 3,   shape: 'egg',    color: 0xff7a2a, accent: 0xffc21a, extras: ['fireball', 'bigbolt', 'halo', 'glow'], lowRate: true },
 ];
 
@@ -560,7 +670,7 @@ export function rollCharacter(zone) {
   return pool[pool.length - 1];
 }
 
-const UNITS = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+const UNITS = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc', 'Ud', 'Dd', 'Td', 'Qad', 'Qid', 'Sxd', 'Spd', 'Ocd', 'Nod', 'Vg'];
 export function fmt(n) {
   if (!isFinite(n)) return '∞';
   if (n < 1000) return (n < 10 && n % 1 !== 0 ? n.toFixed(1) : Math.floor(n)).toString();

@@ -462,6 +462,206 @@ function decorate(type, x, z) {
       }
       break;
     }
+    case 'thunder': {   // 雷雲の峰: 黒い雷雲と稲妻・避雷針の塔・光る岩
+      const pick = Math.floor(Math.random() * 3);
+      if (pick === 0) {
+        const y = 7 + Math.random() * 2;
+        for (let k = 0; k < 5; k++) add(decoGeo.puff, mat(0x3a3f55), -1.6 + k * 0.8, y + (k % 2) * 0.5, 0).scale.setScalar(0.6);
+        const bt = new THREE.Group(); bt.position.y = y - 2.4; g.add(bt);
+        [[0, 0.9, 0.5], [0.3, 0, -0.5], [0, -0.9, 0.5]].forEach(([x, yy, r]) => { const s = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.3, 0.35), glow(0xfff27a)); s.position.set(x, yy, 0); s.rotation.z = r; bt.add(s); });
+      } else if (pick === 1) {
+        add(new THREE.CylinderGeometry(0.5, 0.8, 6, 8), mat(0x6a7088), 0, 3, 0);
+        add(new THREE.CylinderGeometry(0.06, 0.1, 2.4, 6), mat(0xd0d6e0), 0, 7.2, 0);
+        add(new THREE.SphereGeometry(0.35, 10, 8), glow(0x7df9ff), 0, 8.5, 0);
+      } else {
+        add(new THREE.DodecahedronGeometry(1.4), mat(0x4a4f63), 0, 1.1, 0).rotation.set(Math.random(), Math.random(), 0);
+        spinners.push(add(new THREE.OctahedronGeometry(0.6), glow(0x5ec8ff), 0, 2.9, 0));
+      }
+      break;
+    }
+    case 'bamboo': {   // 竹林: 竹のかたまり・ちょうちん・パンダの像
+      const pick = Math.floor(Math.random() * 4);
+      if (pick < 2) {
+        for (let k = 0; k < 4; k++) {
+          const h = 6 + Math.random() * 5, x = (Math.random() - 0.5) * 2.4, zz = (Math.random() - 0.5) * 2.4;
+          add(new THREE.CylinderGeometry(0.22, 0.25, h, 8), mat(k % 2 ? 0x7fc75a : 0x6ab04a), x, h / 2, zz);
+          for (let y = 1.5; y < h; y += 1.6) add(new THREE.CylinderGeometry(0.27, 0.27, 0.12, 8), mat(0x4f8a2a), x, y, zz);
+          add(new THREE.SphereGeometry(0.8, 8, 6), mat(0x5cb84a), x + 0.5, h, zz).scale.set(1.4, 0.3, 0.6);
+        }
+      } else if (pick === 2) {
+        add(new THREE.CylinderGeometry(0.15, 0.15, 3.6, 6), mat(0x6b4a2a), 0, 1.8, 0);
+        add(new THREE.BoxGeometry(1.6, 0.15, 0.15), mat(0x6b4a2a), 0.6, 3.5, 0);
+        add(new THREE.CylinderGeometry(0.5, 0.5, 1.0, 12), glow(0xff5a3a), 1.2, 2.8, 0);
+        for (const y of [2.3, 3.3]) add(new THREE.CylinderGeometry(0.52, 0.52, 0.15, 12), mat(0x111111), 1.2, y, 0);
+      } else {
+        add(new THREE.SphereGeometry(1.3, 14, 10), mat(0xffffff), 0, 1.3, 0);
+        add(new THREE.SphereGeometry(0.95, 14, 10), mat(0xffffff), 0, 3.0, 0.2);
+        for (const s of [-1, 1]) {
+          add(new THREE.SphereGeometry(0.35, 8, 6), mat(0x111111), s * 0.7, 3.8, 0.2);
+          add(new THREE.SphereGeometry(0.25, 8, 6), mat(0x111111), s * 0.35, 3.1, 1.0).scale.set(1, 1.3, 0.5);
+          add(new THREE.SphereGeometry(0.4, 8, 6), mat(0x111111), s * 1.1, 1.6, 0.5);
+        }
+      }
+      break;
+    }
+    case 'music': {   // 音楽の国: 大きな音符・けんばん・たいこ
+      const pick = Math.floor(Math.random() * 3);
+      if (pick === 0) {
+        const n = new THREE.Group(); n.position.y = 3 + Math.random() * 3; g.add(n);
+        const m = glow([0xff6ec7, 0x7ad7ff, 0xffd23f][Math.floor(Math.random() * 3)]);
+        const h = new THREE.Mesh(new THREE.SphereGeometry(0.8, 12, 10), m); h.scale.set(1.3, 1, 0.6); n.add(h);
+        const st = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 0.2), m); st.position.set(0.9, 1.5, 0); n.add(st);
+        const fl = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.35, 0.2), m); fl.position.set(1.3, 2.8, 0); fl.rotation.z = -0.5; n.add(fl);
+      } else if (pick === 1) {
+        for (let k = 0; k < 7; k++) add(new THREE.BoxGeometry(0.7, 0.5, 2.4), mat(0xffffff), -2.1 + k * 0.72, 0.25, 0);
+        for (const k of [0, 1, 3, 4, 5]) add(new THREE.BoxGeometry(0.4, 0.6, 1.4), mat(0x111111), -1.75 + k * 0.72, 0.55, -0.5);
+      } else {
+        add(new THREE.CylinderGeometry(1.2, 1.2, 1.4, 16), mat(0xd94a3a), 0, 0.7, 0);
+        add(new THREE.CylinderGeometry(1.22, 1.22, 0.08, 16), mat(0xf5e6c8), 0, 1.42, 0);
+        for (const s of [-1, 1]) add(new THREE.CylinderGeometry(0.06, 0.06, 1.6, 6), mat(0x8a5a2b), s * 0.5, 2.0, 0).rotation.z = s * 0.6;
+      }
+      break;
+    }
+    case 'carnival': {   // 遊園地: まわる観覧車・テント・ふうせん
+      const pick = Math.floor(Math.random() * 3);
+      if (pick === 0) {
+        const w = new THREE.Group(); w.position.y = 6.5; g.add(w);
+        w.add(new THREE.Mesh(new THREE.TorusGeometry(4, 0.15, 6, 32), mat(0xff5c8a)));
+        for (let k = 0; k < 8; k++) {
+          const a = k / 8 * Math.PI * 2;
+          const sp = new THREE.Mesh(new THREE.BoxGeometry(0.1, 4, 0.1), mat(0xffffff)); sp.position.set(Math.cos(a) * 2, Math.sin(a) * 2, 0); sp.rotation.z = a - Math.PI / 2; w.add(sp);
+          const c = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), mat([0xffd23f, 0x3a8dff, 0x4cd964, 0xff3b3b][k % 4])); c.position.set(Math.cos(a) * 4, Math.sin(a) * 4, 0); w.add(c);
+        }
+        spinners.push(w);
+        for (const s of [-1, 1]) add(new THREE.BoxGeometry(0.25, 6.8, 0.25), mat(0xdddddd), s * 0.8, 3.2, 0.3).rotation.z = s * 0.22;
+      } else if (pick === 1) {
+        for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; add(new THREE.BoxGeometry(1.6, 2.4, 0.1), mat(k % 2 ? 0xffffff : 0xff3b3b), Math.cos(a) * 1.95, 1.2, Math.sin(a) * 1.95).rotation.y = Math.PI / 2 - a; }
+        add(new THREE.ConeGeometry(2.6, 2.4, 8), mat(0xff3b3b), 0, 3.6, 0);
+        add(new THREE.BoxGeometry(0.6, 0.4, 0.05), mat(0xffd23f), 0.3, 5.3, 0);
+        add(new THREE.CylinderGeometry(0.04, 0.04, 1, 4), mat(0xffffff), 0, 5.2, 0);
+      } else {
+        for (let k = 0; k < 5; k++) {
+          const x = (k - 2) * 0.6, y = 4 + (k % 2) * 0.7;
+          add(new THREE.CylinderGeometry(0.02, 0.02, y, 4), mat(0xffffff), x / 2, y / 2, 0).rotation.z = -Math.atan2(x, y);
+          add(new THREE.SphereGeometry(0.6, 10, 8), mat([0xff5c8a, 0x3a8dff, 0xffd23f, 0x4cd964, 0xb05cff][k]), x, y, 0).scale.y = 1.2;
+        }
+      }
+      break;
+    }
+    case 'gems': {   // 宝石の洞窟: 宝石のかたまり・石筍・浮かぶ宝石
+      const pick = Math.floor(Math.random() * 3);
+      const col = () => [0xff2d55, 0x2d6bff, 0x1fcf6a, 0x9c5cff, 0xffb300][Math.floor(Math.random() * 5)];
+      if (pick === 0) {
+        for (let k = 0; k < 4; k++) { const c = add(new THREE.OctahedronGeometry(0.7 + Math.random() * 0.6), glow(col()), (Math.random() - 0.5) * 2.5, 1.2, (Math.random() - 0.5) * 2.5); c.scale.y = 2; c.rotation.z = (Math.random() - 0.5) * 0.6; }
+      } else if (pick === 1) {
+        for (let k = 0; k < 3; k++) { const h = 2 + Math.random() * 3; add(new THREE.ConeGeometry(0.7, h, 7), mat(0x5a4f70), (k - 1) * 1.3, h / 2, 0); }
+        add(new THREE.OctahedronGeometry(0.4), glow(col()), 0, 0.5, 0.9);
+      } else {
+        const gm = add(new THREE.OctahedronGeometry(1.1), glow(col()), 0, 4 + Math.random() * 2, 0); gm.scale.y = 1.5; spinners.push(gm);
+      }
+      break;
+    }
+    case 'food': {   // グルメ街: 大きなハンバーガー・ピザ・ラーメン・ドーナツ
+      const pick = Math.floor(Math.random() * 4);
+      if (pick === 0) {
+        add(new THREE.CylinderGeometry(1.6, 1.7, 0.7, 16), mat(0xd9903f), 0, 0.35, 0);
+        add(new THREE.CylinderGeometry(1.8, 1.8, 0.6, 16), mat(0x5a3020), 0, 1.0, 0);
+        add(new THREE.CylinderGeometry(1.9, 1.9, 0.15, 16), mat(0x4cd964), 0, 1.38, 0);
+        add(new THREE.SphereGeometry(1.7, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xd9903f), 0, 1.45, 0).scale.y = 0.8;
+      } else if (pick === 1) {
+        add(new THREE.CylinderGeometry(2.2, 2.2, 0.25, 3), mat(0xffc95a), 0, 0.15, 0).rotation.y = Math.random() * 6;
+        for (let k = 0; k < 3; k++) add(new THREE.CylinderGeometry(0.3, 0.3, 0.06, 10), mat(0xd94a3a), Math.cos(k * 2.1) * 0.6, 0.3, Math.sin(k * 2.1) * 0.6);
+      } else if (pick === 2) {
+        add(new THREE.CylinderGeometry(1.8, 1.1, 1.4, 16), mat(0xd94a3a), 0, 0.7, 0);
+        add(new THREE.CylinderGeometry(1.7, 1.7, 0.1, 16), mat(0xf5d08a), 0, 1.35, 0);
+        add(new THREE.CylinderGeometry(0.4, 0.4, 0.1, 12), mat(0xffffff), 0.6, 1.42, 0.4);
+        for (const s of [-1, 1]) add(new THREE.CylinderGeometry(0.06, 0.06, 3, 6), mat(0x8a5a2b), -0.4 + s * 0.2, 2.2, -0.3).rotation.z = 0.5;
+      } else {
+        add(new THREE.TorusGeometry(1.2, 0.6, 10, 20), mat(0xff9ecb), 0, 1.9, 0);
+        add(new THREE.TorusGeometry(1.2, 0.62, 10, 20, Math.PI), mat(0xffffff), 0, 1.9, 0.05);
+      }
+      break;
+    }
+    case 'magic': {   // 魔法学校: 浮かぶ本・大なべ・魔法の塔
+      const pick = Math.floor(Math.random() * 3);
+      if (pick === 0) {
+        const bk = new THREE.Group(); bk.position.y = 3 + Math.random() * 3; g.add(bk);
+        for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 1.6), mat(0xfff6e0)); p.position.x = s * 0.6; p.rotation.z = s * 0.25; bk.add(p); }
+        const cv = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.06, 1.7), mat([0xd94a3a, 0x3a8dff, 0x4cd964][Math.floor(Math.random() * 3)])); cv.position.y = -0.1; bk.add(cv);
+        const st = new THREE.Mesh(new THREE.OctahedronGeometry(0.3), glow(0xffd23f)); st.position.y = 0.8; bk.add(st);
+      } else if (pick === 1) {
+        add(new THREE.SphereGeometry(1.4, 14, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mat(0x222222), 0, 1.5, 0);
+        add(new THREE.CircleGeometry(1.3, 16), glow(0x4cd964), 0, 1.45, 0).rotation.x = -Math.PI / 2;
+        for (let k = 0; k < 3; k++) add(new THREE.SphereGeometry(0.25 + k * 0.08, 8, 6), glow(0x9be15d), (k - 1) * 0.5, 1.8 + k * 0.4, 0);
+      } else {
+        const h = 6 + Math.random() * 3;
+        add(new THREE.CylinderGeometry(1.0, 1.2, h, 10), mat(0x6a5a8a), 0, h / 2, 0);
+        add(new THREE.ConeGeometry(1.5, 3, 10), mat(0x3a2a7a), 0, h + 1.5, 0);
+        add(new THREE.BoxGeometry(0.5, 0.8, 0.1), glow(0xffd23f), 0, h * 0.7, 1.1);
+      }
+      break;
+    }
+    case 'steam': {   // 蒸気の街: 大きな歯車・パイプ・えんとつの工場
+      const pick = Math.floor(Math.random() * 3);
+      if (pick === 0) {
+        const gr = new THREE.Group(); gr.position.y = 3.2; g.add(gr);
+        gr.add(new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.5, 6, 24), mat(0xb08d57)));
+        for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; const t = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.8), mat(0xb08d57)); t.position.set(Math.cos(a) * 2.9, Math.sin(a) * 2.9, 0); t.rotation.z = a; gr.add(t); }
+        const ax = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 10), mat(0x3a3a3a)); ax.rotation.x = Math.PI / 2; gr.add(ax);
+        spinners.push(gr);
+      } else if (pick === 1) {
+        add(new THREE.CylinderGeometry(0.35, 0.35, 4, 10), mat(0xc0673f), -1, 2, 0);
+        add(new THREE.CylinderGeometry(0.35, 0.35, 2.4, 10), mat(0xc0673f), 0.2, 3.8, 0).rotation.z = Math.PI / 2;
+        add(new THREE.CylinderGeometry(0.35, 0.35, 3, 10), mat(0xc0673f), 1.4, 2.3, 0);
+        add(new THREE.TorusGeometry(0.4, 0.1, 6, 12), mat(0xd94a3a), -1, 2.5, 0.4);
+        for (let k = 0; k < 3; k++) add(decoGeo.puff, mat(0xeeeeee), 1.4 + k * 0.3, 4.4 + k * 0.9, 0).scale.setScalar(0.3 + k * 0.12);
+      } else {
+        add(new THREE.BoxGeometry(3.2, 3, 2.6), mat(0x8a4a3a), 0, 1.5, 0);
+        add(new THREE.CylinderGeometry(0.4, 0.5, 4, 8), mat(0x5a3a2a), 0.9, 4.5, 0);
+        for (const x of [-0.8, 0.4]) add(new THREE.BoxGeometry(0.6, 0.7, 0.1), glow(0xffb300), x, 1.8, 1.31);
+        for (let k = 0; k < 3; k++) add(decoGeo.puff, mat(0xdddddd), 0.9 + k * 0.4, 7 + k * 1.1, 0).scale.setScalar(0.4 + k * 0.15);
+      }
+      break;
+    }
+    case 'dream': {   // 夢の国: 浮かぶひつじ・大きなまくら・パステルの雲と星
+      const pick = Math.floor(Math.random() * 3);
+      if (pick === 0) {
+        const y = 3 + Math.random() * 3;
+        for (let k = 0; k < 6; k++) add(new THREE.SphereGeometry(0.7, 10, 8), mat(0xffffff), Math.cos(k) * 0.8, y + Math.sin(k * 2) * 0.4, Math.sin(k) * 0.5);
+        add(new THREE.SphereGeometry(0.5, 10, 8), mat(0x333333), 1.3, y + 0.2, 0);
+        for (const s of [-1, 1]) add(new THREE.CylinderGeometry(0.12, 0.12, 0.8, 6), mat(0x333333), s * 0.5, y - 0.9, 0);
+      } else if (pick === 1) {
+        add(new THREE.BoxGeometry(3, 0.9, 2), mat([0xffd6f0, 0xd6e4ff, 0xfff2c4][Math.floor(Math.random() * 3)]), 0, 0.45, 0).rotation.y = Math.random() * 3;
+        add(new THREE.SphereGeometry(0.6, 10, 8), mat(0xffffff), 0, 1.1, 0).scale.set(1.6, 0.5, 1);
+      } else {
+        const y = 7 + Math.random() * 2;
+        for (let k = 0; k < 4; k++) add(decoGeo.puff, mat([0xffd6f0, 0xe3d4ff][k % 2]), -1.2 + k * 0.8, y + (k % 2) * 0.4, 0).scale.setScalar(0.6);
+        spinners.push(add(new THREE.OctahedronGeometry(0.5), glow(0xfff27a), 0, y - 2, 0));
+      }
+      break;
+    }
+    case 'sun': {   // 太陽の神殿: 柱の上の太陽・金の門・ひまわり
+      const pick = Math.floor(Math.random() * 3);
+      if (pick === 0) {
+        add(new THREE.CylinderGeometry(0.6, 0.8, 5, 10), mat(0xfff3c4), 0, 2.5, 0);
+        const sn = new THREE.Group(); sn.position.y = 7; g.add(sn);
+        sn.add(new THREE.Mesh(new THREE.SphereGeometry(1.4, 16, 12), glow(0xffd23f)));
+        for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2; const r = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.4, 6), glow(k % 2 ? 0xff7a2a : 0xffd23f)); r.position.set(Math.cos(a) * 2.1, Math.sin(a) * 2.1, 0); r.rotation.z = a - Math.PI / 2; sn.add(r); }
+        spinners.push(sn);
+      } else if (pick === 1) {
+        for (const s of [-1, 1]) add(new THREE.CylinderGeometry(0.5, 0.6, 6, 10), mat(0xffd966), s * 2, 3, 0);
+        add(new THREE.BoxGeometry(5.6, 0.8, 1.2), mat(0xffc21a), 0, 6.3, 0);
+        add(new THREE.CircleGeometry(0.6, 16), glow(0xff7a2a), 0, 6.3, 0.61);
+      } else {
+        for (let k = 0; k < 3; k++) {
+          const x = (k - 1) * 1.4, h = 2.5 + (k % 2) * 1.2;
+          add(new THREE.CylinderGeometry(0.08, 0.1, h, 6), mat(0x3a9d23), x, h / 2, 0);
+          add(new THREE.CylinderGeometry(0.4, 0.4, 0.15, 12), mat(0x6b4423), x, h, 0.1).rotation.x = Math.PI / 2;
+          for (let j = 0; j < 8; j++) { const a = j / 8 * Math.PI * 2; const p = add(new THREE.SphereGeometry(0.22, 6, 4), mat(0xffd23f), x + Math.cos(a) * 0.55, h + Math.sin(a) * 0.55, 0.05); p.scale.set(0.6, 1.3, 0.3); p.rotation.z = a - Math.PI / 2; }
+        }
+      }
+      break;
+    }
     case 'moon': {   // 月の都: クレーター・光る三日月・もちつきのうす・月のお城
       const pick = Math.floor(Math.random() * 4);
       if (pick === 0) {   // クレーター
